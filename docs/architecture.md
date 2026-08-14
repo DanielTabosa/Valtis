@@ -156,20 +156,40 @@ A Manutec usa **Gmail comum**, não Google Workspace. Isso elimina a conta de se
 
 ## 7. Stack
 
+Definida em [decisions.md](decisions.md) · **D-20**. O backend é uma **API REST**; o frontend é uma aplicação separada que a consome.
+
+### Backend
+
 | Camada | Escolha | Por quê |
 |---|---|---|
-| Linguagem | **TypeScript** estrito | Uma linguagem no front e no back (RNF-24). Tipos compensam a ausência de equipe de QA |
-| Framework | **Next.js** (App Router) | Front e back no mesmo projeto, um deploy. Bom em celular por padrão |
+| Linguagem | **Java 21 (LTS)** | Objetivo de carreira além do produto (D-20). LTS garante suporte longo |
+| Framework | **Spring Boot 3** | Padrão de mercado em Java corporativo. Traz injeção de dependência, transações e agendador prontos |
+| Build | **Maven** | Mais comum em vagas e em código legado do que Gradle |
+| Persistência | **Spring Data JPA / Hibernate** | Mapeamento objeto-relacional idiomático do ecossistema |
+| Migrações | **Flyway** | Versionadas e revisáveis — casa com a exigência de aprovação do AGENTS.md §10 |
 | Banco | **PostgreSQL** | Relacional é o ajuste natural para Cliente→Estação→Válvula→Serviço |
-| ORM | **Prisma** | Schema declarativo, migrações versionadas, autocompletar |
-| Infra de dados | **Supabase** | Postgres gerenciado + storage + auth + backup num só lugar. Elimina três decisões de infra. Dados exportáveis (é Postgres puro) |
+| Segurança | **Spring Security** | Autenticação e autorização (RF-01, RNF-23) |
+| Worker do Outbox | **`@Scheduled`** do Spring | Nativo. Fila dedicada é overkill para 100 registros/ano |
+| Calendar | **google-api-client** (SDK Java) + OAuth refresh token | D-01. Isolado atrás do Outbox |
+| PDF | **JasperReports** | Padrão em Java corporativo e habilidade valorizada em vaga. ⚠️ Cuidado com alternativas: **iText 7 é AGPL**, restritivo para uso comercial |
+| Planilha | **Apache POI** | Importação da base legada e exportação para Excel |
+| Testes | **JUnit 5 + Mockito + Testcontainers** | Testcontainers roda Postgres real no teste — mais fiel que banco em memória |
+
+### Frontend
+
+| Camada | Escolha | Por quê |
+|---|---|---|
+| Framework | **React + Vite + TypeScript** | Mais vagas no agregado e curva mais suave que Angular. Next.js seria redundante com um backend Spring |
 | Estilo | **Tailwind + shadcn/ui** | Rápido, responsivo por padrão, componentes prontos |
-| PDF | **@react-pdf/renderer** | JavaScript puro, sem Chromium no servidor. Mais leve e barato de hospedar |
 | Fotos | Compressão **no navegador** antes do upload | Economiza storage e dados móveis do técnico |
-| Planilha | **SheetJS** | Importação da base legada e exportação para Excel |
-| Calendar | **googleapis** + OAuth refresh token | D-01. Isolado atrás do Outbox |
-| Worker | **Cron do provedor**, 5–15 min | Fila dedicada é overkill para 100 registros/ano |
-| Hospedagem | **Vercel ou Railway** | Deploy automático via Git. Atenção: plano gratuito da Vercel é para uso não comercial |
+
+### Infraestrutura
+
+| Item | Escolha | Por quê |
+|---|---|---|
+| Deploy backend | **Railway ou Render** (container) | ⚠️ **Vercel não hospeda Java** |
+| Deploy frontend | **Vercel ou Netlify** (estático) | Build do Vite publicado direto do Git |
+| Storage de fotos | Supabase Storage ou compatível com S3 | Acessado pelo backend, nunca direto pelo navegador |
 | Segredos | Variáveis de ambiente + cofre de senhas da empresa | O refresh token do Google é o segredo mais crítico |
 | Erros | **Sentry** (gratuito) | Sem isso, bug só aparece quando alguém reclama |
 
@@ -181,7 +201,10 @@ A Manutec usa **Gmail comum**, não Google Workspace. Isso elimina a conta de se
 | Google Forms + Sheets + Apps Script | Sai em dias e é barato, mas não sustenta o relacionamento entre estação, válvula e histórico |
 | App nativo (React Native/Flutter) | Duas bases de código, lojas, atualização lenta. Não se justifica para 3 usuários |
 | Airtable / Notion | Custo por usuário, integração limitada com Calendar, lock-in de dados |
-| Laravel / Django | Ótimos frameworks, mas somam uma segunda linguagem ao front |
+| Laravel / Django | Ótimos frameworks, mas fora do objetivo de carreira definido em D-20 |
+| **TypeScript / Next.js** | Era a escolha original (D-12). Menos superfície para manter, mas exigiria um projeto paralelo em Java para o portfólio — ver D-20 |
+| **Angular** no lugar de React | Dupla clássica do Java corporativo brasileiro, mas curva mais íngreme. Com 10h semanais divididas entre aprender e construir, o custo pesou |
+| **Thymeleaf** (telas no próprio Spring) | Entregaria bem mais rápido, mas não sustenta a alegação de full stack — que é parte do objetivo do projeto |
 | MongoDB | O domínio é fortemente relacional |
 
 ## 8. Anti-padrões neste projeto

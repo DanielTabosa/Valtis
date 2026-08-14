@@ -45,15 +45,18 @@ Leia nesta ordem:
 | [docs/architecture.md](docs/architecture.md) | **Como** construir. Camadas, fronteiras, padrão Outbox, módulos e stack |
 | [docs/database.md](docs/database.md) | O modelo de dados, convenções de nomenclatura, mapeamento da planilha legada e o glossário do domínio |
 | [docs/decisions.md](docs/decisions.md) | **Por que** está assim. Registro de decisões (ADR), append-only |
+| [docs/plano-fase-0.md](docs/plano-fase-0.md) | Plano de execução da Fase 0, semana a semana, com os conceitos a estudar em paralelo |
 | [_arquivo/](_arquivo/) | Versões anteriores da documentação. Histórico, **não** fonte de verdade |
 
 **Regra de ouro:** cada fato mora em um único arquivo. Os demais referenciam por ID (`RF-26`, `RN-04`, `D-08`). Se você encontrar a mesma informação em dois lugares, é bug de documentação — reporte.
 
 ## Stack
 
-TypeScript · Next.js (App Router) · PostgreSQL · Prisma · Supabase (banco, storage e auth) · Tailwind + shadcn/ui · Google Calendar API
+**Backend:** Java 21 · Spring Boot 3 · Maven · Spring Data JPA · Flyway · PostgreSQL · Spring Security · JasperReports
+**Frontend:** React · Vite · TypeScript · Tailwind + shadcn/ui
+**Integração:** Google Calendar API via padrão Outbox
 
-Detalhes e alternativas descartadas em [docs/architecture.md](docs/architecture.md).
+Detalhes, alternativas descartadas e o porquê da escolha em [docs/architecture.md](docs/architecture.md) e [docs/decisions.md](docs/decisions.md) · D-20.
 
 ## Como rodar
 

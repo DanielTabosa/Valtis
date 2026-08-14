@@ -183,7 +183,13 @@ Decisão original: criar o evento 7 dias antes do vencimento. Substituída após
 
 ## D-12 — Stack: TypeScript, Next.js, PostgreSQL, Prisma, Supabase
 
-**Status:** Aceita · 13/08/2026
+**Status:** ⚠️ **Substituída por D-20** · 13/08/2026
+
+A recomendação original otimizava para *manutenção por uma pessoa*. Surgiu depois um objetivo que não estava na mesa: o projeto é também o portfólio de entrada do Daniel na área de tecnologia. Isso muda a função-objetivo e, com ela, a stack. Raciocínio original preservado abaixo.
+
+---
+
+### *(conteúdo original da decisão substituída)*
 
 **Contexto.** O Daniel constrói o sistema com apoio de IA. Manutenção por uma pessoa, orçamento enxuto, uso em celular e PC.
 
@@ -318,6 +324,43 @@ Proposta apresentada e recusada pelo Daniel: o registro será mantido no nível 
 
 ---
 
+## D-20 — Stack: Java + Spring Boot no backend, React no frontend
+
+**Status:** Aceita · 13/08/2026 · *substitui D-12*
+
+**Contexto.** A D-12 escolheu TypeScript/Next.js otimizando para **manutenção por uma pessoa**: uma linguagem só, menos superfície. Faltava uma informação decisiva, que só apareceu depois: **o Valtis é também o projeto de portfólio do Daniel para entrar na área de tecnologia**, e ele já está estudando Java e Spring.
+
+Isso troca a função-objetivo. Não se trata mais de "qual stack dá menos trabalho para manter", e sim de "qual stack entrega o sistema **e** constrói a carreira". Mantido o TypeScript, ele precisaria de um segundo projeto paralelo em Java — e já existe um terceiro projeto em Salesforce Apex/LWC concorrendo pelo mesmo tempo.
+
+**Decisão.**
+
+| Camada | Escolha |
+|---|---|
+| Backend | **Java 21 (LTS) + Spring Boot 3** |
+| Build | **Maven** — mais comum em vagas e em código legado que em Gradle |
+| Persistência | **Spring Data JPA / Hibernate** |
+| Migrações | **Flyway** — versionadas, alinhadas ao AGENTS.md §10 |
+| Banco | **PostgreSQL** (inalterado) |
+| Segurança | **Spring Security** |
+| Agendador do Outbox | **`@Scheduled` do Spring** — sem infraestrutura extra |
+| Google Calendar | SDK oficial `google-api-client` para Java |
+| PDF | **JasperReports** — padrão de mercado em Java corporativo, e habilidade valorizada em vaga. *Atenção à licença de alternativas: o iText 7 é AGPL, restritivo para uso comercial* |
+| Testes | **JUnit 5 + Mockito + Testcontainers** |
+| Frontend | **React + Vite + TypeScript** |
+| Deploy backend | Railway ou Render (container). **Vercel não hospeda Java** |
+| Deploy frontend | Vercel ou Netlify (estático) |
+
+**Racional da escolha de React sobre Angular.** Angular é a dupla clássica do Java corporativo brasileiro, mas tem curva mais íngreme — e o orçamento é de 10h por semana, divididas entre aprender e construir. React tem mais vagas no agregado e curva mais suave. Thymeleaf foi descartado: entregaria mais rápido, mas não sustentaria a alegação de full stack, que é parte do objetivo.
+
+**Consequências.**
+- **RNF-24 fica revogado.** Passam a ser duas linguagens e dois deploys. É um custo real, assumido conscientemente em troca do objetivo de carreira.
+- O backend deixa de servir telas: vira **API REST** consumida pelo React.
+- O padrão Outbox (D-13) **permanece** e fica até mais natural — `@Transactional` e `@Scheduled` são nativos do Spring.
+- O monolito modular (D-11) permanece. Vale considerar **Spring Modulith** para tornar as fronteiras entre módulos verificáveis por teste.
+- Aumenta o prazo de entrega e a curva de aprendizado. Aceito.
+
+---
+
 ## Índice
 
 | ID | Decisão | Status |
@@ -333,7 +376,7 @@ Proposta apresentada e recusada pelo Daniel: o registro será mantido no nível 
 | D-09 | Importar só clientes + última manutenção | Aceita |
 | D-10 | Pressões opcionais | Aceita |
 | D-11 | Monolito modular | Aceita |
-| D-12 | Stack TypeScript / Next / Postgres | Aceita |
+| D-12 | Stack TypeScript / Next / Postgres | **Substituída por D-20** |
 | D-13 | Padrão Outbox | Aceita |
 | D-14 | Domínio em PT, infra em EN | Aceita |
 | D-15 | Painel calculado | Aceita |
@@ -341,3 +384,4 @@ Proposta apresentada e recusada pelo Daniel: o registro será mantido no nível 
 | D-17 | Cliente → Estação → Válvula | Aceita |
 | D-18 | Serviço registrado por válvula individual | Aceita |
 | D-19 | Estação comporta N válvulas | Aceita |
+| D-20 | Stack Java + Spring Boot + React | Aceita |

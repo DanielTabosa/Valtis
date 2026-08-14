@@ -184,7 +184,7 @@ D-02 removeu a necessidade de operação offline.
 
 | ID | Requisito | Origem |
 |---|---|---|
-| RNF-24 | Uma linguagem no front e no back | `[SUGESTÃO]` |
+| ~~RNF-24~~ | ~~Uma linguagem no front e no back~~ — **revogado por D-20**. Serão Java no backend e TypeScript no frontend. Custo assumido em troca do objetivo de aprendizado | `[DECIDIDO]` |
 | RNF-25 | Deploy automatizado a partir do Git | `[SUGESTÃO]` |
 | RNF-26 | Custo de infraestrutura ≤ R$ 150/mês na fase inicial | `[SUGESTÃO]` |
 | RNF-27 | Dados integralmente exportáveis, sem lock-in | `[SUGESTÃO]` |
