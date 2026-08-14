@@ -1,0 +1,69 @@
+# === Dependências ===
+node_modules/
+.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# === Build e cache ===
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+.turbo/
+.swc/
+
+# === Segredos — NUNCA commitar (AGENTS.md §8) ===
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+credentials.json
+client_secret*.json
+token.json
+service-account*.json
+
+# === Dados reais de cliente — LGPD (RNF-22) ===
+# A base contém nome, telefone e e-mail de ~296 síndicos e administradoras.
+# Nenhuma planilha, dump ou export com dado real entra no repositório.
+*.xlsx
+*.xls
+*.csv
+*.sql
+*.dump
+/dados/
+/uploads/
+!docs/**/*.csv
+
+# === Testes e cobertura ===
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# === Prisma ===
+prisma/*.db
+prisma/*.db-journal
+
+# === Editor e SO ===
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+
+# === Logs ===
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# === Deploy ===
+.vercel
+.netlify
