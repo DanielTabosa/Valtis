@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: valtis
+
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+  jpa:
+    hibernate:
+      # NUNCA mudar para create/update. O Flyway é o dono do schema (AGENTS.md §10).
+      # 'validate' faz o Hibernate apenas conferir se as tabelas batem com as entidades.
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  # Railway e Render injetam a porta por variável de ambiente.
+  # Local, cai no 8080.
+  port: ${PORT:8080}
+
+logging:
+  level:
+    org.hibernate.SQL: debug

@@ -1,4 +1,15 @@
-# === Dependências ===
+# === Java / Maven ===
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+*.class
+*.jar
+!.mvn/wrapper/*.jar
+*.war
+HELP.md
+
+# === Dependências (frontend) ===
 node_modules/
 .pnp
 .pnp.js
