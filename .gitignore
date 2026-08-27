@@ -48,6 +48,11 @@ service-account*.json
 /uploads/
 !docs/**/*.csv
 
+# Exceção obrigatória: migrations do Flyway SÃO código versionado.
+# Sem esta linha, a regra *.sql acima as excluiria do repositório e o
+# deploy subiria com o banco vazio.
+!**/src/main/resources/db/migration/*.sql
+
 # === Testes e cobertura ===
 coverage/
 .nyc_output/
