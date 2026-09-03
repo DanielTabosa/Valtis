@@ -26,6 +26,12 @@ server:
   # Local, cai no 8080.
   port: ${PORT:8080}
 
+valtis:
+  cors:
+    # Origens autorizadas a chamar a API. Em produção, a URL do frontend
+    # publicado entra aqui pela variável de ambiente CORS_ORIGENS.
+    origens: ${CORS_ORIGENS:http://localhost:5173}
+
 logging:
   level:
     org.hibernate.SQL: debug
