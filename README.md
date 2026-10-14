@@ -30,7 +30,7 @@ A Manutec instala e mantém VRPs em prédios. Toda manutenção abre uma janela 
 
 ## Estado atual
 
-**Fase 0 concluída. Fatia vertical do painel no ar, em produção.**
+**Fase 1 implementada na branch `feat/fase-1-mvp`, aguardando teste manual.** Produção ainda roda a Fase 0.
 
 | Ambiente | URL |
 |---|---|
@@ -38,19 +38,20 @@ A Manutec instala e mantém VRPs em prédios. Toda manutenção abre uma janela 
 | Backend | https://valtis-production.up.railway.app |
 | Banco | PostgreSQL no Supabase (região São Paulo) |
 
-Pronto:
+Pronto na branch:
 
-- Backend Spring Boot conectado ao PostgreSQL, com Flyway aplicando migrations
-- Schema do domínio: `usuario`, `cliente`, `especificacao`, `estacao`, `valvula`, `servico`
-- Cálculo de vencimento (RN-01) e classificação do painel (RN-04)
-- Frontend React exibindo o painel com resumo por situação
-- Deploy contínuo: backend no Railway via Docker, frontend na Vercel
+- Login com perfis técnico e administrador, token JWT e bloqueio por senha errada (D-22)
+- Cadastros de cliente, especificação, estação e válvula, com código automático e alerta de duplicidade
+- Lançamento de serviço por válvula, com replicação para as demais válvulas da estação
+- Painel com filtros e resumo, calculado no servidor
+- Fila de oportunidades: assumir, desfecho, recusa com nova data de lembrete
+- Fila de saída da agenda (Outbox) com worker, retentativa e tela de sincronização
+- Adaptador do Google Calendar escrito e testado contra servidor simulado (falta a credencial real)
+- 67 testes automatizados, inclusive com Postgres real (Testcontainers), e CI no GitHub Actions
 
-A fazer, em ordem: endpoints e telas de cadastro · autenticação · integração com o Google Calendar · importação dos 296 clientes.
+A fazer, em ordem: credencial do Google Calendar · importação dos 296 clientes · fotos e PDF.
 
-> ⚠️ A migration `V3__seed_demonstracao.sql` insere **dados fictícios** para o painel ter o que exibir. Remover antes de qualquer dado real entrar.
->
-> ⚠️ **Ainda não há autenticação.** Nenhum dado real de cliente pode entrar no sistema antes disso (RNF-22, LGPD).
+> ⚠️ A migration `V3__seed_demonstracao.sql` insere **dados fictícios**. Remover antes de qualquer dado real entrar.
 
 ## Documentação
 
@@ -71,8 +72,8 @@ Leia nesta ordem:
 
 ## Stack
 
-**Backend:** Java 21 · Spring Boot 3 · Maven · Spring Data JPA · Flyway · PostgreSQL · Spring Security · JasperReports
-**Frontend:** React · Vite · TypeScript · Tailwind + shadcn/ui
+**Backend:** Java 21 · Spring Boot 4 · Maven · Spring Data JPA · Flyway · PostgreSQL · Spring Security (JWT) · JUnit 5 · Mockito · Testcontainers
+**Frontend:** React · Vite · TypeScript · React Router · CSS próprio (D-24)
 **Integração:** Google Calendar API via padrão Outbox
 
 Detalhes, alternativas descartadas e o porquê da escolha em [docs/architecture.md](docs/architecture.md) e [docs/decisions.md](docs/decisions.md) · D-20.
@@ -83,28 +84,60 @@ Detalhes, alternativas descartadas e o porquê da escolha em [docs/architecture.
 
 - **JDK 21** — `winget install EclipseAdoptium.Temurin.21.JDK`, com `JAVA_HOME` configurado
 - **Node 18+** — `winget install OpenJS.NodeJS.LTS`
-- Variáveis de ambiente de usuário com as credenciais do banco: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`
+- **Docker Desktop** — para o banco local e para os testes de integração
 
 Maven não precisa ser instalado — o projeto usa o Maven Wrapper (`mvnw`).
 
+### Rodar localmente, com banco local (recomendado para desenvolver e testar)
+
+O perfil `local` usa um Postgres em Docker na porta 5433 e **nunca toca o Supabase**.
+Ele cria um administrador de teste e usa uma agenda simulada, que só escreve no log.
+O login está em `backend/src/main/resources/application-local.yml`.
+
+```powershell
+# Terminal 1 — banco local (uma vez por sessão; os dados ficam guardados)
+cd C:\dev\Valtis
+docker compose up -d
+
+# Terminal 1 — backend no perfil local (as aspas são obrigatórias no PowerShell)
+cd C:\dev\Valtis\backend
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
+
+# Terminal 2 — frontend
+cd C:\dev\Valtis\frontend
+npm run dev
+```
+
+Abra `http://localhost:5173`. Para zerar o banco local: `docker compose down -v`.
+
+### Testes
+
+```powershell
+cd C:\dev\Valtis\backend
+.\mvnw.cmd test      # precisa do Docker Desktop aberto
+```
+
+### Rodar contra o banco de produção (evite)
+
+Sem o perfil `local`, o backend usa as variáveis `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` e também exige
+`VALTIS_JWT_SEGREDO`. ⚠️ Ao subir, o Flyway aplica no Supabase as migrations novas.
+
 ### Rotina para começar a trabalhar
 
-**1. Abrir o projeto**
+**1. Abrir o projeto e o Docker Desktop**
 
 ```powershell
 code C:\dev\Valtis
 ```
 
-**2. Conferir o banco.** Entre em `supabase.com` e veja se o projeto está ativo.
-No plano gratuito ele hiberna após alguns dias sem uso. Se estiver *Paused*,
-clique em **Restore** e aguarde. Sintoma de banco pausado ao rodar:
-`UnknownHostException` no endereço do Supabase.
+**2. Banco local.** Na raiz do projeto: `docker compose up -d`. Só é preciso conferir o Supabase
+(se está *Paused*, clicar em **Restore**) quando for mexer em produção.
 
 **3. Backend** — terminal 1 no VS Code (`Ctrl + '`):
 
 ```powershell
 cd C:\dev\Valtis\backend
-.\mvnw.cmd spring-boot:run
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
 ```
 
 Sobe em `http://localhost:8080`. Pronto quando aparecer `Started ValtisApplication`.
@@ -122,11 +155,23 @@ Para parar qualquer um dos dois: `Ctrl + C` no terminal correspondente.
 
 ### Endpoints disponíveis
 
+Todos exigem o cabeçalho `Authorization: Bearer <token>`, exceto login e health.
+
 | Endpoint | O que faz |
 |---|---|
-| `GET /api/painel` | Uma linha por válvula ativa, com status e dias restantes |
-| `GET /api/painel/resumo` | Contagem por situação |
-| `GET /api/health` | Sinal de vida, não depende do banco |
+| `POST /api/auth/login` | Devolve o token. Público |
+| `GET /api/auth/eu` · `POST /api/auth/senha` | Quem sou eu · trocar a própria senha |
+| `GET /api/painel` | Linhas e resumo por situação. Filtros: `busca`, `status`, `bairro`, `tipoAtendimento`, `clienteId` |
+| `GET/POST /api/clientes` · `GET/PUT /api/clientes/{id}` | Cadastro de clientes |
+| `POST /api/clientes/{id}/estacoes` · `PUT /api/estacoes/{id}` | Estações |
+| `POST /api/estacoes/{id}/valvulas` · `GET/PUT /api/valvulas/{id}` | Válvulas e ficha com histórico |
+| `GET/POST /api/especificacoes` · `PUT /api/especificacoes/{id}` | Catálogo |
+| `POST /api/servicos/lancamentos` | Lança serviço em uma ou mais válvulas |
+| `GET /api/oportunidades` · `POST .../{id}/assumir`, `/liberar`, `/desfecho` | Fila comercial |
+| `GET /api/agenda/situacao` · `POST /api/agenda/sincronizar` | Sincronização com a agenda |
+| `GET /api/usuarios/ativos` · `GET/POST/PUT /api/usuarios` | Usuários (gestão só para admin) |
+| `POST .../{id}/inativar`, `/reativar` | Inativação lógica. Só admin |
+| `GET /api/health` | Sinal de vida, não depende do banco. Público |
 
 ### Problemas conhecidos
 
@@ -139,6 +184,10 @@ Para parar qualquer um dos dois: `Ctrl + C` no terminal correspondente.
 | Frontend na Vercel chamando `localhost` | Variáveis `VITE_*` são gravadas no código **durante o build**, não lidas em execução | Adicionar a variável e então **Redeploy** na Vercel |
 | Domínio do Railway com sufixo duplicado | O campo já acrescenta `.up.railway.app` | Digitar só o nome curto ao gerar o domínio |
 | `index.lock` impedindo `git add` | VS Code segurando o arquivo | `Remove-Item .git\index.lock -Force` |
+| Backend não sobe: `Defina VALTIS_JWT_SEGREDO` | Falta a chave que assina os tokens | Rodar com o perfil `local`, ou definir a variável com 32+ caracteres |
+| `Connection refused` na porta 5433 | Banco local parado | `docker compose up -d` na raiz do projeto |
+| Testes falham com `Could not find a valid Docker environment` | Docker Desktop fechado | Abrir o Docker Desktop e rodar de novo |
+| Acento chega quebrado ao testar com `curl` no Git Bash | O terminal manda o texto fora de UTF-8 | Testar pela tela, ou mandar o corpo de um arquivo salvo em UTF-8 |
 
 ### Diagnóstico
 

@@ -1,8 +1,8 @@
 # HANDOFF — Valtis
 
 **Para:** qualquer agente que vá trabalhar neste repositório
-**Atualizado em:** 06/10/2026
-**Último commit:** `ae79829 docs: rotina de execucao, URLs de producao e problemas conhecidos`
+**Atualizado em:** 13/10/2026
+**Branch de trabalho:** `feat/fase-1-mvp` (não publicada, não mesclada na `main`)
 
 Este arquivo é o resumo de situação. Ele **não substitui** `AGENTS.md`, `docs/requirements.md`, `docs/architecture.md`, `docs/database.md` e `docs/decisions.md` — leia-os conforme a ordem do `CLAUDE.md`. O que este arquivo faz é te dizer, rápido: onde o projeto está, o que já foi decidido, o que falta e o que você **não** pode fazer sozinho.
 
@@ -10,7 +10,7 @@ Este arquivo é o resumo de situação. Ele **não substitui** `AGENTS.md`, `doc
 
 ## 1. O produto em um parágrafo
 
-A **Manutec Válvulas** (Recife/PE) faz manutenção de VRPs — válvulas redutoras de pressão — em prédios. Toda manutenção abre uma janela de reventa cerca de 12 meses depois. Hoje esse rastreamento é manual e falha. O **Valtis** registra as manutenções executadas, calcula o vencimento do próximo ciclo e agendará o retorno no Google Calendar. Três usuários: dois perfis, `tecnico` e `admin`.
+A **Manutec Válvulas** (Recife/PE) faz manutenção de VRPs — válvulas redutoras de pressão — em prédios. Toda manutenção abre uma janela de reventa cerca de 12 meses depois. Hoje esse rastreamento é manual e falha. O **Valtis** registra as manutenções executadas, calcula o vencimento do próximo ciclo e agenda o retorno no Google Calendar. Três usuários: dois perfis, `tecnico` e `admin`.
 
 **O tamanho da dor, medido na base real (595 NFs, 2018–ago/2026):**
 
@@ -28,192 +28,185 @@ A **Manutec Válvulas** (Recife/PE) faz manutenção de VRPs — válvulas redut
 
 ## 2. Estado atual
 
-**Fase 0 concluída. Fatia vertical do painel em produção.**
+**Fase 1 implementada na branch `feat/fase-1-mvp`, pronta para o teste manual do Daniel.** A `main` e a produção continuam na Fase 0 (só o painel, sem login).
 
-| Ambiente | URL |
-|---|---|
-| Frontend | https://valtis-gray.vercel.app |
-| Backend | https://valtis-production.up.railway.app |
-| Repositório | https://github.com/DanielTabosa/Valtis (branch `main`) |
-| Banco | PostgreSQL no Supabase, região São Paulo |
+| Ambiente | URL | Versão |
+|---|---|---|
+| Frontend | https://valtis-gray.vercel.app | Fase 0 |
+| Backend | https://valtis-production.up.railway.app | Fase 0 |
+| Repositório | https://github.com/DanielTabosa/Valtis | `main` = Fase 0 · `feat/fase-1-mvp` = Fase 1 (só local) |
+| Banco de produção | PostgreSQL no Supabase, São Paulo | migrations V1–V3 |
+| Banco local | Docker, `docker-compose.yml`, porta 5433 | V1–V4 |
 
-Deploy contínuo: push em `main` → Railway rebuilda o backend (Docker, root `backend/`), Vercel rebuilda o frontend (root `frontend/`).
+### O que a branch entrega
 
-### O que funciona hoje
-
-- Backend Spring Boot conectado ao Postgres, Flyway aplicando migrations
-- Schema de 6 tabelas: `usuario`, `cliente`, `especificacao`, `estacao`, `valvula`, `servico`
-- Cálculo de vencimento (RN-01) e classificação do painel (RN-04) em `PainelService`
-- `GET /api/painel` e `GET /api/painel/resumo`
-- Frontend React exibindo o painel com cartões de resumo e tabela colorida
-- CORS configurável por ambiente
+| Módulo | Requisitos | Observação |
+|---|---|---|
+| Acesso (M1) | RF-01 a RF-03 | JWT de 14 dias, BCrypt, bloqueio após 5 erros, perfil lido do banco a cada requisição (D-22) |
+| Cadastros (M2) | RF-05 a RF-13 | Código `COND-001` e `COND-001-VRP-01` automáticos, duplicidade barrada, inativação lógica |
+| Lançamento (M3) | RF-14 a RF-18, RF-15b, RF-10 | Uma transação para N válvulas; replicação na tela; cadastro sem sair do lançamento |
+| Painel (M4) | RF-34 a RF-39 | Filtros por busca, situação, tipo de atendimento; resumo respeita o filtro |
+| Recorrência (M5) | RN-01 a RN-07, RN-10 a RN-12 | Regras em `RegrasRecorrencia`; "hoje" em `America/Recife` via `Clock` injetado |
+| Calendar (M6) | RF-26 a RF-31, RF-33 | Outbox em `evento_agenda` + worker; adaptador Google por REST **sem credencial real**; agenda simulada no local |
+| Pipeline (M10) | RF-41 a RF-46 | Assumir, devolver, desfecho, recusa com pergunta e nova data (RN-09) |
+| Qualidade | AGENTS.md §5 | 67 testes (unitários + integração com Testcontainers), CI no GitHub Actions |
 
 ### O que NÃO existe ainda
 
-| Faltando | Consequência |
+| Faltando | Por quê |
 |---|---|
-| **Qualquer teste automatizado** | Viola `AGENTS.md` §5. Regras `RN-xx` sem cobertura |
-| **Autenticação** | API e painel abertos na internet. **Bloqueia entrada de dado real** |
-| Endpoints/telas de cadastro | Só dá para criar dados via SQL |
-| Tabelas `oportunidade`, `anexo`, `auditoria` | Pipeline comercial e fotos impossíveis |
-| Integração Google Calendar + Outbox | **O coração da ideia original ainda não existe** |
-| Importador dos 296 clientes | Pipeline nasce vazio |
-| Geração de PDF | — |
+| Credencial real do Google Calendar | Exige o app OAuth publicado pelo Daniel (D-01). O código está pronto |
+| Importador dos 296 clientes (M7) | A planilha não está no repositório |
+| Fotos (RF-19) e PDF (RF-48) | Fase 2 |
+| Auditoria (RNF-17), rascunho (RF-20), exportar CSV (RF-40) | Não priorizados |
+| Atualizar/remover evento já criado no Google (RF-32) | Hoje, mudar a data só reprograma eventos ainda não enviados |
+| Filtro do painel por técnico e período (parte do RF-38) | Não implementado |
 
 ---
 
-## 3. Mapa do código
+## 3. Como testar (o Daniel, manualmente)
+
+Detalhe no `README.md`, seção "Rodar localmente". Resumo:
+
+```powershell
+cd C:\dev\Valtis
+git checkout feat/fase-1-mvp
+docker compose up -d
+cd backend
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
+# outro terminal
+cd C:\dev\Valtis\frontend
+npm install
+npm run dev
+```
+
+Login local: `backend/src/main/resources/application-local.yml`, bloco `admin-inicial`. A agenda simulada escreve os eventos no log do backend (`[agenda simulada]`) a cada 30 segundos.
+
+**Roteiro sugerido:** criar um usuário técnico → entrar como ele → cadastrar condomínio, estação com 2 válvulas → lançar serviço nas duas, ajustando uma → ver no painel → na fila, assumir e recusar pedindo nova data → conferir a tela Agenda → entrar como admin e inativar uma válvula.
+
+---
+
+## 4. Para publicar em produção — checklist (exige o Daniel, AGENTS.md §10)
+
+Nada disto foi feito. Merge na `main` **publica automaticamente** no Railway e na Vercel.
+
+1. **Railway — variáveis novas** (sem a primeira, o backend **não sobe**):
+   - `VALTIS_JWT_SEGREDO`: 32+ caracteres aleatórios. Gerar e guardar no cofre.
+   - `VALTIS_ADMIN_EMAIL`, `VALTIS_ADMIN_SENHA`, `VALTIS_ADMIN_NOME`: primeiro admin. Remover depois do primeiro login e troca de senha.
+   - `VALTIS_URL_FRONTEND`: `https://valtis-gray.vercel.app` (vai nos links dos eventos).
+   - `VALTIS_AGENDA_PROVEDOR`: deixar sem definir (= `desativada`) até ter a credencial do Google.
+2. **Migration V4 no Supabase:** cria `oportunidade` e `evento_agenda`, **apaga a tabela `teste_conexao`** e gera oportunidades a partir dos serviços do seed. Roda sozinha na primeira subida.
+3. **Seed V3 em produção:** continua lá (usuários e cliente fictícios). Removê-lo é `DELETE` físico — decidir antes de dado real.
+4. **Vercel:** nada a configurar; o `vercel.json` cuida das rotas.
+5. **CI:** o Railway e a Vercel não esperam o CI. Ligar "Wait for CI" no Railway, ou só fazer merge com CI verde.
+
+### Para ligar o Google Calendar (D-01, D-23)
+
+App OAuth **publicado em produção** no Google Cloud, escopo só `calendar.events`, refresh token da conta institucional, e no Railway: `VALTIS_AGENDA_PROVEDOR=google`, `VALTIS_GOOGLE_CLIENT_ID`, `VALTIS_GOOGLE_CLIENT_SECRET`, `VALTIS_GOOGLE_REFRESH_TOKEN`, `VALTIS_GOOGLE_CALENDARIO_ID`, `VALTIS_AGENDA_CONVIDADOS` (e-mails separados por vírgula). O adaptador nunca rodou contra o Google real: testar primeiro com uma agenda de teste.
+
+---
+
+## 5. Suposições feitas sem o Daniel — VALIDAR
+
+O Daniel autorizou seguir sem aprovação durante a codificação (13/10/2026). Estas escolhas foram feitas para não travar; cada uma é reversível.
+
+| # | Suposição | Onde mexer se estiver errada |
+|---|---|---|
+| S-01 | **Técnico também cadastra** cliente, estação, válvula e especificação (RF-10 exige criar de dentro do lançamento). Só **admin inativa** e gerencia usuários (P-05) | `@PreAuthorize` nos controllers |
+| S-02 | **RN-10 por válvula**, não por estação: um serviço fecha só o ciclo da válvula atendida (e os de escopo cliente do mesmo cliente, RF-59) | `OportunidadeService.abrirNovoCiclo` |
+| S-03 | Serviço lançado com data **anterior** ao último já registrado entra no histórico, mas **não** muda o ciclo | `LancamentoService.lancarItem` |
+| S-04 | Alerta cuja data já passou **não** é criado na agenda (estende RN-13 a todos, não só importados) | `FilaDaAgenda.enfileirar` |
+| S-05 | Quem registra desfecho de oportunidade sem dono **passa a ser o dono** | `OportunidadeService.registrarDesfecho` |
+| S-06 | `executado` só por lançamento de serviço, nunca por clique | `Oportunidade.registrarDesfecho` |
+| S-07 | Mudar a periodicidade reprograma o ciclo aberto, exceto oportunidades de retorno de recusa (data escolhida pelo usuário) | `OportunidadeService.reprogramarCicloDaValvula` |
+| S-08 | Sessão de 14 dias; bloqueio de 15 min após 5 senhas erradas | `application.yml`, bloco `seguranca` |
+| S-09 | Painel e lista de clientes importados ficam em telas separadas (P-08) | — (importador não existe ainda) |
+| S-10 | Data de lançamento **sem valor padrão**: o técnico sempre digita (RF-17) | `Lancamento.tsx` |
+| S-11 | D-21 a D-24 em `docs/decisions.md` estão como **Proposta** | `docs/decisions.md` |
+
+---
+
+## 6. Mapa do código
 
 ```
 backend/src/main/java/br/com/manutec/valtis/
-├── ValtisApplication.java        ponto de entrada; sobe Tomcat embutido
-├── comum/CorsConfig.java         libera origens via ${CORS_ORIGENS}
-├── usuario/                      Usuario + UsuarioRepository
-├── cliente/                      Cliente + ClienteRepository
-├── especificacao/                Especificacao + EspecificacaoRepository
-├── estacao/                      Estacao + EstacaoRepository
-├── valvula/                      Valvula, ValvulaRepository, PainelProjecao
-├── servico/                      Servico + ServicoRepository
-├── painel/                       StatusPainel, LinhaPainel, PainelService, PainelController
-└── fase0/                        ⚠️ DESCARTÁVEL — ver dívidas (§7)
+├── comum/          config (ValtisPropriedades, Relógio, CORS), erros (RFC 9457), enums de banco
+├── seguranca/      SegurancaConfig, login, emissão e leitura do JWT, força bruta, admin inicial
+├── usuario/        Usuario, Perfil, gestão de usuários
+├── cliente/ especificacao/ estacao/ valvula/   cadastros (entidade, repositório, serviço, controller)
+├── servico/        Servico e o caso de uso LancamentoService
+├── recorrencia/    RegrasRecorrencia (RN-01, RN-04, RN-06) e StatusPainel
+├── oportunidade/   Oportunidade e OportunidadeService (ciclo, fila, desfecho)
+├── agenda/         Outbox: EventoAgenda, FilaDaAgenda, SincronizadorDaAgenda, AgendaGateway (Google/simulada)
+└── painel/         PainelService e filtros
 ```
 
-**Organização por funcionalidade**, não por camada — coerente com o monolito modular (D-11).
-
-```
-backend/src/main/resources/
-├── application.yml               config; segredos só por variável de ambiente
-└── db/migration/
-    ├── V1__teste_conexao.sql     ⚠️ descartável
-    ├── V2__schema_inicial.sql    schema real
-    └── V3__seed_demonstracao.sql ⚠️ dados fictícios, remover antes de dado real
-
-frontend/src/
-├── api.ts                        fetch do backend; URL via VITE_API_URL
-├── App.tsx                       tela única do painel
-├── App.css / index.css           estilos (CSS puro, sem Tailwind — ver §7)
-```
+`frontend/src/`: `api/` (cliente HTTP e tipos), `sessao/`, `componentes/` (layout, formulários), `paginas/` (uma por tela), `util/`.
 
 ### Onde moram as regras de negócio
 
-**`painel/PainelService.java`** é o único lugar com regra hoje:
-
-- `montarLinha()` → RN-01 (vencimento = última manutenção + periodicidade) e RN-05 (sem registro não gera oportunidade)
-- `classificar()` → RN-04 (VENCIDO / PRÓXIMO DO VENCIMENTO / EM DIA)
-- `JANELA_ALERTA_DIAS = 30` → D-08
-
-A consulta em `ValvulaRepository.buscarDadosDoPainel()` devolve **apenas dados crus**. Não mova cálculo para o SQL.
+- **`recorrencia/RegrasRecorrencia`**: RN-01, RN-04, RN-06. Único lugar.
+- **`servico/LancamentoService`** + **`oportunidade/OportunidadeService`**: RN-07, RN-09, RN-10, RN-12.
+- **`oportunidade/Oportunidade`**: transições de estado (RN-08).
+- **`agenda/SincronizadorDaAgenda`** + **`EventoAgenda`**: Outbox, retentativa, idempotência.
+- O React **não** decide status, vencimento nem urgência: tudo vem calculado.
 
 ---
 
-## 4. Decisões já tomadas
+## 7. Decisões já tomadas
 
 Detalhe e justificativa em `docs/decisions.md`. **Não reabra sem motivo novo.**
 
 | ID | Decisão |
 |---|---|
-| D-01 | Gmail comum (não Workspace) → agenda compartilhada + OAuth refresh token. App OAuth **precisa estar publicado em produção** no Google Cloud, senão o token expira em dias |
-| D-02 | Lançamento **não** é feito no local → offline fora do escopo; fotos aceitam galeria; `data_realizada` é campo explícito |
-| D-04 | Fila de oportunidades **sem dono fixo**; qualquer usuário assume |
-| D-05 | Ao marcar `recusado`, o sistema **pergunta** se e quando voltar a lembrar |
-| D-07 | Estação redutora é entidade própria: conjunto de VRPs, unidade faturada |
-| D-08 | **Dois alertas**: 30 dias (comercial) e 7 dias (lembrete final) |
-| D-09 | Importar **só** os 296 clientes + data da última manutenção. Sem eventos retroativos |
-| D-10 | Pressão de entrada/saída: campos **opcionais** |
-| D-11 | Monolito modular. Sem microsserviços, fila dedicada ou cache distribuído |
-| D-13 | **Padrão Outbox** para o Calendar. Falha do Google nunca pode perder registro |
-| D-14 | Domínio em **português** (tabelas, colunas, entidades, casos de uso), infra em inglês |
-| D-15 | Status do painel **calculado em tempo real**, nunca materializado |
-| D-18 | Serviço registrado **por válvula individual**, mesmo quando a visita cobre a estação |
-| D-19 | Estação comporta **N** válvulas, tipicamente 2 |
-| D-20 | Stack **Java 21 + Spring Boot 4.1.1 + Maven + JPA + Flyway + PostgreSQL**, frontend **React + Vite + TS** |
-
-Substituídas: D-03 (→ D-08), D-12 (→ D-20), D-16 (→ D-18).
+| D-01 | Gmail comum → agenda compartilhada + OAuth refresh token. App OAuth **publicado em produção** |
+| D-02 | Lançamento não é no local → sem offline; `data_realizada` explícita |
+| D-04 | Fila sem dono fixo |
+| D-05 | Recusa: o sistema pergunta se e quando voltar a lembrar |
+| D-07 / D-19 | Estação é entidade própria, com N válvulas |
+| D-08 | Dois alertas: 30 e 7 dias |
+| D-09 | Importar só os 296 clientes + última manutenção |
+| D-11 | Monolito modular |
+| D-13 | Outbox para o Calendar |
+| D-14 | Domínio em português, infra em inglês |
+| D-15 | Status do painel calculado, nunca gravado |
+| D-18 | Serviço por válvula individual |
+| D-20 | Java 21 + Spring Boot + React |
+| D-21 a D-24 | **Propostas** desta fase: Outbox em tabela própria, JWT, Google via REST, CSS próprio |
 
 ---
 
-## 5. Backlog, em ordem de execução
-
-### Próximo — Cadastros (Fase 1)
-
-Endpoints REST e telas para `cliente`, `especificacao`, `estacao`, `valvula`, `servico`.
-
-- RF-05 a RF-13 (cadastros), RF-14 a RF-18 (lançamento de serviço)
-- RF-09: gerar `codigo_referencia` no padrão `COND-001-VRP-01` (RN-14)
-- RF-10: criar cliente/estação/válvula **de dentro** do formulário de lançamento
-- RF-12: inativação lógica, nunca `DELETE` (RN-11)
-- RF-13: alerta de duplicidade por (`estacao_id`, `numero_valvula`)
-- RF-15b: ao lançar, permitir **replicar** o preenchimento para as demais válvulas da estação — mitiga o custo do D-18
-- Ao concluir: remover a migration de seed `V3` por uma nova migration
-
-### Depois — Autenticação (bloqueante para dado real)
-
-- Spring Security, perfis `tecnico` e `admin` (RF-01 a RF-03)
-- **Nenhum dado real dos 296 clientes pode entrar antes disso** (RNF-22, LGPD)
-
-### Depois — Google Calendar + Outbox
-
-É o coração da ideia original. Exige migration da tabela `oportunidade`.
-
-- RN-07: todo serviço concluído gera oportunidade **sem responsável**
-- RN-06: dois eventos, em `data_prevista − 30` e `data_prevista − 7`
-- RF-31: falha do Google **não** impede o salvamento; worker `@Scheduled` reprocessa
-- Worker idempotente, retentativa espaçada, limite de tentativas, alerta se token revogado
-- RF-29: o evento deve trazer condomínio, código, localização, andares, **se exige fechamento geral**, data da última manutenção e link para o registro
-
-### Depois — Importador dos 296 clientes
-
-- RF-51 a RF-59. Fonte: `RELATORIO NF MANUTENCAO VALVULAS - CONSOLIDADO.xlsx` (**não está no repositório** — pedir ao Daniel)
-- Oportunidades de **escopo cliente** (sem válvula), `cadastro_incompleto = true`
-- `data_legado_aproximada = true` — as datas vêm de metadado de arquivo, não da NF
-- **Deduplicação assistida, nunca automática.** Nomes reais vêm sujos: `02 OPERA CLASSIC`, `1976ED CAIS DA AURORA`
-- RN-13: nenhum evento retroativo no Calendar
-
-### Depois — Fotos e PDF
-
-- RF-19 (câmera **e galeria**, compressão no dispositivo), tabela `anexo`, storage
-- RF-48 PDF com JasperReports. ⚠️ iText 7 é AGPL, restritivo para uso comercial
-
-### Por último — Pipeline comercial
-
-- RF-41 a RF-47. Tabela `oportunidade` já existirá
-- RF-43 (destacar oportunidade vencendo sem dono) é praticamente obrigatório dado o D-04
-
----
-
-## 6. Decisões pendentes — exigem o Daniel
-
-Não invente resposta para nenhuma destas.
+## 8. Decisões pendentes — exigem o Daniel
 
 | # | Pergunta | Trava |
 |---|---|---|
-| P-01b | A estação inclui outros componentes relevantes ao serviço (filtro Y, manômetros, registros de bloqueio)? | Modelagem de `estacao` |
-| P-01c | A periodicidade de 12 meses é da válvula ou da estação? | RN-02 |
-| P-03 | Existe base de clientes sob contrato **fora** das 595 NFs analisadas? | Dimensionamento da importação |
-| P-04 | `valor_cobrado` entra no registro de serviço? | RF-47 — sem ele mede conversão, não receita |
-| P-05 | As 3 pessoas são todas de campo, ou alguém é só de escritório? | Perfis de acesso |
-| P-06 | Como o técnico identifica fisicamente a válvula em campo? Existe plaqueta? Vale QR Code? | RF-11 |
-| P-07 | Teto de custo mensal, preferência por dados no Brasil, domínio próprio | Hospedagem |
-| P-08 | Painel de válvulas e lista de clientes importados: telas separadas ou visão unificada? | RF-34, RF-53 |
-| P-09 | Plano pago do Supabase antes do uso real? O gratuito hiberna — sistema fora do ar | Confiabilidade |
-| P-10 | Vercel **Hobby** proíbe uso comercial. Migrar para Cloudflare Pages ou pagar Pro? | Conformidade |
+| P-01b | A estação inclui filtro Y, manômetros, registros? | Modelagem de `estacao` |
+| P-01c | A periodicidade é da válvula ou da estação? | RN-02 (hoje: da válvula) |
+| P-03 | Há clientes sob contrato fora das 595 NFs? | Importação |
+| P-04 | `valor_cobrado` entra no serviço? | RF-47 |
+| P-05 | Os 3 são de campo ou alguém é só de escritório? | Perfis (ver S-01) |
+| P-06 | Plaqueta física? QR Code? | RF-11 |
+| P-07 | Teto de custo, dados no Brasil, domínio | Hospedagem |
+| P-08 | Painel e importados: telas separadas ou unificadas? | RF-34, RF-53 |
+| P-09 | Plano pago do Supabase? O gratuito hiberna | Confiabilidade |
+| P-10 | Vercel Hobby proíbe uso comercial | Conformidade |
+| P-11 | **Novo:** validar as suposições S-01 a S-11 e as decisões D-21 a D-24 | Merge na `main` |
 
 ---
 
-## 7. Dívidas técnicas conhecidas
+## 9. Dívidas técnicas conhecidas
 
 | Dívida | Ação |
 |---|---|
-| **Zero testes.** `AGENTS.md` §5 exige teste para toda `RN-xx` | Começar por `PainelService`: cálculo de vencimento, classificação, caso `SEM REGISTRO`. JUnit 5 + Mockito; Testcontainers quando houver banco envolvido |
-| Pacote `fase0/` e migration `V1` são descartáveis | Remover quando os cadastros existirem |
-| Migration `V3` insere dados fictícios | Remover por nova migration antes de dado real |
-| `frontend` usa CSS puro; `architecture.md` prevê Tailwind + shadcn/ui | Alinhar ou registrar decisão que altera o documento |
-| `backend/HELP.md` é lixo do Spring Initializr | Pode apagar |
-| Pasta duplicada e **obsoleta** em `C:\Users\didit\OneDrive\Área de Trabalho\Valtis` | O repositório ativo é `C:\dev\Valtis`. A cópia no OneDrive ficou de uma mudança por `robocopy` e deve ser apagada — ela confunde agente e humano |
+| Migration `V3` insere dados fictícios | Remover por nova migration antes de dado real (exige aprovação: DELETE) |
+| Worker do Outbox assume **uma** instância do backend | Se escalar para 2+, usar `SELECT ... FOR UPDATE SKIP LOCKED` |
+| Proteção contra força bruta fica em memória | Zera ao reiniciar; aceitável com uma instância |
+| Token no `localStorage` | Risco de XSS documentado em D-22 |
+| Pasta duplicada e obsoleta em `C:\Users\didit\OneDrive\Área de Trabalho\Valtis` | Apagar; o repositório ativo é `C:\dev\Valtis` |
 
 ---
 
-## 8. Regras rígidas
+## 10. Regras rígidas
 
 Resumo. O texto que vale é o `AGENTS.md`.
 
@@ -224,99 +217,52 @@ Resumo. O texto que vale é o `AGENTS.md`.
 3. **Google e segredos** — credenciais, escopos OAuth, eventos em agenda real
 4. **Dados e produção** — qualquer `DELETE` físico, importador sobre base real, deploy, variável de produção
 
-Também pare e pergunte quando: a tarefa não corresponde a nenhum `RF/RNF/RN`; duas fontes se contradizem; ou você precisou **supor** uma regra de negócio.
-
-### Fronteiras de arquitetura
-
-- Casos de uso **não** importam `googleapis`, `@prisma/client`/JPA diretamente, SDK de storage ou `fetch`
-- Nenhuma chamada externa dentro de transação de escrita → Outbox
-- Regra de negócio **nunca** em componente React nem em SQL
-- Exclusão é sempre lógica (`ativo = false`)
-
 ### Código
 
 - Domínio em português, infra em inglês (D-14)
-- `any` proibido no TypeScript
-- Sem Lombok — decisão pedagógica; usar `record` para DTOs
-- Datas em UTC no banco, conversão só na exibição
-- Conventional Commits, referenciando o requisito: `feat: calcula vencimento (RF-23, RN-01)`
+- `any` proibido no TypeScript (modo estrito ligado)
+- Sem Lombok; `record` para DTOs
+- Datas em UTC no banco; "hoje" sempre pelo `Clock` injetado, nunca `LocalDate.now()` sem argumento
+- Conventional Commits, referenciando o requisito
 - Documentação atualizada **no mesmo commit** que muda comportamento
 
 ---
 
-## 9. Armadilhas já pagas — não repita
+## 11. Armadilhas já pagas — não repita
 
 | Sintoma | Causa | Solução |
 |---|---|---|
-| `UnknownHostException` no host do Supabase | Projeto hibernado no plano gratuito | Restaurar em supabase.com |
-| `SocketException: Network is unreachable` no servidor | Conexão direta do Supabase é **IPv6-only**; Railway não tem IPv6 | Usar **Session pooler**. O usuário muda para `postgres.<ref-do-projeto>` |
-| 500 em consulta nativa com projeção | Postgres rebaixa apelido sem aspas (`valvulaId` → `valvulaid`) | Apelidos entre aspas: `AS "valvulaId"` |
+| `UnknownHostException` no host do Supabase | Projeto hibernado | Restaurar em supabase.com |
+| `SocketException: Network is unreachable` no servidor | Conexão direta do Supabase é IPv6-only | Usar **Session pooler** |
+| 500 em consulta nativa com projeção | Postgres rebaixa apelido sem aspas | Apelidos entre aspas: `AS "valvulaId"` |
 | CORS bloqueado | Origem não autorizada | `CORS_ORIGENS` **sem barra no final** |
-| Variável mudada no Railway sem efeito | Ele **nem sempre** reimplanta ao salvar | Deploy manual em *Deployments* |
-| Frontend chamando `localhost` em produção | `VITE_*` é gravada no build, não lida em execução | Alterar variável **e** redeploy na Vercel |
-| Migration sumindo do commit | `.gitignore` tinha `*.sql` para proteger dumps | Exceção `!**/src/main/resources/db/migration/*.sql` já existe |
+| Variável mudada no Railway sem efeito | Ele nem sempre reimplanta | Deploy manual |
+| Frontend chamando `localhost` em produção | `VITE_*` é gravada no build | Alterar variável **e** redeploy na Vercel |
+| `function lower(bytea) does not exist` | Parâmetro de texto **nulo** numa query JPQL vai como bytea | Passar `""` e comparar com `''` |
+| Corpo JSON recusado com `Cannot map null into type boolean` | Jackson 3 recusa campo primitivo ausente | Usar `Boolean` nos DTOs de entrada |
+| Índice único de "um ciclo aberto" recusando o lançamento | Hibernate grava INSERT antes de UPDATE | `repository.flush()` depois de fechar, antes de abrir |
+| `HttpStatus.UNPROCESSABLE_ENTITY` | Renomeado no Spring 7 | `UNPROCESSABLE_CONTENT` |
 
 **Ao diagnosticar erro de Spring: a causa raiz está no ÚLTIMO `Caused by:` da pilha, não no primeiro.**
 
 ---
 
-## 10. Sobre o Daniel — leia antes de despejar código
+## 12. Sobre o Daniel — leia antes de despejar código
 
-Isso muda **como** você trabalha, não só o quê.
+O Valtis tem **duplo objetivo**: resolver a dor da empresa **e** ser o portfólio de entrada do Daniel na área de tecnologia. Ele está aprendendo Java e Spring, dispõe de ~10h por semana, e quer **conseguir defender cada decisão em entrevista**.
 
-O Valtis tem **duplo objetivo**: resolver a dor da empresa **e** ser o portfólio de entrada do Daniel na área de tecnologia. Ele está aprendendo Java e Spring enquanto o projeto é construído, dispõe de ~10h por semana, e o critério de sucesso dele inclui **conseguir defender cada decisão em entrevista**.
-
-Consequências práticas:
-
-- **Explique antes de construir.** Analogia do mundo real primeiro, depois o termo técnico. Frases do tipo *"leia assim: ..."* traduzindo comando, log ou erro para linguagem comum
-- **Um conceito por vez.** Não empilhe três ideias novas no mesmo parágrafo
-- Aprofundar em: regras de negócio, Outbox, segurança, JPA e transações. Acelerar em: CRUD repetitivo, telas, configuração
-- **Avise o erro antes de ele acontecer** quando for previsível — errar sabendo o que vai errar ensina
-- Agrupe comandos em blocos, dizendo o que esperar de cada um, em vez de um por vez
+- **Explique antes de construir.** Analogia do mundo real primeiro, depois o termo técnico
+- **Um conceito por vez.** Aprofundar em regras de negócio, Outbox, segurança, JPA e transações; acelerar em CRUD, telas e configuração
+- **Avise o erro antes de ele acontecer** quando for previsível
 - Ele executa os comandos no terminal integrado do VS Code, em duas abas (backend e frontend)
 
-**Pedido explícito pendente:** antes de escrever código novo, ele quer uma sessão de **revisão técnica** do que já existe — entender o código, por que Railway e Vercel, e como apresentar o projeto sem exagerar nem se diminuir. Se ele não mencionar, pergunte se quer fazer isso primeiro.
+A revisão técnica foi **adiada a pedido dele** (13/10/2026): ele vai estudar por uma apostila feita para isso (Claude Docs, "Apostila Valtis — conceitos e entrevista"), com questionário e gabarito.
 
 ---
 
-## 11. Como rodar
+## 13. Próxima tarefa sugerida
 
-Detalhe em `README.md`. Resumo:
-
-```powershell
-# Terminal 1
-cd C:\dev\Valtis\backend
-.\mvnw.cmd spring-boot:run      # http://localhost:8080
-
-# Terminal 2
-cd C:\dev\Valtis\frontend
-npm run dev                      # http://localhost:5173
-```
-
-Variáveis de ambiente de usuário necessárias: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`.
-Antes de rodar, confira se o projeto no Supabase não está hibernado.
-
-Para capturar a saída completa num arquivo:
-
-```powershell
-.\mvnw.cmd spring-boot:run > erro.txt 2>&1
-```
-
----
-
-## 12. Primeira tarefa sugerida
-
-Se o Daniel não indicar outra coisa, e **depois** da revisão técnica do §10:
-
-**Escrever os testes do `PainelService`.**
-
-Por quê: é a única regra de negócio que existe hoje, está sem cobertura nenhuma, viola o `AGENTS.md` §5, e é o melhor primeiro contato dele com JUnit — testando código que ele já entende.
-
-Critérios de aceite:
-
-- Vencimento calculado a partir de `data_realizada + periodicidade_meses` (RN-01)
-- `VENCIDO` quando `diasRestantes < 0`
-- `PRÓXIMO DO VENCIMENTO` nas bordas: 0 e 30 dias
-- `EM DIA` a partir de 31 dias
-- `SEM REGISTRO` quando não há serviço, **sem** calcular vencimento (RN-05)
-- Sem banco: o repositório entra como dublê (Mockito)
+1. Teste manual do Daniel na branch, seguindo o roteiro da §3.
+2. Ajustes que ele pedir + validação de S-01 a S-11 e D-21 a D-24.
+3. Checklist de produção da §4 e merge na `main`.
+4. Importador (precisa da planilha) e credencial do Google.
