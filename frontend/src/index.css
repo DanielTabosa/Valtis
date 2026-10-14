@@ -1,20 +1,59 @@
+/* Estilo do Valtis. CSS próprio, sem framework (D-24).
+   Pensado primeiro para o celular: alvos de toque de 44px (RNF-02) e tabelas que viram cartões. */
+
 :root {
-  --fundo: #ffffff;
-  --superficie: #fafbfc;
-  --borda: #e2e5e9;
-  --borda-fraca: #eef0f3;
-  --texto: #16191d;
-  --texto-fraco: #6b7280;
+  --fundo: #f5f7f9;
+  --superficie: #ffffff;
+  --superficie-2: #f0f3f6;
+  --borda: #dde2e8;
+  --texto: #15191e;
+  --texto-fraco: #5f6b78;
+  --marca: #0f3d5e;
+  --marca-texto: #ffffff;
+  --acento: #1667a6;
+  --foco: #3b8fd6;
 
-  --vermelho: #d13a2c;
-  --ambar: #d99000;
-  --verde: #1a8a4e;
-  --cinza: #9ca3af;
+  --vermelho: #c0392b;
+  --vermelho-fundo: #fdecea;
+  --ambar: #b27300;
+  --ambar-fundo: #fff4dc;
+  --verde: #1a7f4b;
+  --verde-fundo: #e5f5ec;
+  --cinza: #6b7684;
+  --cinza-fundo: #eef1f4;
 
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --raio: 10px;
+  --toque: 44px;
+
+  color-scheme: light;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.45;
   color: var(--texto);
   background: var(--fundo);
   -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fundo: #0f1419;
+    --superficie: #171d24;
+    --superficie-2: #1e252e;
+    --borda: #2c3540;
+    --texto: #e6eaee;
+    --texto-fraco: #95a1ae;
+    --marca: #0d2a40;
+    --acento: #5aa7e6;
+    --vermelho: #f07167;
+    --vermelho-fundo: #3a1d1b;
+    --ambar: #f2b84b;
+    --ambar-fundo: #3a2c12;
+    --verde: #5fcf8f;
+    --verde-fundo: #15301f;
+    --cinza: #a0abb7;
+    --cinza-fundo: #232b34;
+    color-scheme: dark;
+  }
 }
 
 * {
@@ -23,4 +62,987 @@
 
 body {
   margin: 0;
+  background: var(--fundo);
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+h2 {
+  font-size: 1.15rem;
+  margin: 28px 0 12px;
+}
+
+h3 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+a {
+  color: var(--acento);
+}
+
+:focus-visible {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+}
+
+.secundario {
+  color: var(--texto-fraco);
+}
+
+.pequeno {
+  font-size: 0.85rem;
+}
+
+.mono {
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  font-size: 0.92em;
+}
+
+/* ---------- Estrutura ---------- */
+
+.topo {
+  background: var(--marca);
+  color: var(--marca-texto);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.topo-marca {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  min-height: 56px;
+}
+
+.marca {
+  color: var(--marca-texto);
+  font-weight: 700;
+  font-size: 1.2rem;
+  text-decoration: none;
+}
+
+.botao-menu {
+  min-height: var(--toque);
+  padding: 0 14px;
+  border: 1px solid rgb(255 255 255 / 35%);
+  border-radius: var(--raio);
+  background: transparent;
+  color: var(--marca-texto);
+  font: inherit;
+}
+
+.navegacao {
+  display: none;
+  flex-direction: column;
+  padding: 0 8px 12px;
+}
+
+.navegacao.aberta {
+  display: flex;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  min-height: var(--toque);
+  padding: 0 12px;
+  border-radius: 8px;
+  color: rgb(255 255 255 / 85%);
+  text-decoration: none;
+}
+
+.nav-item:hover,
+.nav-item.ativo {
+  background: rgb(255 255 255 / 12%);
+  color: var(--marca-texto);
+}
+
+.nav-usuario {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-top: 1px solid rgb(255 255 255 / 15%);
+  margin-top: 8px;
+  padding-top: 8px;
+}
+
+.nav-usuario .botao-texto {
+  color: rgb(255 255 255 / 85%);
+}
+
+.conteudo {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 20px 16px 64px;
+}
+
+@media (min-width: 960px) {
+  .topo {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 0 16px;
+  }
+
+  .topo-marca {
+    padding: 0;
+  }
+
+  .botao-menu {
+    display: none;
+  }
+
+  .navegacao {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex: 1;
+    gap: 2px;
+    padding: 0;
+  }
+
+  .nav-usuario {
+    margin: 0 0 0 auto;
+    padding: 0;
+    border: 0;
+  }
+
+  .conteudo {
+    padding: 28px 24px 64px;
+  }
+}
+
+.cabecalho-pagina {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.cabecalho-secao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 28px 0 12px;
+}
+
+.cabecalho-secao h2 {
+  margin: 0;
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---------- Botões ---------- */
+
+.botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--toque);
+  padding: 0 16px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--superficie);
+  color: var(--texto);
+  font: inherit;
+  font-weight: 550;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.botao:hover {
+  border-color: var(--acento);
+}
+
+.botao.primario {
+  background: var(--acento);
+  border-color: var(--acento);
+  color: #ffffff;
+}
+
+.botao.primario:hover {
+  filter: brightness(1.08);
+}
+
+.botao.largo {
+  width: 100%;
+}
+
+.botao:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.botao-texto {
+  min-height: var(--toque);
+  padding: 0 10px;
+  border: 0;
+  background: transparent;
+  color: var(--acento);
+  font: inherit;
+  cursor: pointer;
+}
+
+.botao-texto:disabled {
+  opacity: 0.55;
+}
+
+.segmentado {
+  display: inline-flex;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  overflow: hidden;
+}
+
+.segmentado button {
+  min-height: var(--toque);
+  padding: 0 14px;
+  border: 0;
+  border-right: 1px solid var(--borda);
+  background: var(--superficie);
+  color: var(--texto);
+  font: inherit;
+  cursor: pointer;
+}
+
+.segmentado button:last-child {
+  border-right: 0;
+}
+
+.segmentado button[aria-pressed="true"] {
+  background: var(--acento);
+  color: #ffffff;
+}
+
+/* ---------- Avisos e etiquetas ---------- */
+
+.aviso {
+  padding: 12px 14px;
+  border-radius: var(--raio);
+  background: var(--superficie-2);
+  color: var(--texto-fraco);
+  margin: 12px 0;
+}
+
+.aviso.erro {
+  background: var(--vermelho-fundo);
+  color: var(--vermelho);
+}
+
+.aviso.sucesso {
+  background: var(--verde-fundo);
+  color: var(--verde);
+}
+
+.aviso.alerta {
+  background: var(--ambar-fundo);
+  color: var(--ambar);
+}
+
+.etiqueta {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  background: var(--cinza-fundo);
+  color: var(--cinza);
+}
+
+.etiqueta.vencido,
+.etiqueta.oportunidade-recusado,
+.etiqueta.oportunidade-perdido {
+  background: var(--vermelho-fundo);
+  color: var(--vermelho);
+}
+
+.etiqueta.proximo,
+.etiqueta.oportunidade-contatado {
+  background: var(--ambar-fundo);
+  color: var(--ambar);
+}
+
+.etiqueta.em-dia,
+.etiqueta.oportunidade-aceito,
+.etiqueta.oportunidade-executado {
+  background: var(--verde-fundo);
+  color: var(--verde);
+}
+
+.selo,
+.selo-alerta {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  background: var(--cinza-fundo);
+  color: var(--cinza);
+}
+
+.selo-alerta {
+  background: var(--vermelho-fundo);
+  color: var(--vermelho);
+}
+
+/* ---------- Resumo ---------- */
+
+.resumo {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+@media (min-width: 720px) {
+  .resumo {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.cartao-resumo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--borda);
+  border-left: 5px solid var(--cinza);
+  border-radius: var(--raio);
+  background: var(--superficie);
+  color: var(--texto);
+  font: inherit;
+  text-align: left;
+}
+
+button.cartao-resumo {
+  cursor: pointer;
+}
+
+.cartao-resumo.selecionado {
+  outline: 2px solid var(--acento);
+}
+
+.cartao-resumo .numero {
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.cartao-resumo .rotulo {
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  color: var(--texto-fraco);
+}
+
+.cartao-resumo.vencido,
+.cartao-resumo.evento-falhou {
+  border-left-color: var(--vermelho);
+}
+
+.cartao-resumo.proximo,
+.cartao-resumo.evento-pendente {
+  border-left-color: var(--ambar);
+}
+
+.cartao-resumo.em-dia,
+.cartao-resumo.evento-criado {
+  border-left-color: var(--verde);
+}
+
+/* ---------- Filtros e formulários ---------- */
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.filtros input[type="search"] {
+  flex: 1 1 260px;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  min-height: var(--toque);
+  padding: 10px 12px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--superficie);
+  color: var(--texto);
+  font: inherit;
+}
+
+.filtros select {
+  width: auto;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  width: 20px;
+  min-height: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--acento);
+  flex-shrink: 0;
+}
+
+input:disabled {
+  opacity: 0.6;
+}
+
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.formulario.estreito {
+  max-width: 420px;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.campo-rotulo {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.campo-dica {
+  font-size: 0.82rem;
+  color: var(--texto-fraco);
+}
+
+.campo-erro {
+  font-size: 0.85rem;
+  color: var(--vermelho);
+}
+
+.campo.com-erro input,
+.campo.com-erro select {
+  border-color: var(--vermelho);
+}
+
+.linha-campos {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+@media (min-width: 600px) {
+  .linha-campos {
+    flex-direction: row;
+  }
+}
+
+.caixa {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--toque);
+  cursor: pointer;
+}
+
+fieldset.opcoes-radio {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+fieldset.opcoes-radio legend {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+/* ---------- Escolhas em cartão (lançamento, desfecho) ---------- */
+
+.etapa {
+  margin-bottom: 20px;
+  padding: 16px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--superficie);
+}
+
+.etapa h2 {
+  margin: 0 0 12px;
+}
+
+.etapa-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.etapa-topo h2 {
+  margin: 0;
+}
+
+.opcoes {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+@media (min-width: 720px) {
+  .opcoes {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.opcao {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 10px;
+  align-items: center;
+  min-height: 56px;
+  padding: 12px 14px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--superficie);
+  color: var(--texto);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.opcao {
+  grid-template-columns: 1fr;
+}
+
+.opcao > :not(input) {
+  grid-column: -2 / -1;
+}
+
+.opcao.selecionada {
+  border-color: var(--acento);
+  box-shadow: inset 0 0 0 1px var(--acento);
+}
+
+.lista-escolha {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item-escolha {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 14px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--superficie);
+  color: var(--texto);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.item-escolha:hover {
+  border-color: var(--acento);
+}
+
+.detalhe {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 14px 0;
+}
+
+.ajustes {
+  margin: 20px 0;
+  padding-top: 16px;
+  border-top: 1px dashed var(--borda);
+}
+
+.ajustes h3 {
+  margin-bottom: 4px;
+}
+
+.ajuste {
+  padding: 4px 0;
+}
+
+.ajuste .detalhe {
+  margin-left: 30px;
+  padding-left: 12px;
+  border-left: 3px solid var(--borda);
+}
+
+.lista-resultado {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lista-resultado li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--superficie);
+}
+
+/* ---------- Tabelas: viram cartões no celular ---------- */
+
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  overflow: hidden;
+}
+
+.tabela th {
+  text-align: left;
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--texto-fraco);
+  padding: 10px 12px;
+  background: var(--superficie-2);
+  border-bottom: 1px solid var(--borda);
+}
+
+.tabela td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--borda);
+  vertical-align: top;
+}
+
+.tabela tr:last-child td {
+  border-bottom: 0;
+}
+
+tr.inativo,
+li.inativo,
+.bloco.inativo {
+  opacity: 0.6;
+}
+
+.acoes-linha {
+  white-space: nowrap;
+  text-align: right;
+}
+
+@media (max-width: 719px) {
+  .tabela-cartoes,
+  .tabela-cartoes tbody,
+  .tabela-cartoes tr,
+  .tabela-cartoes td {
+    display: block;
+  }
+
+  .tabela-cartoes {
+    border: 0;
+    background: transparent;
+  }
+
+  .tabela-cartoes thead {
+    display: none;
+  }
+
+  .tabela-cartoes tr {
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    border: 1px solid var(--borda);
+    border-radius: var(--raio);
+    background: var(--superficie);
+  }
+
+  .tabela-cartoes td {
+    position: relative;
+    padding: 6px 0;
+    border: 0;
+  }
+
+  /* O rótulo fica à esquerda; o conteúdo da célula flui como texto ao lado dele. */
+  .tabela-cartoes td[data-rotulo] {
+    padding-left: 104px;
+    min-height: 32px;
+  }
+
+  .tabela-cartoes td[data-rotulo]::before {
+    content: attr(data-rotulo);
+    position: absolute;
+    left: 0;
+    top: 8px;
+    width: 96px;
+    font-size: 0.8rem;
+    color: var(--texto-fraco);
+  }
+
+  .acoes-linha {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
+/* ---------- Fichas e blocos ---------- */
+
+.ficha {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px 24px;
+  margin: 0 0 16px;
+  padding: 16px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--superficie);
+}
+
+@media (min-width: 720px) {
+  .ficha {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.ficha dt,
+.dados dt {
+  font-size: 0.8rem;
+  color: var(--texto-fraco);
+}
+
+.ficha dd,
+.dados dd {
+  margin: 2px 0 0;
+}
+
+.situacao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.bloco {
+  margin-bottom: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--superficie);
+}
+
+.bloco-topo {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.bloco-topo p {
+  margin: 4px 0 0;
+}
+
+.lista-valvulas {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lista-valvulas li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--superficie-2);
+}
+
+.linha-do-tempo {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 16px;
+  border-left: 2px solid var(--borda);
+}
+
+.linha-do-tempo li {
+  position: relative;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--superficie);
+}
+
+.linha-do-tempo li::before {
+  content: "";
+  position: absolute;
+  left: -24px;
+  top: 18px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--acento);
+}
+
+.linha-do-tempo p {
+  margin: 6px 0 0;
+}
+
+.linha-do-tempo-topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+/* ---------- Oportunidades ---------- */
+
+.lista-oportunidades {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.oportunidade {
+  padding: 14px 16px;
+  border: 1px solid var(--borda);
+  border-left: 5px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--superficie);
+}
+
+.oportunidade.urgente {
+  border-left-color: var(--vermelho);
+}
+
+.oportunidade-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.dados {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px 20px;
+  margin: 12px 0;
+}
+
+.dados .largo {
+  grid-column: 1 / -1;
+}
+
+/* ---------- Modal ---------- */
+
+.modal {
+  width: min(560px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  padding: 0 20px 20px;
+  border: 1px solid var(--borda);
+  border-radius: 14px;
+  background: var(--superficie);
+  color: var(--texto);
+}
+
+.modal::backdrop {
+  background: rgb(0 0 0 / 45%);
+}
+
+.modal-topo {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 0;
+  margin-bottom: 4px;
+  background: var(--superficie);
+}
+
+.modal-topo h2 {
+  margin: 0;
+}
+
+/* ---------- Login ---------- */
+
+.tela-login {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: var(--marca);
+}
+
+.cartao-login {
+  width: min(400px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 28px 24px;
+  border-radius: 14px;
+  background: var(--superficie);
+}
+
+.cartao-login p {
+  margin: -8px 0 4px;
+}
+
+.tabela .mono {
+  white-space: nowrap;
 }
