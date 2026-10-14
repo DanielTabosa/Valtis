@@ -1,5 +1,6 @@
 package br.com.manutec.valtis.cliente;
 
+import br.com.manutec.valtis.comum.OrigemRegistro;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -19,7 +20,8 @@ public class Cliente {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "codigo_referencia", nullable = false, unique = true)
+    /** COND-001. Gerado pelo sistema, nunca muda (RF-09). */
+    @Column(name = "codigo_referencia", nullable = false, unique = true, updatable = false)
     private String codigoReferencia;
 
     @Column(name = "nome_condominio", nullable = false)
@@ -29,6 +31,7 @@ public class Cliente {
     private String bairro;
     private String cidade;
 
+    // Dados pessoais (LGPD, RNF-22): nunca em log, URL ou mensagem de erro.
     @Column(name = "sindico_responsavel")
     private String sindicoResponsavel;
 
@@ -38,17 +41,20 @@ public class Cliente {
     @Column(name = "email_contato")
     private String emailContato;
 
+    @Convert(converter = TipoAtendimento.Conversor.class)
     @Column(name = "tipo_atendimento", nullable = false)
-    private String tipoAtendimento = "Avulso";
+    private TipoAtendimento tipoAtendimento = TipoAtendimento.AVULSO;
 
+    @Convert(converter = StatusContrato.Conversor.class)
     @Column(name = "status_contrato", nullable = false)
-    private String statusContrato = "Ativo";
+    private StatusContrato statusContrato = StatusContrato.ATIVO;
 
     @Column(nullable = false)
     private boolean ativo = true;
 
+    @Convert(converter = OrigemRegistro.Conversor.class)
     @Column(nullable = false)
-    private String origem = "sistema";
+    private OrigemRegistro origem = OrigemRegistro.SISTEMA;
 
     @Column(name = "ultima_manutencao_legado")
     private LocalDate ultimaManutencaoLegado;
@@ -70,21 +76,33 @@ public class Cliente {
     protected Cliente() {
     }
 
-    public Cliente(String codigoReferencia, String nomeCondominio, String endereco, String bairro,
-                   String cidade, String sindicoResponsavel, String telefoneContato,
-                   String emailContato, String tipoAtendimento) {
+    public Cliente(String codigoReferencia, DadosCliente dados) {
         this.codigoReferencia = codigoReferencia;
-        this.nomeCondominio = nomeCondominio;
-        this.endereco = endereco;
-        this.bairro = bairro;
-        this.cidade = cidade;
-        this.sindicoResponsavel = sindicoResponsavel;
-        this.telefoneContato = telefoneContato;
-        this.emailContato = emailContato;
-        if (tipoAtendimento != null) {
-            this.tipoAtendimento = tipoAtendimento;
+        atualizar(dados);
+    }
+
+    public void atualizar(DadosCliente dados) {
+        this.nomeCondominio = dados.nomeCondominio();
+        this.endereco = dados.endereco();
+        this.bairro = dados.bairro();
+        this.cidade = dados.cidade();
+        this.sindicoResponsavel = dados.sindicoResponsavel();
+        this.telefoneContato = dados.telefoneContato();
+        this.emailContato = dados.emailContato();
+        if (dados.tipoAtendimento() != null) {
+            this.tipoAtendimento = dados.tipoAtendimento();
+        }
+        if (dados.statusContrato() != null) {
+            this.statusContrato = dados.statusContrato();
         }
     }
+
+    /** Inativação lógica: nada é excluído fisicamente (RN-11). */
+    public void inativar() { this.ativo = false; }
+    public void reativar() { this.ativo = true; }
+
+    /** RF-59: a primeira manutenção real de um cliente importado completa o cadastro. */
+    public void completarCadastro() { this.cadastroIncompleto = false; }
 
     public UUID getId() { return id; }
     public String getCodigoReferencia() { return codigoReferencia; }
@@ -95,10 +113,11 @@ public class Cliente {
     public String getSindicoResponsavel() { return sindicoResponsavel; }
     public String getTelefoneContato() { return telefoneContato; }
     public String getEmailContato() { return emailContato; }
-    public String getTipoAtendimento() { return tipoAtendimento; }
-    public String getStatusContrato() { return statusContrato; }
+    public TipoAtendimento getTipoAtendimento() { return tipoAtendimento; }
+    public StatusContrato getStatusContrato() { return statusContrato; }
     public boolean isAtivo() { return ativo; }
-
-    /** Inativação lógica — nada é excluído fisicamente (RN-11). */
-    public void inativar() { this.ativo = false; }
+    public OrigemRegistro getOrigem() { return origem; }
+    public LocalDate getUltimaManutencaoLegado() { return ultimaManutencaoLegado; }
+    public boolean isDataLegadoAproximada() { return dataLegadoAproximada; }
+    public boolean isCadastroIncompleto() { return cadastroIncompleto; }
 }

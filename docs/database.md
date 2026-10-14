@@ -190,20 +190,40 @@ O retorno previsto e seu desfecho comercial. É a entidade que transforma "dinhe
 | `cliente_id` | uuid FK → cliente | sempre preenchido |
 | `valvula_id` | uuid FK → valvula, nulo | **nulo quando `escopo = cliente`** |
 | `servico_origem_id` | uuid FK → servico, nulo | nulo quando importada |
-| `data_prevista` | date | `data_realizada + periodicidade_meses` (RN-01) |
-| `data_alerta_30` | date | `data_prevista − 30 dias` (RN-06) |
-| `data_alerta_7` | date | `data_prevista − 7 dias` (RN-06) |
-| `status` | enum `status_oportunidade` | `agendado` \| `contatado` \| `aceito` \| `recusado` \| `executado` \| `perdido` |
+| `data_prevista` | date | `data_realizada + periodicidade_meses` (RN-01). As datas dos alertas (RN-06) são **derivadas** dela, não gravadas (D-21) |
+| `status` | enum `status_oportunidade` | `agendado` \| `contatado` \| `aceito` \| `recusado` \| `executado` \| `perdido`. Os três primeiros são **abertos** |
 | `responsavel_id` | uuid FK → usuario, nulo | **nulo até alguém assumir** (RN-07, D-04) |
 | `assumida_em` | timestamptz, nulo | |
 | `motivo_recusa` | text, nulo | RF-45 |
 | `origem` | enum `origem_registro` | `sistema` \| `importacao` |
-| `google_event_id_30` | text, nulo | preenchido pelo worker do Outbox |
-| `google_event_id_7` | text, nulo | idem |
-| `sincronizado_em` | timestamptz, nulo | |
-| `tentativas_sync` | integer | padrão 0 |
 | `notas` | text, nulo | |
 | `servico_resultante_id` | uuid FK → servico, nulo | fecha o ciclo (RN-10) |
+| `oportunidade_anterior_id` | uuid FK → oportunidade, nulo | a recusada que originou esta, quando o cliente pediu para ser lembrado (RN-09) |
+| `encerrada_em` | timestamptz, nulo | quando saiu dos estados abertos |
+| `criado_em` / `atualizado_em` | timestamptz | |
+
+Restrições: escopo `valvula` exige `valvula_id`, escopo `cliente` proíbe (`ck_oportunidade_escopo`). **No máximo um ciclo aberto por válvula** (índice único parcial `ux_oportunidade_aberta_por_valvula`).
+
+> **Regras implementadas no lançamento:** um serviço novo fecha como `executado` as oportunidades abertas da válvula e as de escopo cliente do mesmo cliente (RN-10, RF-59), e abre a próxima (RN-07). Um serviço **mais antigo** que o último já lançado entra no histórico, mas não mexe no ciclo.
+
+### evento_agenda
+A fila de saída para o Google Calendar (Outbox, D-13 e D-21). Uma linha por alerta.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | também origina o id do evento no Google (idempotência) |
+| `oportunidade_id` | uuid FK → oportunidade | |
+| `tipo` | enum `tipo_evento` | `alerta_comercial` \| `lembrete_final` |
+| `data_evento` | date | `data_prevista − 30` ou `− 7` dias, conforme configuração |
+| `status` | enum `status_evento` | `pendente` \| `criado` \| `falhou` \| `descartado` |
+| `google_event_id` | text, nulo | preenchido pelo worker |
+| `tentativas` | integer | padrão 0 |
+| `proxima_tentativa_em` | timestamptz | espera crescente entre falhas |
+| `ultimo_erro` | text, nulo | mensagem técnica, sem dado pessoal (RF-33) |
+| `sincronizado_em` | timestamptz, nulo | |
+| `criado_em` / `atualizado_em` | timestamptz | |
+
+Único: (`oportunidade_id`, `tipo`). Alerta com data já passada não é enfileirado (RN-13).
 
 > **O campo `escopo` é o que viabiliza a importação (D-09).** A base real não tem informação de qual válvula foi atendida — só cliente e data. Esses 296 clientes geram oportunidades de **escopo cliente**, sem válvula vinculada. Quando o técnico visitar e cadastrar as válvulas, os ciclos seguintes passam a ser de escopo válvula.
 
@@ -235,6 +255,8 @@ Valores fixos vindos da planilha da Manutec. **A interface usa lista suspensa; n
 | `status_oportunidade` | `agendado` · `contatado` · `aceito` · `recusado` · `executado` · `perdido` |
 | `escopo_oportunidade` | `valvula` · `cliente` |
 | `origem_registro` | `sistema` · `importacao` |
+| `tipo_evento` | `alerta_comercial` · `lembrete_final` |
+| `status_evento` | `pendente` · `criado` · `falhou` · `descartado` |
 | `status_painel` | **calculado, não persistido** — ver §5 |
 
 ## 5. Status do painel — calculado, nunca armazenado
@@ -309,9 +331,12 @@ Poucos, e só onde há consulta real. O volume não justifica mais (RNF-12).
 - `valvula (estacao_id)`
 - `estacao (cliente_id)`
 - `servico (valvula_id, data_realizada DESC)` — histórico e cálculo do último serviço de cada válvula
-- `oportunidade (status, data_prevista)` — consulta principal do painel e da fila
-- `oportunidade (google_event_id_30) WHERE google_event_id_30 IS NULL` — varredura do worker do Outbox
+- `oportunidade (status, data_prevista)` — consulta principal da fila
+- `oportunidade (valvula_id) WHERE status IN (abertos)`, **único** — um ciclo aberto por válvula
+- `evento_agenda (proxima_tentativa_em) WHERE status = 'pendente'` — varredura do worker do Outbox
 - `cliente (nome_condominio)` — busca
+
+Implementados em `V2__schema_inicial.sql` e `V4__oportunidade_e_agenda.sql`. A V4 também remove a tabela `teste_conexao` da Fase 0.
 
 ## 8. Glossário do domínio {#glossário-do-domínio}
 

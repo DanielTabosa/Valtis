@@ -14,6 +14,9 @@ import java.util.UUID;
 /**
  * A intervenção realizada. Uma linha por VÁLVULA atendida (D-18),
  * mesmo quando a visita cobre a estação inteira.
+ *
+ * Nunca é sobrescrita: toda intervenção é uma linha nova (RF-18).
+ * Por isso a entidade não tem métodos de alteração.
  */
 @Entity
 @Table(name = "servico")
@@ -31,8 +34,9 @@ public class Servico {
     @Column(name = "data_realizada", nullable = false)
     private LocalDate dataRealizada;
 
+    @Convert(converter = TipoManutencao.Conversor.class)
     @Column(name = "tipo_manutencao", nullable = false)
-    private String tipoManutencao;
+    private TipoManutencao tipoManutencao;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "tecnico_responsavel_id", nullable = false)
@@ -50,9 +54,11 @@ public class Servico {
 
     private String observacoes;
 
+    @Convert(converter = StatusServico.Conversor.class)
     @Column(nullable = false)
-    private String status = "concluido";
+    private StatusServico status = StatusServico.CONCLUIDO;
 
+    /** Quem digitou. Pode ser diferente de quem executou (database.md). */
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "criado_por_id", nullable = false)
     private Usuario criadoPor;
@@ -68,7 +74,7 @@ public class Servico {
     protected Servico() {
     }
 
-    public Servico(Valvula valvula, LocalDate dataRealizada, String tipoManutencao,
+    public Servico(Valvula valvula, LocalDate dataRealizada, TipoManutencao tipoManutencao,
                    Usuario tecnicoResponsavel, String pecasSubstituidas,
                    BigDecimal pressaoEntrada, BigDecimal pressaoSaida,
                    String observacoes, Usuario criadoPor) {
@@ -83,22 +89,16 @@ public class Servico {
         this.criadoPor = criadoPor;
     }
 
-    /**
-     * RN-01: a próxima manutenção é calculada a partir da data REALIZADA,
-     * somada à periodicidade da própria válvula.
-     */
-    public LocalDate calcularProximaManutencao() {
-        return dataRealizada.plusMonths(valvula.getPeriodicidadeMeses());
-    }
-
     public UUID getId() { return id; }
     public Valvula getValvula() { return valvula; }
     public LocalDate getDataRealizada() { return dataRealizada; }
-    public String getTipoManutencao() { return tipoManutencao; }
+    public TipoManutencao getTipoManutencao() { return tipoManutencao; }
     public Usuario getTecnicoResponsavel() { return tecnicoResponsavel; }
     public String getPecasSubstituidas() { return pecasSubstituidas; }
     public BigDecimal getPressaoEntrada() { return pressaoEntrada; }
     public BigDecimal getPressaoSaida() { return pressaoSaida; }
     public String getObservacoes() { return observacoes; }
-    public String getStatus() { return status; }
+    public StatusServico getStatus() { return status; }
+    public Usuario getCriadoPor() { return criadoPor; }
+    public OffsetDateTime getCriadoEm() { return criadoEm; }
 }

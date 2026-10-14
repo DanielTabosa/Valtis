@@ -16,6 +16,8 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        # Datas e horas sempre em UTC no banco (AGENTS.md §4).
+        jdbc.time_zone: UTC
 
   flyway:
     enabled: true
@@ -25,13 +27,54 @@ server:
   # Railway e Render injetam a porta por variável de ambiente.
   # Local, cai no 8080.
   port: ${PORT:8080}
+  error:
+    # Nunca devolver pilha de exceção ou mensagem interna para o navegador.
+    include-stacktrace: never
+    include-message: never
 
 valtis:
+  # O "hoje" do sistema (RelogioConfig). O servidor roda em UTC; o negócio, em Recife.
+  fuso-horario: America/Recife
+  # Usado nos links que vão dentro dos eventos da agenda.
+  url-frontend: ${VALTIS_URL_FRONTEND:http://localhost:5173}
+
   cors:
-    # Origens autorizadas a chamar a API. Em produção, a URL do frontend
-    # publicado entra aqui pela variável de ambiente CORS_ORIGENS.
+    # Origens autorizadas a chamar a API, separadas por vírgula, SEM barra no final.
+    # Em produção, a URL do frontend publicado entra pela variável CORS_ORIGENS.
     origens: ${CORS_ORIGENS:http://localhost:5173}
 
-logging:
-  level:
-    org.hibernate.SQL: debug
+  recorrencia:
+    # D-08 / RF-28: as duas janelas de alerta, num lugar só.
+    alerta-comercial-dias: 30
+    lembrete-final-dias: 7
+
+  seguranca:
+    # Chave que assina os tokens. Obrigatória, com 32+ caracteres. Nunca no código.
+    jwt-segredo: ${VALTIS_JWT_SEGREDO:}
+    # RF-02: sessão longa no celular. 14 dias.
+    validade-token-horas: 336
+    max-tentativas-login: 5
+    bloqueio-login-minutos: 15
+    # Primeiro administrador. Só é criado se o e-mail ainda não existir no banco.
+    admin-inicial:
+      nome: ${VALTIS_ADMIN_NOME:}
+      email: ${VALTIS_ADMIN_EMAIL:}
+      senha: ${VALTIS_ADMIN_SENHA:}
+
+  agenda:
+    # desativada | simulada | google. Desativada: eventos ficam na fila, nada é enviado.
+    provedor: ${VALTIS_AGENDA_PROVEDOR:desativada}
+    # Depois de N falhas o evento para de ser tentado e aparece como FALHOU (RF-33).
+    max-tentativas: 8
+    # Espera antes da 2ª tentativa; dobra a cada falha, com teto de 6 horas.
+    espera-inicial-segundos: 300
+    # O worker roda a cada 10 minutos (architecture.md §3: "cron 5–15 min").
+    intervalo-ms: 600000
+    atraso-inicial-ms: 60000
+    google:
+      client-id: ${VALTIS_GOOGLE_CLIENT_ID:}
+      client-secret: ${VALTIS_GOOGLE_CLIENT_SECRET:}
+      refresh-token: ${VALTIS_GOOGLE_REFRESH_TOKEN:}
+      calendario-id: ${VALTIS_GOOGLE_CALENDARIO_ID:}
+      # E-mails dos 3 usuários, separados por vírgula (RF-30).
+      convidados: ${VALTIS_AGENDA_CONVIDADOS:}

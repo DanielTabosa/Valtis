@@ -1,0 +1,22 @@
+# Banco local para desenvolvimento e teste manual.
+#   docker compose up -d      sobe o Postgres
+#   docker compose down       para (os dados ficam no volume)
+#   docker compose down -v    para e APAGA os dados locais
+#
+# Porta 5433 para não colidir com um Postgres que já esteja instalado na 5432.
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: valtis-postgres
+    environment:
+      POSTGRES_DB: valtis
+      POSTGRES_USER: valtis
+      POSTGRES_PASSWORD: valtis-local
+      TZ: UTC
+    ports:
+      - "5433:5432"
+    volumes:
+      - valtis-dados:/var/lib/postgresql/data
+
+volumes:
+  valtis-dados:

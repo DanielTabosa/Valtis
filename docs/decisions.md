@@ -361,6 +361,75 @@ Isso troca a função-objetivo. Não se trata mais de "qual stack dá menos trab
 
 ---
 
+## D-21 — O Outbox é uma tabela própria: `evento_agenda`
+
+**Status:** Proposta (aguarda validação do Daniel) · 13/10/2026 · *refina D-13*
+
+**Contexto.** O modelo original (D-08, database.md) guardava o estado da sincronização em colunas da própria `oportunidade`: `google_event_id_30`, `google_event_id_7`, `tentativas_sync`, `sincronizado_em`. Na implementação, três problemas apareceram: os dois alertas falham e são retentados de forma independente, mas dividiriam um único contador de tentativas; as janelas são configuráveis (RF-28), e colunas com "30" e "7" no nome mentiriam assim que a configuração mudasse; e não havia onde guardar a última mensagem de erro, que o RF-33 precisa mostrar.
+
+**Decisão.** Uma tabela `evento_agenda`, com uma linha por alerta: tipo, data, status (`pendente`, `criado`, `falhou`, `descartado`), tentativas, próxima tentativa, último erro e id do Google. A linha é gravada na mesma transação do serviço e da oportunidade. As datas de alerta deixam de ser colunas da oportunidade e passam a ser derivadas de `data_prevista` (como o status do painel, D-15).
+
+**Idempotência.** O id do evento no Google é **decidido pelo Valtis antes da chamada**, a partir do id da linha. Se o Google criar o evento e a aplicação cair antes de gravar a resposta, a retentativa manda o mesmo id, o Google responde 409 e nada é duplicado.
+
+**Alternativa descartada.** Manter as colunas na oportunidade: menos uma tabela, mas sem estado por alerta nem registro de erro.
+
+**Consequências.**
+- Alerta cuja data já passou não entra na fila (RN-13): evento no passado só polui a agenda.
+- O worker reconfere, imediatamente antes de enviar, se o ciclo ainda está aberto e a válvula ativa; se não, descarta.
+- `database.md` atualizado. Índice parcial `WHERE status = 'pendente'` para a varredura do worker.
+
+---
+
+## D-22 — Autenticação por token JWT, sem sessão no servidor
+
+**Status:** Proposta (aguarda validação do Daniel) · 13/10/2026
+
+**Contexto.** Frontend (Vercel) e backend (Railway) estão em domínios diferentes. Sessão por cookie entre domínios exige `SameSite=None` e esbarra no bloqueio de cookies de terceiros do Safari, comum em iPhone.
+
+**Decisão.** O login devolve um JWT assinado com HS256 por uma chave em variável de ambiente (`VALTIS_JWT_SEGREDO`), válido por 14 dias (RF-02). O frontend o envia no cabeçalho `Authorization`. A biblioteca é a Nimbus, a mesma que o Spring Security já usa para validar tokens (starter `oauth2-resource-server`).
+
+**Ponto de projeto.** A assinatura prova que o token é nosso, mas **perfil e status ativo são lidos do banco a cada requisição**. Inativar alguém corta o acesso na hora, sem esperar o token expirar. O custo é uma consulta por requisição, irrelevante para 3 usuários.
+
+**Proteções incluídas.** Senha com BCrypt (RNF-20); bloqueio de 15 minutos após 5 senhas erradas para o mesmo e-mail; mesma mensagem e mesmo tempo de resposta para e-mail inexistente e senha errada.
+
+**Alternativas descartadas.** Sessão com cookie (problema entre domínios, acima). Token opaco em tabela (exigiria mais uma tabela e consulta, sem ganho com o perfil já lido do banco).
+
+**Consequências.**
+- O token fica no `localStorage` do navegador. Um XSS conseguiria lê-lo; a defesa é não renderizar HTML vindo de usuário (o React escapa por padrão).
+- Não há "sair de todos os dispositivos" além de inativar o usuário ou trocar a chave.
+- Produção passa a exigir `VALTIS_JWT_SEGREDO`; sem ela a aplicação **não sobe**.
+
+---
+
+## D-23 — Google Calendar pela API REST, sem o SDK
+
+**Status:** Proposta (aguarda validação do Daniel) · 13/10/2026 · *ajusta a linha "Calendar" de D-20*
+
+**Contexto.** D-20 previa o `google-api-client`. O Valtis usa duas chamadas: trocar o refresh token por um token de acesso e criar um evento.
+
+**Decisão.** Chamar as duas URLs com o `RestClient` do Spring, atrás da interface `AgendaGateway`. Sem dependência nova (AGENTS.md §3: a resposta padrão para "instalar isso?" é não).
+
+**Consequências.**
+- Menos dependências transitivas, e o adaptador é testável com `MockRestServiceServer`.
+- Se o uso da API crescer (editar ou remover eventos, RF-32), reavaliar o SDK.
+- **Ainda não exercitado contra o Google real**: depende do app OAuth publicado em produção (D-01), que só o Daniel pode criar.
+
+---
+
+## D-24 — Frontend com CSS próprio, sem Tailwind e shadcn/ui por enquanto
+
+**Status:** Proposta (aguarda validação do Daniel) · 13/10/2026 · *diverge de architecture.md §7*
+
+**Contexto.** architecture.md previa Tailwind + shadcn/ui; a Fase 0 já saiu com CSS puro, registrado como dívida no HANDOFF.
+
+**Decisão.** Manter CSS próprio, com variáveis de tema e componentes simples, e a única dependência nova de frontend sendo o roteador (`react-router`).
+
+**Racional.** São poucas telas, e cada biblioteca de estilo é mais uma coisa para aprender ao mesmo tempo que Java e Spring (10h por semana). CSS puro é a base que Tailwind abstrai; trocar depois é viável tela a tela.
+
+**Consequências.** Mais CSS escrito à mão. Se a interface crescer ou ganhar componentes complexos (tabelas com ordenação, seletores de data), reabrir com Tailwind.
+
+---
+
 ## Índice
 
 | ID | Decisão | Status |
@@ -385,3 +454,7 @@ Isso troca a função-objetivo. Não se trata mais de "qual stack dá menos trab
 | D-18 | Serviço registrado por válvula individual | Aceita |
 | D-19 | Estação comporta N válvulas | Aceita |
 | D-20 | Stack Java + Spring Boot + React | Aceita |
+| D-21 | Outbox em tabela própria (`evento_agenda`) | Proposta |
+| D-22 | Autenticação por JWT, perfil lido do banco | Proposta |
+| D-23 | Google Calendar pela API REST, sem SDK | Proposta |
+| D-24 | CSS próprio, sem Tailwind por enquanto | Proposta |

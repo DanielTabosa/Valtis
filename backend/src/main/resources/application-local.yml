@@ -1,0 +1,35 @@
+# Perfil de desenvolvimento local. Ative com:
+#   .\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
+#
+# Aponta para o Postgres do docker-compose.yml (porta 5433), e NÃO para o
+# Supabase. Assim, testar migrations e cadastros na sua máquina nunca toca a
+# base de produção. Tudo aqui é valor de teste, sem nenhum segredo real.
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/valtis
+    username: valtis
+    password: valtis-local
+
+valtis:
+  seguranca:
+    # Chave só de desenvolvimento. Produção usa VALTIS_JWT_SEGREDO.
+    jwt-segredo: chave-local-de-desenvolvimento-nao-usar-em-producao
+    # Login do administrador local, criado automaticamente na primeira partida.
+    admin-inicial:
+      nome: Admin Local
+      email: admin@valtis.local
+      senha: Admin-Valtis-Local1
+
+  agenda:
+    # Agenda de mentira: os eventos "criados" aparecem no log do backend.
+    provedor: simulada
+    espera-inicial-segundos: 30
+    intervalo-ms: 30000
+    atraso-inicial-ms: 10000
+    google:
+      convidados: daniel@manutec.local,tecnico@manutec.local
+
+logging:
+  level:
+    br.com.manutec.valtis: debug

@@ -1,0 +1,19 @@
+# Perfil dos testes de integração. O banco é um Postgres descartável do
+# Testcontainers (PostgresDeTeste): estes valores de datasource são ignorados,
+# existem só para os placeholders ${DB_URL} do application.yml resolverem.
+spring:
+  datasource:
+    url: jdbc:postgresql://substituido-pelo-testcontainers/valtis
+    username: teste
+    password: teste
+
+valtis:
+  seguranca:
+    jwt-segredo: chave-dos-testes-automatizados-com-32-caracteres-ou-mais
+    admin-inicial:
+      nome: Admin de Teste
+      email: admin@teste.local
+      senha: Senha-De-Teste1
+  agenda:
+    # O worker não roda sozinho nos testes; quem precisa dele chama na mão.
+    provedor: desativada

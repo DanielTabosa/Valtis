@@ -22,7 +22,7 @@ public class Estacao {
 
     // LAZY: só busca o cliente no banco quando alguém pedir de fato.
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "cliente_id", nullable = false)
+    @JoinColumn(name = "cliente_id", nullable = false, updatable = false)
     private Cliente cliente;
 
     @Column(name = "localizacao_instalacao", nullable = false)
@@ -35,6 +35,7 @@ public class Estacao {
     @Column(name = "andar_final", nullable = false)
     private Integer andarFinal;
 
+    /** Se o serviço exige cortar a água do prédio inteiro. Vai no evento da agenda (RF-29). */
     @Column(name = "requer_fechamento_geral", nullable = false)
     private boolean requerFechamentoGeral = false;
 
@@ -55,10 +56,22 @@ public class Estacao {
     public Estacao(Cliente cliente, String localizacaoInstalacao, Integer andarInicial,
                    Integer andarFinal, boolean requerFechamentoGeral) {
         this.cliente = cliente;
+        atualizar(localizacaoInstalacao, andarInicial, andarFinal, requerFechamentoGeral);
+    }
+
+    public void atualizar(String localizacaoInstalacao, Integer andarInicial, Integer andarFinal,
+                          boolean requerFechamentoGeral) {
         this.localizacaoInstalacao = localizacaoInstalacao;
         this.andarInicial = andarInicial;
         this.andarFinal = andarFinal;
         this.requerFechamentoGeral = requerFechamentoGeral;
+    }
+
+    public void inativar() { this.ativo = false; }
+    public void reativar() { this.ativo = true; }
+
+    public String descreverAndares() {
+        return Andares.descrever(andarInicial, andarFinal);
     }
 
     public UUID getId() { return id; }
@@ -68,6 +81,4 @@ public class Estacao {
     public Integer getAndarFinal() { return andarFinal; }
     public boolean isRequerFechamentoGeral() { return requerFechamentoGeral; }
     public boolean isAtivo() { return ativo; }
-
-    public void inativar() { this.ativo = false; }
 }

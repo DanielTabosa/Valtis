@@ -6,7 +6,7 @@ import java.util.UUID;
 
 /**
  * Catálogo técnico reutilizável: marca + modelo + diâmetro + tipo de registro.
- * Cadastra-se a combinação uma vez; várias válvulas apontam para ela.
+ * Cadastra-se a combinação uma vez; várias válvulas apontam para ela (D-17).
  */
 @Entity
 @Table(name = "especificacao")
@@ -26,8 +26,9 @@ public class Especificacao {
     @Column(name = "diametro_polegadas", nullable = false)
     private String diametroPolegadas;
 
+    @Convert(converter = TipoRegistro.Conversor.class)
     @Column(name = "tipo_registro", nullable = false)
-    private String tipoRegistro;
+    private TipoRegistro tipoRegistro;
 
     @Column(name = "descricao_completa", nullable = false)
     private String descricaoCompleta;
@@ -38,24 +39,31 @@ public class Especificacao {
     protected Especificacao() {
     }
 
-    public Especificacao(String marca, String modelo, String diametroPolegadas, String tipoRegistro) {
+    public Especificacao(String marca, String modelo, String diametroPolegadas, TipoRegistro tipoRegistro) {
+        atualizar(marca, modelo, diametroPolegadas, tipoRegistro);
+    }
+
+    public void atualizar(String marca, String modelo, String diametroPolegadas, TipoRegistro tipoRegistro) {
         this.marca = marca;
         this.modelo = modelo;
         this.diametroPolegadas = diametroPolegadas;
         this.tipoRegistro = tipoRegistro;
-        this.descricaoCompleta = montarDescricao(marca, modelo, diametroPolegadas, tipoRegistro);
+        this.descricaoCompleta = montarDescricao();
     }
 
     /** Ex.: Bermad 720 - 2" Esfera */
-    private static String montarDescricao(String marca, String modelo, String diametro, String tipo) {
-        return "%s %s - %s\" %s".formatted(marca, modelo, diametro, tipo);
+    private String montarDescricao() {
+        return "%s %s - %s\" %s".formatted(marca, modelo, diametroPolegadas, tipoRegistro.valor());
     }
+
+    public void inativar() { this.ativo = false; }
+    public void reativar() { this.ativo = true; }
 
     public UUID getId() { return id; }
     public String getMarca() { return marca; }
     public String getModelo() { return modelo; }
     public String getDiametroPolegadas() { return diametroPolegadas; }
-    public String getTipoRegistro() { return tipoRegistro; }
+    public TipoRegistro getTipoRegistro() { return tipoRegistro; }
     public String getDescricaoCompleta() { return descricaoCompleta; }
     public boolean isAtivo() { return ativo; }
 }

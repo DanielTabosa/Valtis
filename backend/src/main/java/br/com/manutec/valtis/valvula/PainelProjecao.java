@@ -10,11 +10,15 @@ import java.util.UUID;
 public interface PainelProjecao {
 
     UUID getValvulaId();
+    UUID getEstacaoId();
+    UUID getClienteId();
     String getCodigoReferencia();
     String getNumeroValvula();
+    String getNumeroSerie();
     Integer getPeriodicidadeMeses();
     String getNomeCondominio();
     String getBairro();
+    String getTipoAtendimento();
     String getLocalizacaoInstalacao();
     Integer getAndarInicial();
     Integer getAndarFinal();

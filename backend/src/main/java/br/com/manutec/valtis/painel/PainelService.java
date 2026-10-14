@@ -1,51 +1,74 @@
 package br.com.manutec.valtis.painel;
 
+import br.com.manutec.valtis.estacao.Andares;
+import br.com.manutec.valtis.recorrencia.RegrasRecorrencia;
+import br.com.manutec.valtis.recorrencia.StatusPainel;
 import br.com.manutec.valtis.valvula.PainelProjecao;
 import br.com.manutec.valtis.valvula.ValvulaRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Caso de uso do painel de status.
+ * Caso de uso do painel de status (módulo M4).
  *
- * É AQUI que moram as regras RN-01 (cálculo do vencimento) e RN-04
- * (classificação). Não no SQL, não no controller, não na tela.
+ * Aplica RN-01, RN-04 e RN-05 sobre os dados crus do repositório. As regras em
+ * si moram em RegrasRecorrencia; aqui só se monta a linha.
  */
 @Service
 public class PainelService {
 
-    /** Janela de alerta comercial, em dias (D-08). */
-    private static final int JANELA_ALERTA_DIAS = 30;
+    public record ContagemStatus(StatusPainel status, String rotulo, long total) {}
+
+    public record Painel(List<ContagemStatus> resumo, List<LinhaPainel> linhas) {}
 
     private final ValvulaRepository valvulaRepository;
+    private final RegrasRecorrencia regras;
+    private final Clock relogio;
 
-    public PainelService(ValvulaRepository valvulaRepository) {
+    public PainelService(ValvulaRepository valvulaRepository, RegrasRecorrencia regras, Clock relogio) {
         this.valvulaRepository = valvulaRepository;
+        this.regras = regras;
+        this.relogio = relogio;
     }
 
-    public List<LinhaPainel> listar() {
-        LocalDate hoje = LocalDate.now();
+    @Transactional(readOnly = true)
+    public Painel montar(FiltroPainel filtro) {
+        LocalDate hoje = LocalDate.now(relogio);
 
-        return valvulaRepository.buscarDadosDoPainel()
+        List<LinhaPainel> linhas = valvulaRepository.buscarDadosDoPainel()
                 .stream()
                 .map(p -> montarLinha(p, hoje))
-                // vencidos primeiro, depois os que vencem mais cedo
-                .sorted(Comparator.comparing(
-                        LinhaPainel::diasRestantes,
-                        Comparator.nullsLast(Comparator.naturalOrder())))
+                .filter(filtro::aceita)
+                .sorted(ordemDePrioridade())
+                .toList();
+
+        return new Painel(contar(linhas), linhas);
+    }
+
+    /** RF-39: contagem por situação, sempre com as quatro situações, mesmo as zeradas. */
+    private List<ContagemStatus> contar(List<LinhaPainel> linhas) {
+        Map<StatusPainel, Long> totais = linhas.stream()
+                .collect(Collectors.groupingBy(LinhaPainel::status, Collectors.counting()));
+
+        return Arrays.stream(StatusPainel.values())
+                .map(s -> new ContagemStatus(s, s.getRotulo(), totais.getOrDefault(s, 0L)))
                 .toList();
     }
 
-    /** Contagem por situação, para o resumo do painel (RF-39). */
-    public Map<String, Long> resumo() {
-        return listar().stream()
-                .collect(Collectors.groupingBy(LinhaPainel::status, Collectors.counting()));
+    /** Vencidos primeiro; dentro da mesma situação, o que vence mais cedo. */
+    private Comparator<LinhaPainel> ordemDePrioridade() {
+        return Comparator.comparing(LinhaPainel::status)
+                .thenComparing(LinhaPainel::diasRestantes, Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(LinhaPainel::codigoReferencia);
     }
 
     private LinhaPainel montarLinha(PainelProjecao p, LocalDate hoje) {
@@ -54,36 +77,20 @@ public class PainelService {
         // RN-05: válvula sem manutenção lançada não tem data-base.
         // Não dá para calcular vencimento, então não vira oportunidade.
         if (ultima == null) {
-            return new LinhaPainel(
-                    p.getValvulaId(), p.getCodigoReferencia(), p.getNomeCondominio(), p.getBairro(),
-                    p.getLocalizacaoInstalacao(), formatarAndares(p), p.getEspecificacao(),
-                    Boolean.TRUE.equals(p.getRequerFechamentoGeral()),
-                    null, null, null, StatusPainel.SEM_REGISTRO.getRotulo());
+            return linha(p, null, null, null, StatusPainel.SEM_REGISTRO);
         }
 
-        // RN-01
-        LocalDate proxima = ultima.plusMonths(p.getPeriodicidadeMeses());
+        LocalDate proxima = regras.proximaManutencao(ultima, p.getPeriodicidadeMeses());
         long dias = ChronoUnit.DAYS.between(hoje, proxima);
+        return linha(p, ultima, proxima, dias, regras.classificar(dias));
+    }
 
+    private LinhaPainel linha(PainelProjecao p, LocalDate ultima, LocalDate proxima, Long dias, StatusPainel status) {
         return new LinhaPainel(
-                p.getValvulaId(), p.getCodigoReferencia(), p.getNomeCondominio(), p.getBairro(),
-                p.getLocalizacaoInstalacao(), formatarAndares(p), p.getEspecificacao(),
+                p.getValvulaId(), p.getEstacaoId(), p.getClienteId(), p.getCodigoReferencia(),
+                p.getNomeCondominio(), p.getBairro(), p.getTipoAtendimento(), p.getLocalizacaoInstalacao(),
+                Andares.descrever(p.getAndarInicial(), p.getAndarFinal()), p.getEspecificacao(), p.getNumeroSerie(),
                 Boolean.TRUE.equals(p.getRequerFechamentoGeral()),
-                ultima, proxima, dias, classificar(dias).getRotulo());
-    }
-
-    /** RN-04 */
-    private StatusPainel classificar(long diasRestantes) {
-        if (diasRestantes < 0) {
-            return StatusPainel.VENCIDO;
-        }
-        if (diasRestantes <= JANELA_ALERTA_DIAS) {
-            return StatusPainel.PROXIMO_DO_VENCIMENTO;
-        }
-        return StatusPainel.EM_DIA;
-    }
-
-    private String formatarAndares(PainelProjecao p) {
-        return "%d ao %d".formatted(p.getAndarInicial(), p.getAndarFinal());
+                ultima, proxima, dias, status, status.getRotulo());
     }
 }

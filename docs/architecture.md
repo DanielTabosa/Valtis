@@ -72,10 +72,10 @@ Salvar o serviço e chamar a API do Google na mesma requisição. Se o Google es
 
 ### O jeito certo
 
-1. Numa **única transação**, grava o `servico` (um por válvula atendida — D-18) e a `oportunidade` correspondente, com `google_event_id_30` e `google_event_id_7` nulos.
+1. Numa **única transação**, grava o `servico` (um por válvula atendida — D-18), a `oportunidade` correspondente e uma linha em `evento_agenda` por alerta, com status `pendente` (D-21).
 2. Responde "salvo" ao usuário imediatamente. A responsabilidade dele termina aqui.
-3. Um processo em segundo plano (cron a cada 5–15 min) busca oportunidades sem evento, cria os dois eventos e grava os IDs.
-4. Em caso de falha, incrementa `tentativas_sync` e tenta novamente depois. O painel expõe as pendências (RF-33).
+3. Um processo em segundo plano (`SincronizadorDaAgenda`, a cada 10 min) busca os eventos pendentes, cria cada um na agenda e grava o id devolvido.
+4. Em caso de falha, incrementa `tentativas` e agenda a próxima tentativa com espera crescente. A tela de sincronização expõe as pendências (RF-33).
 
 ### Benefício colateral
 
@@ -163,14 +163,14 @@ Definida em [decisions.md](decisions.md) · **D-20**. O backend é uma **API RES
 | Camada | Escolha | Por quê |
 |---|---|---|
 | Linguagem | **Java 21 (LTS)** | Objetivo de carreira além do produto (D-20). LTS garante suporte longo |
-| Framework | **Spring Boot 3** | Padrão de mercado em Java corporativo. Traz injeção de dependência, transações e agendador prontos |
+| Framework | **Spring Boot 4** | Padrão de mercado em Java corporativo. Traz injeção de dependência, transações e agendador prontos |
 | Build | **Maven** | Mais comum em vagas e em código legado do que Gradle |
 | Persistência | **Spring Data JPA / Hibernate** | Mapeamento objeto-relacional idiomático do ecossistema |
 | Migrações | **Flyway** | Versionadas e revisáveis — casa com a exigência de aprovação do AGENTS.md §10 |
 | Banco | **PostgreSQL** | Relacional é o ajuste natural para Cliente→Estação→Válvula→Serviço |
 | Segurança | **Spring Security** | Autenticação e autorização (RF-01, RNF-23) |
 | Worker do Outbox | **`@Scheduled`** do Spring | Nativo. Fila dedicada é overkill para 100 registros/ano |
-| Calendar | **google-api-client** (SDK Java) + OAuth refresh token | D-01. Isolado atrás do Outbox |
+| Calendar | API REST do Google via `RestClient` + OAuth refresh token | D-01, D-23. Isolado atrás da interface `AgendaGateway` e do Outbox |
 | PDF | **JasperReports** | Padrão em Java corporativo e habilidade valorizada em vaga. ⚠️ Cuidado com alternativas: **iText 7 é AGPL**, restritivo para uso comercial |
 | Planilha | **Apache POI** | Importação da base legada e exportação para Excel |
 | Testes | **JUnit 5 + Mockito + Testcontainers** | Testcontainers roda Postgres real no teste — mais fiel que banco em memória |
@@ -180,7 +180,7 @@ Definida em [decisions.md](decisions.md) · **D-20**. O backend é uma **API RES
 | Camada | Escolha | Por quê |
 |---|---|---|
 | Framework | **React + Vite + TypeScript** | Mais vagas no agregado e curva mais suave que Angular. Next.js seria redundante com um backend Spring |
-| Estilo | **Tailwind + shadcn/ui** | Rápido, responsivo por padrão, componentes prontos |
+| Estilo | CSS próprio com variáveis de tema | D-24 (proposta). Tailwind + shadcn/ui fica para quando a interface crescer |
 | Fotos | Compressão **no navegador** antes do upload | Economiza storage e dados móveis do técnico |
 
 ### Infraestrutura

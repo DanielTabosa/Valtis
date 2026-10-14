@@ -1,14 +1,12 @@
-package br.com.manutec.valtis.fase0;
+package br.com.manutec.valtis.comum;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Endpoint de sinal de vida. Não depende de banco: serve para saber se a
- * aplicação está no ar mesmo quando o banco não está.
- *
- * Código de Fase 0 — será removido antes da Fase 1.
+ * Sinal de vida. Público e sem banco: diz se a aplicação está no ar
+ * mesmo quando o banco não está.
  */
 @RestController
 @RequestMapping("/api")
