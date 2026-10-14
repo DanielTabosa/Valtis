@@ -4,6 +4,7 @@ As regras deste projeto estão em **[AGENTS.md](AGENTS.md)**. Leia-o por complet
 
 Ordem de leitura obrigatória:
 
+0. `HANDOFF.md` — **comece por aqui.** Estado atual, backlog em ordem, pendências que exigem o Daniel, dívidas técnicas, armadilhas já pagas e como trabalhar com ele
 1. `AGENTS.md` — regras de arquitetura, código, testes, Git, segurança e aprovação humana
 2. `docs/requirements.md` — requisitos com IDs estáveis (RF, RNF, RN)
 3. `docs/architecture.md` — camadas, fronteiras e padrão Outbox

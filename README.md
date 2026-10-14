@@ -58,6 +58,7 @@ Leia nesta ordem:
 
 | Documento | Para quê |
 |---|---|
+| **[HANDOFF.md](HANDOFF.md)** | **Comece por aqui.** Estado atual, backlog em ordem, decisões pendentes, dívidas técnicas e armadilhas conhecidas |
 | **[AGENTS.md](AGENTS.md)** | **Obrigatório antes de qualquer alteração no repositório.** Regras de arquitetura, código, testes, Git, segurança e o que exige aprovação humana |
 | [docs/requirements.md](docs/requirements.md) | O **que** construir. Requisitos funcionais (RF), não funcionais (RNF) e regras de negócio (RN), com IDs estáveis |
 | [docs/architecture.md](docs/architecture.md) | **Como** construir. Camadas, fronteiras, padrão Outbox, módulos e stack |
