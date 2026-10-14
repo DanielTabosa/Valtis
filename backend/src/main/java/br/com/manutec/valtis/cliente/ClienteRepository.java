@@ -9,11 +9,14 @@ import java.util.UUID;
 
 public interface ClienteRepository extends JpaRepository<Cliente, UUID> {
 
-    /** RF-11: busca por nome, código, bairro ou cidade. Busca vazia devolve todos. */
+    /**
+     * RF-11: busca por nome, código, bairro ou cidade. Busca vazia ("") devolve todos.
+     * Nunca passe null: o Postgres recebe texto nulo como bytea e a consulta quebra.
+     */
     @Query("""
             SELECT c FROM Cliente c
             WHERE (:incluirInativos = TRUE OR c.ativo = TRUE)
-              AND (:busca IS NULL
+              AND (:busca = ''
                    OR LOWER(c.nomeCondominio)   LIKE LOWER(CONCAT('%', :busca, '%'))
                    OR LOWER(c.codigoReferencia) LIKE LOWER(CONCAT('%', :busca, '%'))
                    OR LOWER(c.bairro)           LIKE LOWER(CONCAT('%', :busca, '%'))

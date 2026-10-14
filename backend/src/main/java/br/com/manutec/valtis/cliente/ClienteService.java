@@ -32,7 +32,8 @@ public class ClienteService {
 
     @Transactional(readOnly = true)
     public List<ClienteResposta.Resumo> listar(String busca, boolean incluirInativos) {
-        return clienteRepository.buscar(Textos.limpar(busca), incluirInativos)
+        String termo = Textos.limpar(busca);
+        return clienteRepository.buscar(termo == null ? "" : termo, incluirInativos)
                 .stream()
                 .map(ClienteResposta.Resumo::de)
                 .toList();
