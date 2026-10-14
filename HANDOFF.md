@@ -1,7 +1,7 @@
 # HANDOFF — Valtis
 
 **Para:** qualquer agente que vá trabalhar neste repositório
-**Atualizado em:** 13/10/2026
+**Atualizado em:** 14/10/2026
 **Branch de trabalho:** `feat/fase-1-mvp` (não publicada, não mesclada na `main`)
 
 Este arquivo é o resumo de situação. Ele **não substitui** `AGENTS.md`, `docs/requirements.md`, `docs/architecture.md`, `docs/database.md` e `docs/decisions.md` — leia-os conforme a ordem do `CLAUDE.md`. O que este arquivo faz é te dizer, rápido: onde o projeto está, o que já foi decidido, o que falta e o que você **não** pode fazer sozinho.
@@ -80,7 +80,7 @@ npm install
 npm run dev
 ```
 
-Login local: `backend/src/main/resources/application-local.yml`, bloco `admin-inicial`. A agenda simulada escreve os eventos no log do backend (`[agenda simulada]`) a cada 30 segundos.
+Login local: `backend/src/main/resources/application-local.yml`, bloco `admin-inicial`. O banco local também tem um técnico de teste (`tec@valtis.local`), criado pela tela de Usuários. A agenda simulada escreve os eventos no log do backend (`[agenda simulada]`) a cada 30 segundos.
 
 **Roteiro sugerido:** criar um usuário técnico → entrar como ele → cadastrar condomínio, estação com 2 válvulas → lançar serviço nas duas, ajustando uma → ver no painel → na fila, assumir e recusar pedindo nova data → conferir a tela Agenda → entrar como admin e inativar uma válvula.
 
@@ -262,7 +262,7 @@ A revisão técnica foi **adiada a pedido dele** (13/10/2026): ele vai estudar p
 
 ## 13. Próxima tarefa sugerida
 
-1. Teste manual do Daniel na branch, seguindo o roteiro da §3.
+1. ~~Teste manual do Daniel na branch~~ — feito em 14/10/2026. **Começar a próxima sessão perguntando o resultado**: o que funcionou, o que estranhou, que ajustes quer.
 2. Ajustes que ele pedir + validação de S-01 a S-11 e D-21 a D-24.
 3. Checklist de produção da §4 e merge na `main`.
 4. Importador (precisa da planilha) e credencial do Google.
