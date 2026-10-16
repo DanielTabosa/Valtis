@@ -304,6 +304,10 @@ a {
   cursor: pointer;
 }
 
+.botao-texto.perigo {
+  color: var(--vermelho);
+}
+
 .botao-texto:disabled {
   opacity: 0.55;
 }

@@ -128,8 +128,9 @@ function FormularioLancamento({ clienteId, valvulaInicial, aoTrocarCliente, aoCo
 
   const [estacaoId, setEstacaoId] = useState<string | null>(null);
   const [marcadas, setMarcadas] = useState<Set<string>>(new Set());
-  // Sem valor padrão: a data é sempre informada, nunca assumida como hoje (RF-17, D-02).
-  const [dataRealizada, setDataRealizada] = useState("");
+  // RF-17: começa em hoje, mas a tela pede para conferir; lançar com atraso
+  // sem trocar a data empurraria o próximo ciclo (D-02).
+  const [dataRealizada, setDataRealizada] = useState(hojeEmRecife);
   const [tecnicoId, setTecnicoId] = useState(usuario?.id ?? "");
   const [comum, setComum] = useState<Detalhe>(DETALHE_VAZIO);
   const [ajustes, setAjustes] = useState<Record<string, Detalhe>>({});
@@ -280,7 +281,15 @@ function FormularioLancamento({ clienteId, valvulaInicial, aoTrocarCliente, aoCo
             <h2>4. O que foi feito</h2>
             <MensagemErro erro={envio.erro ?? tecnicos.erro} />
             <div className="linha-campos">
-              <Campo rotulo="Data em que o serviço foi feito *" erro={envio.campos["itens[0].dataRealizada"]}>
+              <Campo
+                rotulo="Data em que o serviço foi feito *"
+                erro={envio.campos["itens[0].dataRealizada"]}
+                dica={
+                  dataRealizada === hojeEmRecife()
+                    ? "Confira: é hoje? Se o serviço foi feito em outro dia, troque a data."
+                    : undefined
+                }
+              >
                 <input
                   type="date"
                   required

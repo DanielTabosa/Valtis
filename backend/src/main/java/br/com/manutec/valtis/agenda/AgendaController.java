@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -24,12 +25,20 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/agenda")
 public class AgendaController {
 
-    public record EventoPendente(UUID id, TipoEvento tipo, LocalDate dataEvento, StatusEvento status, int tentativas,
+    /** `ultimoErro` guarda o erro do envio ou, no descartado, o motivo do descarte. */
+    public record EventoDaAgenda(UUID id, TipoEvento tipo, LocalDate dataEvento, StatusEvento status, int tentativas,
                                  OffsetDateTime proximaTentativaEm, String ultimoErro, String nomeCondominio,
                                  String alvo) {}
 
     public record Situacao(String provedor, boolean sincronizacaoAtiva, Map<StatusEvento, Long> totais,
-                           EstadoDaAgenda.Retrato estado, List<EventoPendente> aguardando) {}
+                           EstadoDaAgenda.Retrato estado, List<EventoDaAgenda> eventos, boolean listaCortada) {}
+
+    /** Criados e descartados só acumulam; a tela mostra um recorte. */
+    private static final int EVENTOS_NA_TELA = 200;
+
+    /** O que precisa de atenção primeiro: falha, depois o que ainda vai sair, depois o histórico. */
+    private static final List<StatusEvento> PRIORIDADE =
+            List.of(StatusEvento.FALHOU, StatusEvento.PENDENTE, StatusEvento.CRIADO, StatusEvento.DESCARTADO);
 
     private final EventoAgendaRepository repository;
     private final EstadoDaAgenda estado;
@@ -49,21 +58,31 @@ public class AgendaController {
 
     @GetMapping("/situacao")
     @Transactional(readOnly = true)
-    public Situacao situacao() {
+    public Situacao situacao(@RequestParam(required = false) StatusEvento status) {
+        // Como no painel: os cartões contam tudo, a lista obedece ao filtro.
         Map<StatusEvento, Long> totais = EnumSet.allOf(StatusEvento.class).stream()
                 .collect(Collectors.toMap(Function.identity(), repository::countByStatus));
 
-        List<EventoPendente> aguardando = repository.comStatus(EnumSet.of(StatusEvento.PENDENTE, StatusEvento.FALHOU))
+        List<EventoDaAgenda> eventos = listar(status == null ? EnumSet.allOf(StatusEvento.class) : EnumSet.of(status))
                 .stream()
-                .map(e -> new EventoPendente(e.getId(), e.getTipo(), e.getDataEvento(), e.getStatus(),
+                .sorted(Comparator.comparing((EventoDaAgenda e) -> PRIORIDADE.indexOf(e.status()))
+                        .thenComparing(EventoDaAgenda::dataEvento))
+                .toList();
+
+        return new Situacao(provedor, sincronizador.getIfAvailable() != null, totais, estado.retrato(),
+                eventos.stream().limit(EVENTOS_NA_TELA).toList(), eventos.size() > EVENTOS_NA_TELA);
+    }
+
+    private List<EventoDaAgenda> listar(EnumSet<StatusEvento> status) {
+        return repository.comStatus(status)
+                .stream()
+                .map(e -> new EventoDaAgenda(e.getId(), e.getTipo(), e.getDataEvento(), e.getStatus(),
                         e.getTentativas(), e.getProximaTentativaEm(), e.getUltimoErro(),
                         e.getOportunidade().getCliente().getNomeCondominio(),
                         e.getOportunidade().getValvula() == null
                                 ? e.getOportunidade().getCliente().getCodigoReferencia()
                                 : e.getOportunidade().getValvula().getCodigoReferencia()))
                 .toList();
-
-        return new Situacao(provedor, sincronizador.getIfAvailable() != null, totais, estado.retrato(), aguardando);
     }
 
     @PostMapping("/eventos/{id}/reprocessar")

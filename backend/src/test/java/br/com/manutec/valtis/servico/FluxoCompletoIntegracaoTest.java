@@ -9,7 +9,9 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.matchesPattern;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -99,9 +101,19 @@ class FluxoCompletoIntegracaoTest extends TesteDeIntegracao {
         assertThat(urgentes).containsExactly(true);
 
         // O alerta de 30 dias (02/10) já passou e não entra; o de 7 dias (25/10) entra.
-        var agenda = obter("/api/agenda/situacao", token);
-        List<String> tipos = ler(agenda, "$.aguardando[?(@.alvo == '" + codigoCliente + "-VRP-01')].tipo");
+        var agenda = obter("/api/agenda/situacao?status=PENDENTE", token);
+        List<String> tipos = ler(agenda, "$.eventos[?(@.alvo == '" + codigoCliente + "-VRP-01')].tipo");
         assertThat(tipos).containsExactly("lembrete_final");
+    }
+
+    @Test
+    void filtroDaAgendaRestringeAListaMasNaoOsTotais() throws Exception {
+        lancar(valvula1, "2025-11-01");
+
+        var agenda = obter("/api/agenda/situacao?status=CRIADO", token)
+                .andExpect(jsonPath("$.totais.pendente").value(greaterThanOrEqualTo(1)));
+        List<String> status = ler(agenda, "$.eventos[*].status");
+        assertThat(status).doesNotContain("pendente");
     }
 
     @Test
@@ -177,6 +189,47 @@ class FluxoCompletoIntegracaoTest extends TesteDeIntegracao {
         List<String> naFila = ler(obter("/api/oportunidades", token),
                 "$[?(@.valvulaId == '" + valvula2 + "')].id");
         assertThat(naFila).isEmpty();
+    }
+
+    @Test
+    void valvulaCadastradaPorEnganoPodeSerExcluida() throws Exception {
+        enviar(delete("/api/valvulas/" + valvula2), token, null).andExpect(status().isNoContent());
+
+        obter("/api/valvulas/" + valvula2, token).andExpect(status().isNotFound());
+        obter("/api/painel?clienteId=" + clienteId, token).andExpect(jsonPath("$.linhas.length()").value(1));
+    }
+
+    @Test
+    void valvulaComServicoNaoPodeSerExcluida() throws Exception {
+        lancar(valvula1, "2026-01-01");
+
+        enviar(delete("/api/valvulas/" + valvula1), token, null)
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value(containsString("inative")));
+    }
+
+    @Test
+    void cicloQueJaChegaVencidoFicaMarcadoSemLembreteNaAgenda() throws Exception {
+        // 01/10/2025 + 12 meses = 01/10/2026: os alertas de 30 e 7 dias já passaram.
+        lancar(valvula1, "2025-10-01");
+        // 01/11/2025: o alerta de 7 dias (25/10) ainda vai para a agenda.
+        lancar(valvula2, "2025-11-01");
+
+        var fila = obter("/api/oportunidades", token);
+        List<Boolean> vencida = ler(fila, "$[?(@.valvulaId == '" + valvula1 + "')].semLembreteNaAgenda");
+        List<Boolean> comLembrete = ler(fila, "$[?(@.valvulaId == '" + valvula2 + "')].semLembreteNaAgenda");
+        assertThat(vencida).containsExactly(true);
+        assertThat(comLembrete).containsExactly(false);
+    }
+
+    @Test
+    void cartoesDoResumoNaoZeramAoFiltrarPorSituacao() throws Exception {
+        lancar(valvula1, "2026-10-01");
+
+        obter("/api/painel?clienteId=" + clienteId + "&status=EM_DIA", token)
+                .andExpect(jsonPath("$.linhas.length()").value(1))
+                .andExpect(jsonPath("$.resumo[2].total").value(1))
+                .andExpect(jsonPath("$.resumo[3].total").value(1));
     }
 
     private ResultActions lancar(String valvulaId, String data) throws Exception {

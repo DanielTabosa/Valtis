@@ -42,7 +42,8 @@ Perfis: **técnico** (lança e edita serviços, anexa fotos, consulta histórico
 | RF-09 | Gerar automaticamente o código de referência no padrão `COND-001-VRP-01` | P0 | `[PLANILHA]` |
 | RF-10 | Criar cliente / estação / válvula **de dentro do formulário de lançamento**, sem trocar de tela | P0 | `[SUGESTÃO]` |
 | RF-11 | Buscar por nome do condomínio, código de referência, bairro ou número de série | P0 | `[SUGESTÃO]` |
-| RF-12 | **Inativar** (nunca excluir) cliente, estação ou válvula. Inativos saem do painel e permanecem no histórico | P0 | `[PLANILHA]` |
+| RF-12 | **Inativar** cliente, estação ou válvula. Inativos saem do painel e permanecem no histórico. Técnico e admin inativam válvula; cliente e estação, só admin | P0 | `[PLANILHA]` |
+| RF-12a | **Excluir** válvula só quando ela não tem nenhum serviço nem oportunidade (cadastro feito por engano). Com histórico, o sistema recusa e orienta a inativar | P1 | `[DECIDIDO]` 16/10/2026 |
 | RF-13 | Alertar duplicidade ao cadastrar válvula com mesma estação e mesmo número | P1 | `[PLANILHA]` |
 
 ### 1.3 Registro de serviço
@@ -53,7 +54,7 @@ Perfis: **técnico** (lança e edita serviços, anexa fotos, consulta histórico
 | RF-15 | O registro é feito **por válvula individual**, mesmo quando o serviço é executado na estação inteira. Uma visita a 3 válvulas gera 3 registros | P0 | `[DECIDIDO]` · D-18 |
 | RF-15b | Ao lançar, permitir **replicar o preenchimento** para as demais válvulas da mesma estação, ajustando apenas o que difere. Conveniência de tela; os registros permanecem independentes | P0 | `[SUGESTÃO]` · mitiga o custo assumido em D-18 |
 | RF-16 | Pressão de entrada e saída como campos **opcionais** | P1 | `[DECIDIDO]` · D-10 |
-| RF-17 | A data realizada é **sempre informada** pelo técnico, nunca assumida como a data de preenchimento | P0 | D-02 |
+| RF-17 | A data realizada é **informada pelo técnico**. A tela sugere a data de hoje e pede para conferir; o campo é obrigatório e é o técnico quem confirma | P0 | D-02 · revisto 16/10/2026 |
 | RF-18 | Nunca sobrescrever registro antigo — toda intervenção é uma linha nova | P0 | `[PLANILHA]` |
 | RF-19 | Anexar fotos pela **câmera ou pela galeria**, com compressão no dispositivo | P0 | `[DECIDIDO]` · D-02 |
 | RF-20 | Salvar como rascunho e concluir depois | P1 | `[SUGESTÃO]` |
@@ -210,7 +211,7 @@ D-02 removeu a necessidade de operação offline.
 | RN-10 | Novo serviço fecha as oportunidades abertas da estação e inicia novo ciclo | `[SUGESTÃO]` |
 | RN-11 | Nada é excluído fisicamente. Inativação lógica em todas as entidades | `[PLANILHA]` |
 | RN-12 | Válvula ou cliente inativo não gera novas oportunidades | `[PLANILHA]` `[SUGESTÃO]` |
-| RN-13 | Registros importados **não** geram eventos retroativos no Calendar | `[SUGESTÃO]` |
+| RN-13 | **Nenhum** alerta com data passada vai para o Calendar, importado ou não. A oportunidade aberta que já está na janela de contato e não tem lembrete na agenda aparece na fila marcada "sem lembrete na agenda"; os alertas descartados ficam listados na tela Agenda, com o motivo | `[DECIDIDO]` 16/10/2026 |
 | RN-14 | Código do equipamento = código do cliente + `-VRP-` + sequencial | `[PLANILHA]` |
 
 ---

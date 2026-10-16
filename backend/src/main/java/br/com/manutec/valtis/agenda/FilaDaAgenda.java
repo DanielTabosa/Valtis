@@ -7,7 +7,10 @@ import org.springframework.stereotype.Component;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * Coloca e tira eventos da fila de saída (Outbox). Não fala com o Google:
@@ -36,6 +39,22 @@ public class FilaDaAgenda {
         LocalDate prevista = oportunidade.getDataPrevista();
         enfileirar(oportunidade, TipoEvento.ALERTA_COMERCIAL, regras.dataAlertaComercial(prevista));
         enfileirar(oportunidade, TipoEvento.LEMBRETE_FINAL, regras.dataLembreteFinal(prevista));
+    }
+
+    /**
+     * Status de evento que contam como "a agenda avisa ou já avisou". Descartado não conta:
+     * é o alerta que nunca chegou ao Google.
+     */
+    private static final Set<StatusEvento> COM_LEMBRETE =
+            EnumSet.of(StatusEvento.PENDENTE, StatusEvento.CRIADO, StatusEvento.FALHOU);
+
+    /** Oportunidades que têm lembrete na agenda, enviado ou a caminho. Uma consulta para a fila toda. */
+    public Set<UUID> oportunidadesComLembrete() {
+        return repository.oportunidadesComEventoEm(COM_LEMBRETE);
+    }
+
+    public boolean temLembrete(Oportunidade oportunidade) {
+        return repository.existsByOportunidadeIdAndStatusIn(oportunidade.getId(), COM_LEMBRETE);
     }
 
     /** O ciclo fechou antes de o evento chegar ao Google: não há mais o que avisar. */

@@ -44,6 +44,7 @@
 - **Operação offline sai inteiramente do escopo** (RNF-10). Elimina sincronização local, fila de envio e resolução de conflito — economia significativa de complexidade.
 - Fotos são tiradas no local e anexadas depois → o anexo **precisa aceitar galeria**, não só câmera ao vivo (RF-19).
 - `data_realizada` vira campo **obrigatório e explícito** (RF-17). Se o sistema assumisse "hoje", um atendimento lançado com 10 dias de atraso empurraria o retorno em 10 dias — acumulando desvio a cada ciclo.
+- **Revisto em 16/10/2026 (Daniel, após o teste manual):** a tela passa a **sugerir** hoje, porque digitar a data toda vez pesa no lançamento mais comum (o do mesmo dia). O risco acima continua; a mitigação é o aviso "Confira: é hoje?" ao lado do campo. O servidor segue exigindo a data no pedido.
 - **Novo risco:** o lançamento pode simplesmente não acontecer. "Depois eu lanço" é onde a informação morre. Mitigado por D-16, pelo PDF como contrapartida (RF-48) e por RF-22.
 
 ---
@@ -374,7 +375,7 @@ Isso troca a função-objetivo. Não se trata mais de "qual stack dá menos trab
 **Alternativa descartada.** Manter as colunas na oportunidade: menos uma tabela, mas sem estado por alerta nem registro de erro.
 
 **Consequências.**
-- Alerta cuja data já passou não entra na fila (RN-13): evento no passado só polui a agenda.
+- Alerta cuja data já passou não entra na fila (RN-13): evento no passado só polui a agenda. Quem fica sem lembrete é avisado pela fila de Oportunidades (`semLembreteNaAgenda`), decidido pelo Daniel em 16/10/2026.
 - O worker reconfere, imediatamente antes de enviar, se o ciclo ainda está aberto e a válvula ativa; se não, descarta.
 - `database.md` atualizado. Índice parcial `WHERE status = 'pendente'` para a varredura do worker.
 

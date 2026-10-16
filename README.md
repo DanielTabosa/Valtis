@@ -164,11 +164,11 @@ Todos exigem o cabeçalho `Authorization: Bearer <token>`, exceto login e health
 | `GET /api/painel` | Linhas e resumo por situação. Filtros: `busca`, `status`, `bairro`, `tipoAtendimento`, `clienteId` |
 | `GET/POST /api/clientes` · `GET/PUT /api/clientes/{id}` | Cadastro de clientes |
 | `POST /api/clientes/{id}/estacoes` · `PUT /api/estacoes/{id}` | Estações |
-| `POST /api/estacoes/{id}/valvulas` · `GET/PUT /api/valvulas/{id}` | Válvulas e ficha com histórico |
+| `POST /api/estacoes/{id}/valvulas` · `GET/PUT/DELETE /api/valvulas/{id}` | Válvulas e ficha com histórico (DELETE só sem histórico) |
 | `GET/POST /api/especificacoes` · `PUT /api/especificacoes/{id}` | Catálogo |
 | `POST /api/servicos/lancamentos` | Lança serviço em uma ou mais válvulas |
 | `GET /api/oportunidades` · `POST .../{id}/assumir`, `/liberar`, `/desfecho` | Fila comercial |
-| `GET /api/agenda/situacao` · `POST /api/agenda/sincronizar` | Sincronização com a agenda |
+| `GET /api/agenda/situacao?status=` · `POST /api/agenda/sincronizar` | Sincronização com a agenda |
 | `GET /api/usuarios/ativos` · `GET/POST/PUT /api/usuarios` | Usuários (gestão só para admin) |
 | `POST .../{id}/inativar`, `/reativar` | Inativação lógica. Só admin |
 | `GET /api/health` | Sinal de vida, não depende do banco. Público |

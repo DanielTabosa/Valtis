@@ -9,7 +9,7 @@ import java.util.UUID;
 /**
  * Uma oportunidade como a fila mostra.
  *
- * `semDonoUrgente` (RF-43) vem calculado do servidor: a tela só pinta.
+ * `semDonoUrgente` (RF-43) e `semLembreteNaAgenda` vêm calculados do servidor: a tela só pinta.
  * O contato do síndico vai junto porque a fila existe para ligar para ele;
  * a rota é autenticada (RNF-23).
  */
@@ -24,6 +24,7 @@ public record OportunidadeResposta(
         LocalDate dataLembreteFinal,
         Long diasParaVencimento,
         boolean semDonoUrgente,
+        boolean semLembreteNaAgenda,
         UUID clienteId,
         String codigoCliente,
         String nomeCondominio,

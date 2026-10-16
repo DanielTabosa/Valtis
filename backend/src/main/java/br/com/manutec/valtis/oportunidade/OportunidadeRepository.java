@@ -61,4 +61,6 @@ public interface OportunidadeRepository extends JpaRepository<Oportunidade, UUID
             ORDER BY o.dataPrevista DESC
             """)
     List<Oportunidade> daValvula(@Param("valvulaId") UUID valvulaId);
+
+    boolean existsByValvulaId(UUID valvulaId);
 }

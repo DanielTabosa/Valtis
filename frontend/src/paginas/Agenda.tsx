@@ -1,3 +1,5 @@
+import { useState } from "react";
+import type { StatusEvento } from "../api/tipos";
 import { agenda } from "../api/valtis";
 import { Cabecalho, Carregando, MensagemErro } from "../componentes/Basicos";
 import { useSessao } from "../sessao/useSessao";
@@ -5,13 +7,17 @@ import { formatarData, formatarDataHora, ROTULO_EVENTO } from "../util/formato";
 import { useCarga } from "../util/useCarga";
 import { useEnvio } from "../util/useEnvio";
 
+const SITUACOES: StatusEvento[] = ["pendente", "criado", "falhou", "descartado"];
+
 /**
- * Sincronização com o Google Calendar (RF-33): o que ainda não chegou à agenda.
- * Os eventos são criados em segundo plano (Outbox, D-13); esta tela só mostra e reprocessa.
+ * Sincronização com o Google Calendar (RF-33). Como no painel, os cartões contam
+ * tudo e filtram a lista abaixo. Os eventos são criados em segundo plano (Outbox, D-13);
+ * esta tela só mostra e reprocessa.
  */
 export function Agenda() {
   const { ehAdmin } = useSessao();
-  const { dados, carregando, erro, recarregar } = useCarga(() => agenda.situacao(), []);
+  const [status, setStatus] = useState<StatusEvento | "">("");
+  const { dados, carregando, erro, recarregar } = useCarga(() => agenda.situacao(status || undefined), [status]);
   const acao = useEnvio();
 
   async function executarERecarregar(operacao: () => Promise<void>) {
@@ -70,17 +76,37 @@ export function Agenda() {
       </dl>
 
       <section className="resumo" aria-label="Eventos por situação">
-        {(["pendente", "criado", "falhou", "descartado"] as const).map((s) => (
-          <div key={s} className={`cartao-resumo evento-${s}`}>
+        {SITUACOES.map((s) => (
+          <button
+            key={s}
+            type="button"
+            className={`cartao-resumo evento-${s} ${status === s ? "selecionado" : ""}`}
+            aria-pressed={status === s}
+            onClick={() => setStatus(status === s ? "" : s)}
+          >
             <span className="numero">{dados.totais[s] ?? 0}</span>
             <span className="rotulo">{ROTULO_EVENTO[s]}</span>
-          </div>
+          </button>
         ))}
       </section>
 
-      <h2>Aguardando envio</h2>
-      {dados.aguardando.length === 0 && <p className="aviso">Nada pendente: todos os alertas já estão na agenda.</p>}
-      {dados.aguardando.length > 0 && (
+      {status && (
+        <div className="filtros">
+          <button type="button" className="botao-texto" onClick={() => setStatus("")}>
+            Limpar situação
+          </button>
+        </div>
+      )}
+
+      {status === "descartado" && (
+        <p className="secundario">
+          Alertas que nunca chegaram à agenda. Se a data já tinha passado, o cliente continua na fila de Oportunidades.
+        </p>
+      )}
+
+      <MensagemErro erro={erro} />
+      {dados.eventos.length === 0 && <p className="aviso">Nenhum alerta com esse filtro.</p>}
+      {dados.eventos.length > 0 && (
         <table className="tabela tabela-cartoes">
           <thead>
             <tr>
@@ -88,12 +114,12 @@ export function Agenda() {
               <th>Tipo</th>
               <th>Condomínio</th>
               <th>Situação</th>
-              <th>Último erro</th>
+              <th>Observação</th>
               <th />
             </tr>
           </thead>
           <tbody>
-            {dados.aguardando.map((e) => (
+            {dados.eventos.map((e) => (
               <tr key={e.id}>
                 <td data-rotulo="Data">{formatarData(e.dataEvento)}</td>
                 <td data-rotulo="Tipo">{ROTULO_EVENTO[e.tipo]}</td>
@@ -104,7 +130,8 @@ export function Agenda() {
                   {ROTULO_EVENTO[e.status]}
                   {e.tentativas > 0 && <span className="secundario"> · {e.tentativas} tentativa(s)</span>}
                 </td>
-                <td data-rotulo="Erro" className="secundario">
+                {/* Erro do envio ou, no descartado, o motivo do descarte. */}
+                <td data-rotulo="Observação" className="secundario">
                   {e.ultimoErro ?? "—"}
                 </td>
                 <td className="acoes-linha">
@@ -123,6 +150,9 @@ export function Agenda() {
             ))}
           </tbody>
         </table>
+      )}
+      {dados.listaCortada && (
+        <p className="secundario">Mostrando os 200 primeiros. Use os cartões para filtrar por situação.</p>
       )}
     </>
   );

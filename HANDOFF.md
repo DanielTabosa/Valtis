@@ -1,7 +1,7 @@
 # HANDOFF — Valtis
 
 **Para:** qualquer agente que vá trabalhar neste repositório
-**Atualizado em:** 14/10/2026
+**Atualizado em:** 16/10/2026
 **Branch de trabalho:** `feat/fase-1-mvp` (não publicada, não mesclada na `main`)
 
 Este arquivo é o resumo de situação. Ele **não substitui** `AGENTS.md`, `docs/requirements.md`, `docs/architecture.md`, `docs/database.md` e `docs/decisions.md` — leia-os conforme a ordem do `CLAUDE.md`. O que este arquivo faz é te dizer, rápido: onde o projeto está, o que já foi decidido, o que falta e o que você **não** pode fazer sozinho.
@@ -49,7 +49,7 @@ A **Manutec Válvulas** (Recife/PE) faz manutenção de VRPs — válvulas redut
 | Recorrência (M5) | RN-01 a RN-07, RN-10 a RN-12 | Regras em `RegrasRecorrencia`; "hoje" em `America/Recife` via `Clock` injetado |
 | Calendar (M6) | RF-26 a RF-31, RF-33 | Outbox em `evento_agenda` + worker; adaptador Google por REST **sem credencial real**; agenda simulada no local |
 | Pipeline (M10) | RF-41 a RF-46 | Assumir, devolver, desfecho, recusa com pergunta e nova data (RN-09) |
-| Qualidade | AGENTS.md §5 | 67 testes (unitários + integração com Testcontainers), CI no GitHub Actions |
+| Qualidade | AGENTS.md §5 | 73 testes (unitários + integração com Testcontainers), CI no GitHub Actions |
 
 ### O que NÃO existe ainda
 
@@ -112,16 +112,16 @@ O Daniel autorizou seguir sem aprovação durante a codificação (13/10/2026). 
 
 | # | Suposição | Onde mexer se estiver errada |
 |---|---|---|
-| S-01 | **Técnico também cadastra** cliente, estação, válvula e especificação (RF-10 exige criar de dentro do lançamento). Só **admin inativa** e gerencia usuários (P-05) | `@PreAuthorize` nos controllers |
-| S-02 | **RN-10 por válvula**, não por estação: um serviço fecha só o ciclo da válvula atendida (e os de escopo cliente do mesmo cliente, RF-59) | `OportunidadeService.abrirNovoCiclo` |
+| S-01 | ✅ **Validada com ajuste em 16/10.** Técnico cadastra tudo e também **inativa, reativa e exclui válvula** (exclusão só sem histórico, RF-12a). Cliente, estação, especificação e usuários: só admin inativa | `@PreAuthorize` nos controllers |
+| S-02 | ✅ **Validada em 16/10.** RN-10 por válvula, não por estação | `OportunidadeService.abrirNovoCiclo` |
 | S-03 | Serviço lançado com data **anterior** ao último já registrado entra no histórico, mas **não** muda o ciclo | `LancamentoService.lancarItem` |
-| S-04 | Alerta cuja data já passou **não** é criado na agenda (estende RN-13 a todos, não só importados) | `FilaDaAgenda.enfileirar` |
+| S-04 | ✅ **Validada em 16/10 e virou RN-13.** Alerta passado não vai para a agenda; a fila marca "sem lembrete na agenda" e a tela Agenda lista os descartados | `FilaDaAgenda`, `OportunidadeService.resposta` |
 | S-05 | Quem registra desfecho de oportunidade sem dono **passa a ser o dono** | `OportunidadeService.registrarDesfecho` |
 | S-06 | `executado` só por lançamento de serviço, nunca por clique | `Oportunidade.registrarDesfecho` |
 | S-07 | Mudar a periodicidade reprograma o ciclo aberto, exceto oportunidades de retorno de recusa (data escolhida pelo usuário) | `OportunidadeService.reprogramarCicloDaValvula` |
 | S-08 | Sessão de 14 dias; bloqueio de 15 min após 5 senhas erradas | `application.yml`, bloco `seguranca` |
 | S-09 | Painel e lista de clientes importados ficam em telas separadas (P-08) | — (importador não existe ainda) |
-| S-10 | Data de lançamento **sem valor padrão**: o técnico sempre digita (RF-17) | `Lancamento.tsx` |
+| S-10 | ✅ **Revista em 16/10.** A data vem com **hoje** e o aviso "Confira: é hoje?" (RF-17, D-02 revisto) | `Lancamento.tsx` |
 | S-11 | D-21 a D-24 em `docs/decisions.md` estão como **Proposta** | `docs/decisions.md` |
 
 ---
@@ -262,7 +262,7 @@ A revisão técnica foi **adiada a pedido dele** (13/10/2026): ele vai estudar p
 
 ## 13. Próxima tarefa sugerida
 
-1. ~~Teste manual do Daniel na branch~~ — feito em 14/10/2026. **Começar a próxima sessão perguntando o resultado**: o que funcionou, o que estranhou, que ajustes quer.
-2. Ajustes que ele pedir + validação de S-01 a S-11 e D-21 a D-24.
+1. ~~Teste manual do Daniel na branch~~ — refeito em 16/10/2026: tudo funcionou. Ajustes pedidos e já feitos: editar/inativar/excluir válvula pelo técnico, data de hoje no lançamento, cartões do painel que não zeram ao filtrar, atrasados sem lembrete marcados na fila, tela Agenda com cartões que filtram a lista (como o painel). Testado e aprovado pelo Daniel.
+2. Validar o que falta: S-03, S-05 a S-09, S-11 e D-21 a D-24.
 3. Checklist de produção da §4 e merge na `main`.
 4. Importador (precisa da planilha) e credencial do Google.

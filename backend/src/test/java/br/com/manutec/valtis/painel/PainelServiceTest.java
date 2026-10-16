@@ -82,7 +82,7 @@ class PainelServiceTest {
     }
 
     @Test
-    void filtroPorStatusRestringeLinhasEResumo() {
+    void filtroPorStatusRestringeLinhasMasNaoZeraOsOutrosCartoes() {
         when(repository.buscarDadosDoPainel()).thenReturn(List.of(
                 valvula("EM-DIA", HOJE.minusMonths(1)),
                 valvula("VENCIDO", HOJE.minusMonths(14))));
@@ -91,7 +91,20 @@ class PainelServiceTest {
                 new FiltroPainel(null, StatusPainel.VENCIDO, null, null, null));
 
         assertThat(resultado.linhas()).extracting(LinhaPainel::codigoReferencia).containsExactly("VENCIDO");
-        assertThat(resultado.resumo().getFirst().total()).isEqualTo(1);
+        assertThat(resultado.resumo()).extracting(PainelService.ContagemStatus::total)
+                .containsExactly(1L, 0L, 0L, 1L);
+    }
+
+    @Test
+    void resumoRespeitaABusca() {
+        when(repository.buscarDadosDoPainel()).thenReturn(List.of(
+                valvula("A", HOJE.minusMonths(1)),
+                valvula("B", HOJE.minusMonths(14))));
+
+        PainelService.Painel resultado = painel.montar(new FiltroPainel("serie-b", null, null, null, null));
+
+        assertThat(resultado.resumo()).extracting(PainelService.ContagemStatus::total)
+                .containsExactly(1L, 0L, 0L, 0L);
     }
 
     @Test

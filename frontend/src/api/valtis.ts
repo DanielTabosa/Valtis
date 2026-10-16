@@ -18,6 +18,7 @@ import type {
   ResultadoDesfecho,
   ResultadoLancamento,
   SituacaoAgenda,
+  StatusEvento,
   StatusPainel,
   Usuario,
   UsuarioOpcao,
@@ -76,6 +77,7 @@ export const valvulas = {
   atualizar: (id: string, dados: DadosValvula) => http.put<Valvula>(`/api/valvulas/${id}`, dados),
   inativar: (id: string) => http.post<void>(`/api/valvulas/${id}/inativar`),
   reativar: (id: string) => http.post<void>(`/api/valvulas/${id}/reativar`),
+  excluir: (id: string) => http.delete<void>(`/api/valvulas/${id}`),
 };
 
 export const especificacoes = {
@@ -115,7 +117,8 @@ export const usuarios = {
 };
 
 export const agenda = {
-  situacao: () => http.get<SituacaoAgenda>("/api/agenda/situacao"),
+  situacao: (status?: StatusEvento) =>
+    http.get<SituacaoAgenda>(`/api/agenda/situacao${consulta({ status: status?.toUpperCase() })}`),
   reprocessar: (id: string) => http.post<void>(`/api/agenda/eventos/${id}/reprocessar`),
   sincronizarAgora: () => http.post<void>("/api/agenda/sincronizar"),
 };

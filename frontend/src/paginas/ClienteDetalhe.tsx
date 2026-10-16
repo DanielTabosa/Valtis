@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router";
-import type { Estacao } from "../api/tipos";
+import type { Estacao, Valvula } from "../api/tipos";
 import { clientes, estacoes } from "../api/valtis";
 import { Cabecalho, Carregando, MensagemErro, Modal } from "../componentes/Basicos";
 import { FormCliente, FormEstacao, FormValvula } from "../componentes/Formularios";
@@ -13,7 +13,8 @@ type Janela =
   | { tipo: "cliente" }
   | { tipo: "nova-estacao" }
   | { tipo: "estacao"; estacao: Estacao }
-  | { tipo: "nova-valvula"; estacao: Estacao };
+  | { tipo: "nova-valvula"; estacao: Estacao }
+  | { tipo: "valvula"; valvula: Valvula };
 
 export function ClienteDetalhe() {
   const { id = "" } = useParams();
@@ -157,6 +158,9 @@ export function ClienteDetalhe() {
                   {v.numeroSerie && <span className="secundario">série {v.numeroSerie}</span>}
                   {v.periodicidadeMeses !== 12 && <span className="selo">a cada {v.periodicidadeMeses} meses</span>}
                   {!v.ativo && <span className="selo">inativa</span>}
+                  <button type="button" className="botao-texto" onClick={() => setJanela({ tipo: "valvula", valvula: v })}>
+                    Editar
+                  </button>
                 </li>
               ))}
             </ul>
@@ -177,6 +181,11 @@ export function ClienteDetalhe() {
       </Modal>
       <Modal titulo="Nova válvula" aberto={janela?.tipo === "nova-valvula"} aoFechar={() => setJanela(null)}>
         {janela?.tipo === "nova-valvula" && <FormValvula estacaoId={janela.estacao.id} aoSalvar={fecharERecarregar} />}
+      </Modal>
+      <Modal titulo="Editar válvula" aberto={janela?.tipo === "valvula"} aoFechar={() => setJanela(null)}>
+        {janela?.tipo === "valvula" && (
+          <FormValvula estacaoId={janela.valvula.estacaoId} valvula={janela.valvula} aoSalvar={fecharERecarregar} />
+        )}
       </Modal>
     </>
   );

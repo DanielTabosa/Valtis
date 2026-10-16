@@ -27,4 +27,6 @@ public interface ServicoRepository extends JpaRepository<Servico, UUID> {
               AND s.status = br.com.manutec.valtis.servico.StatusServico.CONCLUIDO
             """)
     Optional<LocalDate> ultimaDataConcluida(@Param("valvulaId") UUID valvulaId);
+
+    boolean existsByValvulaId(UUID valvulaId);
 }

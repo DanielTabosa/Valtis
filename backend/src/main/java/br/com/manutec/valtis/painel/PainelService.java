@@ -44,14 +44,20 @@ public class PainelService {
     public Painel montar(FiltroPainel filtro) {
         LocalDate hoje = LocalDate.now(relogio);
 
-        List<LinhaPainel> linhas = valvulaRepository.buscarDadosDoPainel()
+        List<LinhaPainel> semFiltroDeSituacao = valvulaRepository.buscarDadosDoPainel()
                 .stream()
                 .map(p -> montarLinha(p, hoje))
-                .filter(filtro::aceita)
+                .filter(filtro::aceitaIgnorandoSituacao)
                 .sorted(ordemDePrioridade())
                 .toList();
 
-        return new Painel(contar(linhas), linhas);
+        List<LinhaPainel> linhas = semFiltroDeSituacao.stream()
+                .filter(filtro::aceitaSituacao)
+                .toList();
+
+        // Os cartões do resumo são o próprio filtro de situação: contam sem ele,
+        // senão escolher um zeraria os outros três.
+        return new Painel(contar(semFiltroDeSituacao), linhas);
     }
 
     /** RF-39: contagem por situação, sempre com as quatro situações, mesmo as zeradas. */

@@ -21,9 +21,12 @@ public record FiltroPainel(
         return new FiltroPainel(null, null, null, null, null);
     }
 
-    boolean aceita(LinhaPainel linha) {
-        return (status == null || linha.status() == status)
-                && (clienteId == null || clienteId.equals(linha.clienteId()))
+    boolean aceitaSituacao(LinhaPainel linha) {
+        return status == null || linha.status() == status;
+    }
+
+    boolean aceitaIgnorandoSituacao(LinhaPainel linha) {
+        return (clienteId == null || clienteId.equals(linha.clienteId()))
                 && (vazio(bairro) || bairro.equalsIgnoreCase(linha.bairro()))
                 && (vazio(tipoAtendimento) || tipoAtendimento.equalsIgnoreCase(linha.tipoAtendimento()))
                 && (vazio(busca) || contemBusca(linha));

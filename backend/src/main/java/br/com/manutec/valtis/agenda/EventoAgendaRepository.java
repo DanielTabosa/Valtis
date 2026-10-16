@@ -9,6 +9,7 @@ import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface EventoAgendaRepository extends JpaRepository<EventoAgenda, UUID> {
@@ -47,4 +48,13 @@ public interface EventoAgendaRepository extends JpaRepository<EventoAgenda, UUID
     List<EventoAgenda> comStatus(@Param("status") Collection<StatusEvento> status);
 
     long countByStatus(StatusEvento status);
+
+    /** Oportunidades que têm ao menos um evento com um destes status. */
+    @Query("""
+            SELECT DISTINCT e.oportunidade.id FROM EventoAgenda e
+            WHERE e.status IN :status
+            """)
+    Set<UUID> oportunidadesComEventoEm(@Param("status") Collection<StatusEvento> status);
+
+    boolean existsByOportunidadeIdAndStatusIn(UUID oportunidadeId, Collection<StatusEvento> status);
 }

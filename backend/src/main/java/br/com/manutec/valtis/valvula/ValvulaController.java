@@ -34,17 +34,22 @@ public class ValvulaController {
         return service.atualizar(id, dados);
     }
 
+    // Técnico também inativa, reativa e exclui válvula: é ele quem conhece o equipamento em campo.
     @PostMapping("/api/valvulas/{id}/inativar")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasRole('ADMIN')")
     public void inativar(@PathVariable UUID id) {
         service.inativar(id);
     }
 
     @PostMapping("/api/valvulas/{id}/reativar")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasRole('ADMIN')")
     public void reativar(@PathVariable UUID id) {
         service.reativar(id);
+    }
+
+    @DeleteMapping("/api/valvulas/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void excluir(@PathVariable UUID id) {
+        service.excluir(id);
     }
 }

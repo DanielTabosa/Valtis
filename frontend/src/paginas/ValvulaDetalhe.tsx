@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import { valvulas } from "../api/valtis";
 import { Cabecalho, Carregando, EtiquetaStatus, MensagemErro, Modal } from "../componentes/Basicos";
 import { FormValvula } from "../componentes/Formularios";
-import { useSessao } from "../sessao/useSessao";
 import { formatarData, formatarDataHora, ROTULO_OPORTUNIDADE, textoPrazo } from "../util/formato";
 import { useCarga } from "../util/useCarga";
 import { useEnvio } from "../util/useEnvio";
@@ -11,7 +10,7 @@ import { useEnvio } from "../util/useEnvio";
 /** Ficha da válvula: situação, histórico de serviços (RF-21) e histórico comercial. */
 export function ValvulaDetalhe() {
   const { id = "" } = useParams();
-  const { ehAdmin } = useSessao();
+  const navegar = useNavigate();
   const { dados: d, carregando, erro, recarregar } = useCarga(() => valvulas.detalhar(id), [id]);
   const [editando, setEditando] = useState(false);
   const acao = useEnvio();
@@ -22,6 +21,21 @@ export function ValvulaDetalhe() {
     if (v.ativo && !confirm("Inativar esta válvula? Ela sai do painel, mas o histórico fica guardado.")) return;
     const r = await acao.executar(() => (v.ativo ? valvulas.inativar(v.id) : valvulas.reativar(v.id)));
     if (r.ok) recarregar();
+  }
+
+  async function excluir() {
+    if (!d) return;
+    const temHistorico = d.historico.length > 0 || d.oportunidades.length > 0;
+    if (temHistorico) {
+      alert(
+        `${d.valvula.codigoReferencia} já tem serviço lançado e não pode ser excluída. ` +
+          "Para tirá-la do painel sem perder o histórico, use Inativar.",
+      );
+      return;
+    }
+    if (!confirm(`Excluir ${d.valvula.codigoReferencia}? Ela some do sistema de vez.`)) return;
+    const r = await acao.executar(() => valvulas.excluir(d.valvula.id));
+    if (r.ok) navegar(`/clientes/${d.clienteId}`, { replace: true });
   }
 
   if (carregando && !d) return <Carregando />;
@@ -41,11 +55,13 @@ export function ValvulaDetalhe() {
         <button type="button" className="botao" onClick={() => setEditando(true)}>
           Editar
         </button>
-        {ehAdmin && (
-          <button type="button" className="botao-texto" disabled={acao.enviando} onClick={alternar}>
-            {v.ativo ? "Inativar" : "Reativar"}
-          </button>
-        )}
+        <button type="button" className="botao-texto" disabled={acao.enviando} onClick={alternar}>
+          {v.ativo ? "Inativar" : "Reativar"}
+        </button>
+        {/* RF-12a: sempre visível; com histórico, o servidor recusa e explica o porquê. */}
+        <button type="button" className="botao-texto perigo" disabled={acao.enviando} onClick={excluir}>
+          Excluir
+        </button>
       </Cabecalho>
       <MensagemErro erro={acao.erro} />
       {!operante && (

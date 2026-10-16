@@ -20,6 +20,7 @@ import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -90,15 +91,22 @@ public class OportunidadeService {
         }
     }
 
+    /** A válvula já entrou em algum ciclo? Se sim, tem histórico e não pode ser excluída. */
+    @Transactional(readOnly = true)
+    public boolean existeParaValvula(UUID valvulaId) {
+        return repository.existsByValvulaId(valvulaId);
+    }
+
     @Transactional(readOnly = true)
     public List<OportunidadeResposta> fila(Situacao situacao, Responsavel responsavel, UUID usuarioId) {
         LocalDate hoje = LocalDate.now(relogio);
+        Set<UUID> comLembrete = filaDaAgenda.oportunidadesComLembrete();
         return repository.fila(statusDa(situacao))
                 .stream()
                 // RN-12: válvula ou cliente inativo não aparece para contato.
                 .filter(o -> o.getCliente().isAtivo() && (o.getValvula() == null || o.getValvula().isOperante()))
                 .filter(o -> aceitaResponsavel(o, responsavel, usuarioId))
-                .map(o -> resposta(o, hoje))
+                .map(o -> resposta(o, hoje, comLembrete.contains(o.getId())))
                 .toList();
     }
 
@@ -195,9 +203,17 @@ public class OportunidadeService {
     }
 
     private OportunidadeResposta resposta(Oportunidade o, LocalDate hoje) {
+        return resposta(o, hoje, filaDaAgenda.temLembrete(o));
+    }
+
+    private OportunidadeResposta resposta(Oportunidade o, LocalDate hoje, boolean temLembrete) {
         LocalDate alertaComercial = regras.dataAlertaComercial(o.getDataPrevista());
+        boolean naJanelaDeContato = o.isAberta() && !hoje.isBefore(alertaComercial);
         // RF-43: já entrou na janela do alerta comercial e ninguém assumiu.
-        boolean semDonoUrgente = o.isAberta() && o.getResponsavel() == null && !hoje.isBefore(alertaComercial);
+        boolean semDonoUrgente = naJanelaDeContato && o.getResponsavel() == null;
+        // A agenda só recebe alertas futuros (RN-13). Quem chegou atrasado (importado,
+        // lançamento antigo) nunca terá lembrete: a fila é o único lugar que avisa.
+        boolean semLembreteNaAgenda = naJanelaDeContato && !temLembrete;
 
         Cliente c = o.getCliente();
         Valvula v = o.getValvula();
@@ -207,6 +223,7 @@ public class OportunidadeService {
                 o.getDataPrevista(), alertaComercial, regras.dataLembreteFinal(o.getDataPrevista()),
                 o.isAberta() ? ChronoUnit.DAYS.between(hoje, o.getDataPrevista()) : null,
                 semDonoUrgente,
+                semLembreteNaAgenda,
                 c.getId(), c.getCodigoReferencia(), c.getNomeCondominio(), c.getBairro(),
                 c.getSindicoResponsavel(), c.getTelefoneContato(),
                 v == null ? null : v.getId(),

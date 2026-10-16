@@ -34,6 +34,7 @@ export function Oportunidades() {
   }
 
   const semDono = dados?.filter((o) => o.semDonoUrgente).length ?? 0;
+  const semLembrete = dados?.filter((o) => o.semLembreteNaAgenda).length ?? 0;
 
   return (
     <>
@@ -63,6 +64,13 @@ export function Oportunidades() {
             : `${semDono} oportunidades já estão na hora do contato e ninguém assumiu.`}
         </div>
       )}
+      {semLembrete > 0 && situacao !== "ENCERRADAS" && (
+        <div className="aviso alerta" role="status">
+          {semLembrete === 1
+            ? "1 oportunidade chegou atrasada e não terá lembrete na agenda: só esta fila avisa."
+            : `${semLembrete} oportunidades chegaram atrasadas e não terão lembrete na agenda: só esta fila avisa.`}
+        </div>
+      )}
 
       <MensagemErro erro={erro ?? acao.erro} />
       {carregando && !dados && <Carregando />}
@@ -88,7 +96,10 @@ export function Oportunidades() {
                   {o.bairro && ` · ${o.bairro}`}
                 </div>
               </div>
-              <span className={`etiqueta oportunidade-${o.status}`}>{ROTULO_OPORTUNIDADE[o.status]}</span>
+              <div className="acoes">
+                {o.semLembreteNaAgenda && <span className="selo-alerta">sem lembrete na agenda</span>}
+                <span className={`etiqueta oportunidade-${o.status}`}>{ROTULO_OPORTUNIDADE[o.status]}</span>
+              </div>
             </div>
 
             <dl className="dados">

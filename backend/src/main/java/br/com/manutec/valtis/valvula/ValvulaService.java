@@ -90,6 +90,21 @@ public class ValvulaService {
         buscar(id).reativar();
     }
 
+    /**
+     * RF-12a: exclusão física só para o cadastro feito por engano, sem nenhum
+     * serviço nem ciclo. Com histórico, o caminho é inativar (RF-12).
+     */
+    @Transactional
+    public void excluir(UUID id) {
+        Valvula valvula = buscar(id);
+        if (servicoRepository.existsByValvulaId(id) || oportunidadeService.existeParaValvula(id)) {
+            throw new ConflitoException(
+                    "A válvula %s já tem serviço lançado. Para tirá-la do painel sem perder o histórico, inative-a."
+                            .formatted(valvula.getCodigoReferencia()));
+        }
+        valvulaRepository.delete(valvula);
+    }
+
     public Valvula buscar(UUID id) {
         return valvulaRepository.buscarCompleta(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Válvula não encontrada."));
@@ -114,7 +129,10 @@ public class ValvulaService {
         return especificacao;
     }
 
-    /** RN-14: COND-001 + -VRP- + sequencial do cliente. O sequencial não reaproveita números. */
+    /**
+     * RN-14: COND-001 + -VRP- + sequencial do cliente. Inativar não libera o número;
+     * excluir a última válvula (cadastro por engano, RF-12a) libera.
+     */
     private String proximoCodigo(Cliente cliente) {
         int sequencial = valvulaRepository.maiorSequencialDoCliente(cliente.getId()) + 1;
         return "%s-VRP-%02d".formatted(cliente.getCodigoReferencia(), sequencial);

@@ -220,6 +220,7 @@ export type Oportunidade = {
   dataLembreteFinal: string;
   diasParaVencimento: number | null;
   semDonoUrgente: boolean;
+  semLembreteNaAgenda: boolean;
   clienteId: string;
   codigoCliente: string;
   nomeCondominio: string;
@@ -253,7 +254,7 @@ export type UsuarioOpcao = { id: string; nome: string; perfil: Perfil };
 
 export type Usuario = { id: string; nome: string; email: string; perfil: Perfil; ativo: boolean };
 
-export type EventoPendente = {
+export type EventoDaAgenda = {
   id: string;
   tipo: TipoEvento;
   dataEvento: string;
@@ -275,5 +276,6 @@ export type SituacaoAgenda = {
     erroDeAutorizacao: string | null;
     erroDeAutorizacaoEm: string | null;
   };
-  aguardando: EventoPendente[];
+  eventos: EventoDaAgenda[];
+  listaCortada: boolean;
 };
