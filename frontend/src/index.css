@@ -304,6 +304,11 @@ a {
   cursor: pointer;
 }
 
+/* Importador: linha que não pode ser gravada como está. */
+.tabela tr.linha-erro td {
+  background: var(--vermelho-fundo);
+}
+
 .botao-texto.perigo {
   color: var(--vermelho);
 }

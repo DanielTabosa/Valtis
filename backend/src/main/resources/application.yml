@@ -23,6 +23,12 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+  # Planilha do importador. 296 clientes cabem em poucos KB; 5 MB é folga.
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
+
 server:
   # Railway e Render injetam a porta por variável de ambiente.
   # Local, cai no 8080.

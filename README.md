@@ -30,7 +30,7 @@ A Manutec instala e mantém VRPs em prédios. Toda manutenção abre uma janela 
 
 ## Estado atual
 
-**Fase 1 implementada na branch `feat/fase-1-mvp`, aguardando teste manual.** Produção ainda roda a Fase 0.
+**Fase 1 implementada na branch `feat/fase-1-mvp`, testada e aprovada em 16/10/2026.** Produção ainda roda a Fase 0.
 
 | Ambiente | URL |
 |---|---|
@@ -169,6 +169,7 @@ Todos exigem o cabeçalho `Authorization: Bearer <token>`, exceto login e health
 | `POST /api/servicos/lancamentos` | Lança serviço em uma ou mais válvulas |
 | `GET /api/oportunidades` · `POST .../{id}/assumir`, `/liberar`, `/desfecho` | Fila comercial |
 | `GET /api/agenda/situacao?status=` · `POST /api/agenda/sincronizar` | Sincronização com a agenda |
+| `POST /api/importacao/clientes/analise` · `/revalidacao` · `POST /api/importacao/clientes` | Importação da base antiga: prévia e gravação (só admin) |
 | `GET /api/usuarios/ativos` · `GET/POST/PUT /api/usuarios` | Usuários (gestão só para admin) |
 | `POST .../{id}/inativar`, `/reativar` | Inativação lógica. Só admin |
 | `GET /api/health` | Sinal de vida, não depende do banco. Público |

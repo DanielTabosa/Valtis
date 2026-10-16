@@ -1,6 +1,7 @@
 // Uma função por rota da API. As telas só falam com este arquivo.
 import { http } from "./http";
 import type {
+  AnaliseImportacao,
   ClienteDetalhe,
   ClienteResumo,
   DadosCliente,
@@ -11,11 +12,14 @@ import type {
   Especificacao,
   Estacao,
   ItemLancamento,
+  LinhaAnalisada,
+  LinhaImportacao,
   Oportunidade,
   Painel,
   Perfil,
   RespostaLogin,
   ResultadoDesfecho,
+  ResultadoImportacao,
   ResultadoLancamento,
   SituacaoAgenda,
   StatusEvento,
@@ -78,6 +82,14 @@ export const valvulas = {
   inativar: (id: string) => http.post<void>(`/api/valvulas/${id}/inativar`),
   reativar: (id: string) => http.post<void>(`/api/valvulas/${id}/reativar`),
   excluir: (id: string) => http.delete<void>(`/api/valvulas/${id}`),
+};
+
+export const importacao = {
+  analisar: (arquivo: File) =>
+    http.enviarArquivo<AnaliseImportacao>("/api/importacao/clientes/analise", "arquivo", arquivo),
+  revalidar: (linhas: LinhaImportacao[]) =>
+    http.post<LinhaAnalisada[]>("/api/importacao/clientes/revalidacao", { linhas }),
+  importar: (linhas: LinhaImportacao[]) => http.post<ResultadoImportacao>("/api/importacao/clientes", { linhas }),
 };
 
 export const especificacoes = {

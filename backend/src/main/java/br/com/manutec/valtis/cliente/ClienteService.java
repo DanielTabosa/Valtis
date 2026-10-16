@@ -8,8 +8,10 @@ import br.com.manutec.valtis.estacao.EstacaoResposta;
 import br.com.manutec.valtis.valvula.ValvulaRepository;
 import br.com.manutec.valtis.valvula.ValvulaResposta;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -65,6 +67,18 @@ public class ClienteService {
     public ClienteResposta.Detalhe criar(DadosCliente dados) {
         Cliente cliente = clienteRepository.save(new Cliente(proximoCodigo(), limpar(dados)));
         return ClienteResposta.Detalhe.de(cliente, List.of());
+    }
+
+    /** Usado pelo importador, dentro da transação dele. saveAndFlush: o próximo código lê o banco. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Cliente criarImportado(DadosCliente dados, LocalDate ultimaManutencao) {
+        return clienteRepository.saveAndFlush(Cliente.importado(proximoCodigo(), limpar(dados), ultimaManutencao));
+    }
+
+    /** Todos os clientes, ativos ou não: base da checagem de duplicidade do importador (RF-57). */
+    @Transactional(readOnly = true)
+    public List<Cliente> todos() {
+        return clienteRepository.findAll();
     }
 
     @Transactional

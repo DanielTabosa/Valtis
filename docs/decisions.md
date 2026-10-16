@@ -364,7 +364,7 @@ Isso troca a função-objetivo. Não se trata mais de "qual stack dá menos trab
 
 ## D-21 — O Outbox é uma tabela própria: `evento_agenda`
 
-**Status:** Proposta (aguarda validação do Daniel) · 13/10/2026 · *refina D-13*
+**Status:** Aceita · 13/10/2026 · validada pelo Daniel em 16/10/2026 · *refina D-13*
 
 **Contexto.** O modelo original (D-08, database.md) guardava o estado da sincronização em colunas da própria `oportunidade`: `google_event_id_30`, `google_event_id_7`, `tentativas_sync`, `sincronizado_em`. Na implementação, três problemas apareceram: os dois alertas falham e são retentados de forma independente, mas dividiriam um único contador de tentativas; as janelas são configuráveis (RF-28), e colunas com "30" e "7" no nome mentiriam assim que a configuração mudasse; e não havia onde guardar a última mensagem de erro, que o RF-33 precisa mostrar.
 
@@ -383,7 +383,7 @@ Isso troca a função-objetivo. Não se trata mais de "qual stack dá menos trab
 
 ## D-22 — Autenticação por token JWT, sem sessão no servidor
 
-**Status:** Proposta (aguarda validação do Daniel) · 13/10/2026
+**Status:** Aceita, com gatilho de revisão · 13/10/2026 · validada pelo Daniel em 16/10/2026
 
 **Contexto.** Frontend (Vercel) e backend (Railway) estão em domínios diferentes. Sessão por cookie entre domínios exige `SameSite=None` e esbarra no bloqueio de cookies de terceiros do Safari, comum em iPhone.
 
@@ -400,11 +400,13 @@ Isso troca a função-objetivo. Não se trata mais de "qual stack dá menos trab
 - Não há "sair de todos os dispositivos" além de inativar o usuário ou trocar a chave.
 - Produção passa a exigir `VALTIS_JWT_SEGREDO`; sem ela a aplicação **não sobe**.
 
+**Gatilho de revisão (Daniel, 16/10/2026).** O motivo central (domínios diferentes) deve cair: a tendência é servir frontend e backend num **domínio único** (P-07). Quando isso for decidido, reavaliar a troca para sessão em cookie `HttpOnly` + `SameSite=Strict`, que tira o token do alcance de um XSS. A troca é localizada: `SegurancaConfig` e o emissor de token no backend, `http.ts` e `sessao/` no frontend. Até lá, fica JWT.
+
 ---
 
 ## D-23 — Google Calendar pela API REST, sem o SDK
 
-**Status:** Proposta (aguarda validação do Daniel) · 13/10/2026 · *ajusta a linha "Calendar" de D-20*
+**Status:** Aceita · 13/10/2026 · validada pelo Daniel em 16/10/2026 · *ajusta a linha "Calendar" de D-20*
 
 **Contexto.** D-20 previa o `google-api-client`. O Valtis usa duas chamadas: trocar o refresh token por um token de acesso e criar um evento.
 
@@ -419,7 +421,7 @@ Isso troca a função-objetivo. Não se trata mais de "qual stack dá menos trab
 
 ## D-24 — Frontend com CSS próprio, sem Tailwind e shadcn/ui por enquanto
 
-**Status:** Proposta (aguarda validação do Daniel) · 13/10/2026 · *diverge de architecture.md §7*
+**Status:** Aceita · 13/10/2026 · validada pelo Daniel em 16/10/2026 · *diverge de architecture.md §7*
 
 **Contexto.** architecture.md previa Tailwind + shadcn/ui; a Fase 0 já saiu com CSS puro, registrado como dívida no HANDOFF.
 
@@ -428,6 +430,27 @@ Isso troca a função-objetivo. Não se trata mais de "qual stack dá menos trab
 **Racional.** São poucas telas, e cada biblioteca de estilo é mais uma coisa para aprender ao mesmo tempo que Java e Spring (10h por semana). CSS puro é a base que Tailwind abstrai; trocar depois é viável tela a tela.
 
 **Consequências.** Mais CSS escrito à mão. Se a interface crescer ou ganhar componentes complexos (tabelas com ordenação, seletores de data), reabrir com Tailwind.
+
+---
+
+## D-25 — Importador reconhece as colunas pelo cabeçalho, em duas etapas
+
+**Status:** Aceita · 16/10/2026 · pedido do Daniel
+
+**Contexto.** A planilha dos 296 clientes (D-09) ainda não chegou, e o formato dela é desconhecido. O Daniel quer um botão de importar dentro do sistema que aproveite o que servir e ignore o resto.
+
+**Decisão.**
+- O admin envia `.xlsx`, `.xls` ou `.csv`. O sistema **reconhece cada coluna pelo nome do cabeçalho**, sem acento e sem diferença de maiúsculas, a partir de uma lista de nomes aceitos por campo (`CampoImportavel`): "Cliente", "Condomínio", "Nome" → nome do condomínio; "Data NF", "Última manutenção", "Data" → última manutenção; e assim por diante. **Coluna que não corresponde a nenhum campo do cadastro é descartada**, e a tela mostra quais foram.
+- **Duas etapas (RF-56).** A análise lê, valida e devolve a prévia sem gravar nada; a tela deixa corrigir nome e data e desmarcar linhas. A gravação valida tudo de novo no servidor e é **tudo ou nada**: uma linha com erro barra o lote.
+- Erro (barra a linha): sem nome, data inválida ou no futuro. Aviso (não barra): sem data (entra no cadastro, fora da fila), já existe cliente com o mesmo nome ou nome repetido no arquivo (RF-57, vêm desmarcadas), e-mail inválido (descartado), atendimento não reconhecido (vira Avulso).
+- Cliente importado: `origem = importacao`, `cadastro_incompleto`, data marcada como aproximada (RF-58). Com data, ganha oportunidade de escopo cliente com vencimento em data + 12 meses (RF-54); alertas no passado não vão para a agenda (RN-13).
+- **Apache POI** para ler Excel. Dependência nova, justificada: obrigar a converter para CSV antes é um passo a mais em que se erra o encoding ou o separador. O CSV é lido sem biblioteca (UTF-8 ou Windows-1252, `;` ou `,`).
+
+**Alternativas descartadas.** Esperar a planilha e moldar o importador ao formato dela: trava o projeto e quebra na próxima planilha. Mapear colunas manualmente na tela: mais flexível, mas é mais um passo para quem importa; fica como evolução se o reconhecimento automático errar com frequência.
+
+**Consequências.**
+- Rodar o importador sobre a **base real em produção** continua exigindo aprovação explícita (AGENTS.md §10).
+- Cabeçalho fora da lista é ignorado em silêncio, salvo pela lista de descartadas na prévia. Ao receber a planilha real, conferir a prévia antes de confirmar e, se preciso, acrescentar o nome à lista de `CampoImportavel`.
 
 ---
 
@@ -455,7 +478,8 @@ Isso troca a função-objetivo. Não se trata mais de "qual stack dá menos trab
 | D-18 | Serviço registrado por válvula individual | Aceita |
 | D-19 | Estação comporta N válvulas | Aceita |
 | D-20 | Stack Java + Spring Boot + React | Aceita |
-| D-21 | Outbox em tabela própria (`evento_agenda`) | Proposta |
-| D-22 | Autenticação por JWT, perfil lido do banco | Proposta |
-| D-23 | Google Calendar pela API REST, sem SDK | Proposta |
-| D-24 | CSS próprio, sem Tailwind por enquanto | Proposta |
+| D-21 | Outbox em tabela própria (`evento_agenda`) | Aceita |
+| D-22 | Autenticação por JWT, perfil lido do banco | Aceita (revisar com domínio único) |
+| D-23 | Google Calendar pela API REST, sem SDK | Aceita |
+| D-24 | CSS próprio, sem Tailwind por enquanto | Aceita |
+| D-25 | Importador reconhece colunas pelo cabeçalho, em duas etapas | Aceita |

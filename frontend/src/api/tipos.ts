@@ -254,6 +254,30 @@ export type UsuarioOpcao = { id: string; nome: string; perfil: Perfil };
 
 export type Usuario = { id: string; nome: string; email: string; perfil: Perfil; ativo: boolean };
 
+/** Uma linha da planilha, em texto, como a tela mostra e deixa corrigir (RF-56). */
+export type LinhaImportacao = {
+  linha: number;
+  nomeCondominio: string | null;
+  endereco: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  sindicoResponsavel: string | null;
+  telefoneContato: string | null;
+  emailContato: string | null;
+  tipoAtendimento: string | null;
+  ultimaManutencao: string | null;
+};
+
+export type LinhaAnalisada = { dados: LinhaImportacao; erros: string[]; avisos: string[]; sugerida: boolean };
+
+export type AnaliseImportacao = {
+  colunasUsadas: { cabecalho: string; campo: string; rotulo: string }[];
+  colunasDescartadas: string[];
+  linhas: LinhaAnalisada[];
+};
+
+export type ResultadoImportacao = { importados: number; naFila: number; semData: number };
+
 export type EventoDaAgenda = {
   id: string;
   tipo: TipoEvento;

@@ -11,6 +11,7 @@ const ITENS: Item[] = [
   { para: "/clientes", rotulo: "Clientes" },
   { para: "/especificacoes", rotulo: "Especificações" },
   { para: "/agenda", rotulo: "Agenda" },
+  { para: "/importar", rotulo: "Importar", soAdmin: true },
   { para: "/usuarios", rotulo: "Usuários", soAdmin: true },
 ];
 

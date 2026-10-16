@@ -50,14 +50,16 @@ async function requisitar<T>(metodo: Metodo, caminho: string, corpo?: unknown): 
   const cabecalhos: Record<string, string> = {};
   const token = lerToken();
   if (token) cabecalhos.Authorization = `Bearer ${token}`;
-  if (corpo !== undefined) cabecalhos["Content-Type"] = "application/json";
+  // FormData (envio de arquivo): o navegador define o Content-Type com o separador das partes.
+  const ehArquivo = corpo instanceof FormData;
+  if (corpo !== undefined && !ehArquivo) cabecalhos["Content-Type"] = "application/json";
 
   let resposta: Response;
   try {
     resposta = await fetch(`${BASE}${caminho}`, {
       method: metodo,
       headers: cabecalhos,
-      body: corpo === undefined ? undefined : JSON.stringify(corpo),
+      body: corpo === undefined ? undefined : ehArquivo ? corpo : JSON.stringify(corpo),
     });
   } catch {
     throw new ErroApi(0, "Sem conexão com o servidor. Confira a internet e tente de novo.");
@@ -106,6 +108,11 @@ export const http = {
   post: <T>(caminho: string, corpo?: unknown) => requisitar<T>("POST", caminho, corpo ?? {}),
   put: <T>(caminho: string, corpo: unknown) => requisitar<T>("PUT", caminho, corpo),
   delete: <T>(caminho: string) => requisitar<T>("DELETE", caminho),
+  enviarArquivo: <T>(caminho: string, campo: string, arquivo: File) => {
+    const formulario = new FormData();
+    formulario.append(campo, arquivo);
+    return requisitar<T>("POST", caminho, formulario);
+  },
 };
 
 /** Mensagem legível de qualquer erro capturado. */

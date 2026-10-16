@@ -81,6 +81,20 @@ public class Cliente {
         atualizar(dados);
     }
 
+    /**
+     * RF-51, RF-53, RF-58: cliente da base antiga. Entra sem estação e sem válvula,
+     * marcado como incompleto, com a data da última manutenção sempre aproximada
+     * (vem da nota fiscal, não do registro do serviço).
+     */
+    public static Cliente importado(String codigoReferencia, DadosCliente dados, LocalDate ultimaManutencao) {
+        Cliente cliente = new Cliente(codigoReferencia, dados);
+        cliente.origem = OrigemRegistro.IMPORTACAO;
+        cliente.cadastroIncompleto = true;
+        cliente.ultimaManutencaoLegado = ultimaManutencao;
+        cliente.dataLegadoAproximada = ultimaManutencao != null;
+        return cliente;
+    }
+
     public void atualizar(DadosCliente dados) {
         this.nomeCondominio = dados.nomeCondominio();
         this.endereco = dados.endereco();

@@ -120,7 +120,7 @@ Ver o mapeamento completo em [database.md](database.md#importação-da-base-lega
 | RF-53 | Clientes importados entram sem estação e sem válvula, com marcação de "cadastro incompleto" | P0 | `[SUGESTÃO]` |
 | RF-54 | Gerar oportunidade **de escopo cliente** para importados, já classificada como vencida quando aplicável | P0 | `[SUGESTÃO]` |
 | RF-55 | **Não criar eventos retroativos** no Calendar para vencimentos passados | P0 | `[SUGESTÃO]` |
-| RF-56 | Pré-visualizar, apontar linhas problemáticas e permitir correção antes de gravar | P0 | `[SUGESTÃO]` |
+| RF-56 | Pré-visualizar, apontar linhas problemáticas e permitir correção antes de gravar. As colunas são reconhecidas pelo cabeçalho; as que não existem no cadastro são descartadas | P0 | `[DECIDIDO]` · D-25 |
 | RF-57 | Deduplicação **assistida** de nomes de cliente — o sistema agrupa candidatos, o humano decide | P0 | `[PLANILHA]` |
 | RF-58 | Marcar a data importada como **aproximada** | P0 | `[PLANILHA]` |
 | RF-59 | Ao lançar a primeira manutenção real de um cliente importado, completar o cadastro e retirar o estado "incompleto" | P1 | `[SUGESTÃO]` |
@@ -242,5 +242,5 @@ Declarado explicitamente. Um agente que "adicionar" qualquer item desta lista es
 | P-04 | Valor cobrado entra no registro? Sem ele, RF-47 mede conversão mas não receita | RF-47 |
 | P-05 | As 3 pessoas são todas de campo, ou alguém é só de escritório? | Perfis de acesso |
 | P-06 | Identificação física da válvula em campo: existe plaqueta? Vale QR Code? | RF-11 |
-| P-07 | Teto de custo mensal, preferência por dados no Brasil, domínio disponível | Escolha de hospedagem |
-| P-08 | Painel de válvulas e lista de clientes importados: telas separadas ou visão unificada? | RF-34, RF-53 |
+| P-07 | Teto de custo mensal, preferência por dados no Brasil, domínio disponível. Tendência (16/10/2026): **domínio único** para frontend e backend, o que reabre D-22 | Escolha de hospedagem |
+| P-08 | ~~Painel de válvulas e lista de clientes importados: telas separadas ou visão unificada?~~ **Respondida em 16/10/2026: telas separadas.** O painel segue uma linha por válvula; os importados terão lista própria ("base antiga, cadastro incompleto") e entram na fila normalmente | RF-34, RF-53 |

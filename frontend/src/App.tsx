@@ -6,6 +6,7 @@ import { ClienteDetalhe } from "./paginas/ClienteDetalhe";
 import { Clientes } from "./paginas/Clientes";
 import { Conta } from "./paginas/Conta";
 import { Especificacoes } from "./paginas/Especificacoes";
+import { Importacao } from "./paginas/Importacao";
 import { Lancamento } from "./paginas/Lancamento";
 import { Login } from "./paginas/Login";
 import { Oportunidades } from "./paginas/Oportunidades";
@@ -61,6 +62,7 @@ export default function App() {
           <Route path="conta" element={<Conta />} />
           <Route element={<SoAdmin />}>
             <Route path="usuarios" element={<Usuarios />} />
+            <Route path="importar" element={<Importacao />} />
           </Route>
           <Route
             path="*"

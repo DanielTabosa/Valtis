@@ -38,6 +38,9 @@ public class OportunidadeService {
 
     public record ResultadoDesfecho(OportunidadeResposta oportunidade, OportunidadeResposta retorno) {}
 
+    /** RN-01: sem válvula cadastrada, vale o padrão de 12 meses. */
+    private static final int PERIODICIDADE_PADRAO_MESES = 12;
+
     private final OportunidadeRepository repository;
     private final FilaDaAgenda filaDaAgenda;
     private final RegrasRecorrencia regras;
@@ -75,6 +78,18 @@ public class OportunidadeService {
 
         LocalDate prevista = regras.proximaManutencao(servico.getDataRealizada(), valvula.getPeriodicidadeMeses());
         Oportunidade nova = repository.save(Oportunidade.doServico(servico, prevista));
+        filaDaAgenda.enfileirarAlertas(nova);
+        return nova;
+    }
+
+    /**
+     * RF-54: o cliente importado entra na fila com a periodicidade padrão (RN-01), já
+     * vencido quando for o caso. Alertas no passado não vão para a agenda (RN-13).
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Oportunidade abrirCicloDeImportado(Cliente cliente, LocalDate ultimaManutencao) {
+        LocalDate prevista = regras.proximaManutencao(ultimaManutencao, PERIODICIDADE_PADRAO_MESES);
+        Oportunidade nova = repository.save(Oportunidade.daImportacao(cliente, prevista));
         filaDaAgenda.enfileirarAlertas(nova);
         return nova;
     }

@@ -28,13 +28,13 @@ A **Manutec Válvulas** (Recife/PE) faz manutenção de VRPs — válvulas redut
 
 ## 2. Estado atual
 
-**Fase 1 implementada na branch `feat/fase-1-mvp`, pronta para o teste manual do Daniel.** A `main` e a produção continuam na Fase 0 (só o painel, sem login).
+**Fase 1 implementada na branch `feat/fase-1-mvp` (publicada no GitHub, não mesclada).** Testada e aprovada pelo Daniel em 16/10/2026, com ajustes. Todas as suposições S-01 a S-11 e as decisões D-21 a D-25 estão validadas. **Produção fica para depois, por decisão do Daniel**: ainda há ajustes a fazer. A `main` e a produção continuam na Fase 0 (só o painel, sem login).
 
 | Ambiente | URL | Versão |
 |---|---|---|
 | Frontend | https://valtis-gray.vercel.app | Fase 0 |
 | Backend | https://valtis-production.up.railway.app | Fase 0 |
-| Repositório | https://github.com/DanielTabosa/Valtis | `main` = Fase 0 · `feat/fase-1-mvp` = Fase 1 (só local) |
+| Repositório | https://github.com/DanielTabosa/Valtis | `main` = Fase 0 · `feat/fase-1-mvp` = Fase 1 |
 | Banco de produção | PostgreSQL no Supabase, São Paulo | migrations V1–V3 |
 | Banco local | Docker, `docker-compose.yml`, porta 5433 | V1–V4 |
 
@@ -45,18 +45,19 @@ A **Manutec Válvulas** (Recife/PE) faz manutenção de VRPs — válvulas redut
 | Acesso (M1) | RF-01 a RF-03 | JWT de 14 dias, BCrypt, bloqueio após 5 erros, perfil lido do banco a cada requisição (D-22) |
 | Cadastros (M2) | RF-05 a RF-13 | Código `COND-001` e `COND-001-VRP-01` automáticos, duplicidade barrada, inativação lógica |
 | Lançamento (M3) | RF-14 a RF-18, RF-15b, RF-10 | Uma transação para N válvulas; replicação na tela; cadastro sem sair do lançamento |
-| Painel (M4) | RF-34 a RF-39 | Filtros por busca, situação, tipo de atendimento; resumo respeita o filtro |
+| Painel (M4) | RF-34 a RF-39 | Filtros por busca, situação, tipo de atendimento; os cartões do resumo respeitam busca e tipo, mas não zeram ao escolher a situação |
 | Recorrência (M5) | RN-01 a RN-07, RN-10 a RN-12 | Regras em `RegrasRecorrencia`; "hoje" em `America/Recife` via `Clock` injetado |
 | Calendar (M6) | RF-26 a RF-31, RF-33 | Outbox em `evento_agenda` + worker; adaptador Google por REST **sem credencial real**; agenda simulada no local |
-| Pipeline (M10) | RF-41 a RF-46 | Assumir, devolver, desfecho, recusa com pergunta e nova data (RN-09) |
-| Qualidade | AGENTS.md §5 | 73 testes (unitários + integração com Testcontainers), CI no GitHub Actions |
+| Pipeline (M10) | RF-41 a RF-46 | Assumir, devolver, desfecho, recusa com pergunta e nova data (RN-09); marca "sem lembrete na agenda" (RN-13) |
+| Importação (M7) | RF-51 a RF-58 | Tela Importar (admin): .xlsx/.xls/.csv, colunas reconhecidas pelo cabeçalho, descarta o resto, prévia editável, gravação tudo ou nada (D-25). **Nunca rodou com a planilha real** |
+| Qualidade | AGENTS.md §5 | 78 testes (unitários + integração com Testcontainers), CI no GitHub Actions |
 
 ### O que NÃO existe ainda
 
 | Faltando | Por quê |
 |---|---|
 | Credencial real do Google Calendar | Exige o app OAuth publicado pelo Daniel (D-01). O código está pronto |
-| Importador dos 296 clientes (M7) | A planilha não está no repositório |
+| Rodar a importação dos 296 clientes | O importador existe; falta a planilha. Rodar em produção exige aprovação (§10) |
 | Fotos (RF-19) e PDF (RF-48) | Fase 2 |
 | Auditoria (RNF-17), rascunho (RF-20), exportar CSV (RF-40) | Não priorizados |
 | Atualizar/remover evento já criado no Google (RF-32) | Hoje, mudar a data só reprograma eventos ainda não enviados |
@@ -106,7 +107,7 @@ App OAuth **publicado em produção** no Google Cloud, escopo só `calendar.even
 
 ---
 
-## 5. Suposições feitas sem o Daniel — VALIDAR
+## 5. Suposições feitas sem o Daniel — todas validadas em 16/10/2026
 
 O Daniel autorizou seguir sem aprovação durante a codificação (13/10/2026). Estas escolhas foram feitas para não travar; cada uma é reversível.
 
@@ -114,15 +115,15 @@ O Daniel autorizou seguir sem aprovação durante a codificação (13/10/2026). 
 |---|---|---|
 | S-01 | ✅ **Validada com ajuste em 16/10.** Técnico cadastra tudo e também **inativa, reativa e exclui válvula** (exclusão só sem histórico, RF-12a). Cliente, estação, especificação e usuários: só admin inativa | `@PreAuthorize` nos controllers |
 | S-02 | ✅ **Validada em 16/10.** RN-10 por válvula, não por estação | `OportunidadeService.abrirNovoCiclo` |
-| S-03 | Serviço lançado com data **anterior** ao último já registrado entra no histórico, mas **não** muda o ciclo | `LancamentoService.lancarItem` |
+| S-03 | ✅ Serviço lançado com data **anterior** ao último já registrado entra no histórico, mas **não** muda o ciclo | `LancamentoService.lancarItem` |
 | S-04 | ✅ **Validada em 16/10 e virou RN-13.** Alerta passado não vai para a agenda; a fila marca "sem lembrete na agenda" e a tela Agenda lista os descartados | `FilaDaAgenda`, `OportunidadeService.resposta` |
-| S-05 | Quem registra desfecho de oportunidade sem dono **passa a ser o dono** | `OportunidadeService.registrarDesfecho` |
-| S-06 | `executado` só por lançamento de serviço, nunca por clique | `Oportunidade.registrarDesfecho` |
-| S-07 | Mudar a periodicidade reprograma o ciclo aberto, exceto oportunidades de retorno de recusa (data escolhida pelo usuário) | `OportunidadeService.reprogramarCicloDaValvula` |
-| S-08 | Sessão de 14 dias; bloqueio de 15 min após 5 senhas erradas | `application.yml`, bloco `seguranca` |
-| S-09 | Painel e lista de clientes importados ficam em telas separadas (P-08) | — (importador não existe ainda) |
+| S-05 | ✅ Quem registra desfecho de oportunidade sem dono **passa a ser o dono** | `OportunidadeService.registrarDesfecho` |
+| S-06 | ✅ `executado` só por lançamento de serviço, nunca por clique | `Oportunidade.registrarDesfecho` |
+| S-07 | ✅ Mudar a periodicidade reprograma o ciclo aberto, exceto oportunidades de retorno de recusa (data escolhida pelo usuário) | `OportunidadeService.reprogramarCicloDaValvula` |
+| S-08 | ✅ Sessão de 14 dias; bloqueio de 15 min após 5 senhas erradas | `application.yml`, bloco `seguranca` |
+| S-09 | ✅ Painel e lista de clientes importados ficam em telas separadas (P-08). A lista própria ainda não existe | — |
 | S-10 | ✅ **Revista em 16/10.** A data vem com **hoje** e o aviso "Confira: é hoje?" (RF-17, D-02 revisto) | `Lancamento.tsx` |
-| S-11 | D-21 a D-24 em `docs/decisions.md` estão como **Proposta** | `docs/decisions.md` |
+| S-11 | ✅ D-21, D-23, D-24 aceitas. D-22 aceita **com gatilho**: com domínio único (P-07), reavaliar cookie `HttpOnly` | `docs/decisions.md` |
 
 ---
 
@@ -138,7 +139,8 @@ backend/src/main/java/br/com/manutec/valtis/
 ├── recorrencia/    RegrasRecorrencia (RN-01, RN-04, RN-06) e StatusPainel
 ├── oportunidade/   Oportunidade e OportunidadeService (ciclo, fila, desfecho)
 ├── agenda/         Outbox: EventoAgenda, FilaDaAgenda, SincronizadorDaAgenda, AgendaGateway (Google/simulada)
-└── painel/         PainelService e filtros
+├── painel/         PainelService e filtros
+└── importacao/     LeitorDePlanilha (POI/CSV), CampoImportavel (cabeçalhos aceitos), ImportacaoService
 ```
 
 `frontend/src/`: `api/` (cliente HTTP e tipos), `sessao/`, `componentes/` (layout, formulários), `paginas/` (uma por tela), `util/`.
@@ -172,7 +174,8 @@ Detalhe e justificativa em `docs/decisions.md`. **Não reabra sem motivo novo.**
 | D-15 | Status do painel calculado, nunca gravado |
 | D-18 | Serviço por válvula individual |
 | D-20 | Java 21 + Spring Boot + React |
-| D-21 a D-24 | **Propostas** desta fase: Outbox em tabela própria, JWT, Google via REST, CSS próprio |
+| D-21 a D-24 | Outbox em tabela própria, JWT (revisar com domínio único), Google via REST, CSS próprio |
+| D-25 | Importador reconhece colunas pelo cabeçalho; prévia antes de gravar; tudo ou nada |
 
 ---
 
@@ -186,11 +189,10 @@ Detalhe e justificativa em `docs/decisions.md`. **Não reabra sem motivo novo.**
 | P-04 | `valor_cobrado` entra no serviço? | RF-47 |
 | P-05 | Os 3 são de campo ou alguém é só de escritório? | Perfis (ver S-01) |
 | P-06 | Plaqueta física? QR Code? | RF-11 |
-| P-07 | Teto de custo, dados no Brasil, domínio | Hospedagem |
-| P-08 | Painel e importados: telas separadas ou unificadas? | RF-34, RF-53 |
+| P-07 | Teto de custo, dados no Brasil, domínio. Tendência: **domínio único** (reabre D-22) | Hospedagem |
 | P-09 | Plano pago do Supabase? O gratuito hiberna | Confiabilidade |
 | P-10 | Vercel Hobby proíbe uso comercial | Conformidade |
-| P-11 | **Novo:** validar as suposições S-01 a S-11 e as decisões D-21 a D-24 | Merge na `main` |
+| P-12 | Planilha dos 296 clientes | Rodar a importação |
 
 ---
 
@@ -263,6 +265,10 @@ A revisão técnica foi **adiada a pedido dele** (13/10/2026): ele vai estudar p
 ## 13. Próxima tarefa sugerida
 
 1. ~~Teste manual do Daniel na branch~~ — refeito em 16/10/2026: tudo funcionou. Ajustes pedidos e já feitos: editar/inativar/excluir válvula pelo técnico, data de hoje no lançamento, cartões do painel que não zeram ao filtrar, atrasados sem lembrete marcados na fila, tela Agenda com cartões que filtram a lista (como o painel). Testado e aprovado pelo Daniel.
-2. Validar o que falta: S-03, S-05 a S-09, S-11 e D-21 a D-24.
-3. Checklist de produção da §4 e merge na `main`.
-4. Importador (precisa da planilha) e credencial do Google.
+2. ~~Validar S-01 a S-11 e D-21 a D-24~~ — feito em 16/10/2026.
+3. **Testar a tela Importar com o Daniel** (ainda não testada por ele): começar com um CSV fictício, depois a planilha real **no banco local**.
+4. **Começar a próxima sessão perguntando que outros ajustes ele quer**: ele disse que "vamos ajustar outras coisas ainda" antes de produção.
+5. Lista "Base antiga, cadastro incompleto" (P-08).
+6. Só depois: checklist de produção da §4, merge na `main`, credencial do Google.
+
+**Rodar localmente:** o painel de visualização do app de desktop encerra os servidores depois de um tempo. Para o Daniel testar, suba backend e frontend no Terminal (duas abas), como na §3.

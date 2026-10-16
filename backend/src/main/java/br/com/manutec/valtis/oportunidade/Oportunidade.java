@@ -106,6 +106,16 @@ public class Oportunidade {
         return o;
     }
 
+    /** RF-54: cliente importado, sem válvula. O primeiro serviço real fecha esta oportunidade (RF-59). */
+    public static Oportunidade daImportacao(Cliente cliente, LocalDate dataPrevista) {
+        Oportunidade o = new Oportunidade();
+        o.escopo = EscopoOportunidade.CLIENTE;
+        o.cliente = cliente;
+        o.origem = OrigemRegistro.IMPORTACAO;
+        o.dataPrevista = dataPrevista;
+        return o;
+    }
+
     /** RN-09: o cliente recusou, mas pediu para ser lembrado numa data. Nova oportunidade, mesmo alvo. */
     public static Oportunidade retornoDe(Oportunidade recusada, LocalDate lembrarEm) {
         Oportunidade o = new Oportunidade();
