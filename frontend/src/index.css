@@ -1921,28 +1921,11 @@ li.inativo,
   margin: 0;
 }
 
-/* ---------- 15. Login ---------- */
+/* ---------- 15. Entrada (login): formulário à esquerda, mostrador do ciclo à direita ---------- */
 
+/* Sempre escura, com o tema que for: é a "capa" do produto. */
+.tela-entrada,
 .tela-login {
-  position: relative;
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: var(--s-4);
-  overflow: hidden;
-  color-scheme: dark;
-  background: #040b1c url("/login-fundo.jpg") center / cover no-repeat;
-}
-
-.tela-login::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(520px 420px at 50% 50%, rgb(4 11 28 / 60%), transparent 100%);
-  pointer-events: none;
-}
-
-.cartao-login {
   --superficie: rgb(10 22 46 / 72%);
   --superficie-2: rgb(16 33 66 / 60%);
   --borda: rgb(125 165 225 / 18%);
@@ -1953,57 +1936,197 @@ li.inativo,
   --primaria: var(--azul-400);
   --acento: #7db1f0;
   --brilho: rgb(56 189 248 / 32%);
+  --foco: var(--ciano-400);
   --vermelho: #fca5a5;
   --vermelho-fundo: rgb(239 68 68 / 16%);
+  min-height: 100vh;
+  color: var(--texto);
+  color-scheme: dark;
+  background: radial-gradient(900px 700px at 75% 50%, #0d2550 0%, #050d1f 60%, #030814 100%);
+}
+
+.tela-entrada {
+  display: grid;
+  grid-template-columns: minmax(340px, 480px) 1fr;
+}
+
+.entrada-lado {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--s-5);
+  padding: var(--s-7) 56px;
+  border-right: 1px solid rgb(125 165 225 / 10%);
+  background: rgb(3 8 20 / 55%);
+  animation: entrar 0.5s var(--ease) both;
+}
+
+.entrada-lado .formulario {
+  gap: var(--s-5);
+}
+
+/* Campos só com a linha de baixo: menos ruído, mais "instrumento". */
+.entrada-lado input {
+  min-height: 46px;
+  padding: 0 2px;
+  border: 0;
+  border-bottom: 1px solid var(--borda-forte);
+  border-radius: 0;
+  background: transparent;
+}
+
+.entrada-lado input:hover {
+  border-bottom-color: rgb(125 165 225 / 45%);
+}
+
+.entrada-lado input:focus {
+  border-bottom-color: var(--ciano-400);
+  box-shadow: 0 1px 0 var(--ciano-400);
+}
+
+.entrada-lado input:-webkit-autofill {
+  -webkit-text-fill-color: var(--texto);
+  box-shadow: 0 0 0 100px #08142c inset;
+  transition: background-color 9999s;
+}
+
+.marca-login {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.marca-login h1,
+.tela-login h1 {
+  font-size: 1.8rem;
+  letter-spacing: -0.03em;
+}
+
+.entrada-sub {
+  max-width: 340px;
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.login-rodape {
+  margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  color: var(--texto-3);
+}
+
+.entrada-palco {
   position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.mostrador {
+  width: min(78vh, 88%);
+  height: auto;
+  font-family: var(--fonte);
+  animation: aparecer 0.9s var(--ease) both;
+}
+
+.mostrador-ponteiro {
+  transform-origin: 300px 300px;
+  animation: varrer 9s cubic-bezier(0.45, 0.05, 0.25, 1) infinite alternate;
+}
+
+@keyframes varrer {
+  from {
+    transform: rotate(-120deg);
+  }
+  to {
+    transform: rotate(95deg);
+  }
+}
+
+.mostrador-giro {
+  opacity: 0.5;
+  transform-origin: 300px 300px;
+  animation: girar 60s linear infinite;
+}
+
+.mostrador-legenda {
+  position: absolute;
+  bottom: 40px;
+  display: flex;
+  gap: 22px;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--texto-3);
+}
+
+.mostrador-legenda span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mostrador-legenda span::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cinza-vivo);
+}
+
+.mostrador-legenda .em-dia::before {
+  background: var(--verde-vivo);
+}
+
+.mostrador-legenda .proximo::before {
+  background: var(--ambar-vivo);
+}
+
+.mostrador-legenda .vencido::before {
+  background: var(--vermelho-vivo);
+}
+
+/* Celular e tablet em pé: só o formulário, centralizado. */
+@media (max-width: 860px) {
+  .tela-entrada {
+    grid-template-columns: 1fr;
+  }
+
+  .entrada-palco {
+    display: none;
+  }
+
+  .entrada-lado {
+    width: min(440px, 100%);
+    margin: 0 auto;
+    padding: var(--s-6) var(--s-5);
+    border-right: 0;
+    background: transparent;
+  }
+}
+
+/* Tela de erro de conexão (App.tsx): mesmo fundo, cartão simples. */
+.tela-login {
+  display: grid;
+  place-items: center;
+  padding: var(--s-4);
+}
+
+.cartao-login {
   width: min(420px, 100%);
   display: flex;
   flex-direction: column;
   gap: var(--s-4);
-  padding: 36px 32px 32px;
+  padding: 32px;
   border: 1px solid var(--borda);
-  border-radius: 24px;
+  border-radius: var(--r-xl);
   background: var(--superficie);
-  color: var(--texto);
-  box-shadow: 0 40px 100px -30px rgb(0 0 0 / 80%), inset 0 1px 0 rgb(255 255 255 / 6%);
-  backdrop-filter: saturate(150%) blur(22px);
-  -webkit-backdrop-filter: saturate(150%) blur(22px);
-  animation: subir 0.5s var(--ease) both;
-}
-
-@media (max-width: 480px) {
-  .cartao-login {
-    padding: 28px 22px 24px;
-  }
-}
-
-.cartao-login .marca-login {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 4px;
-}
-
-.cartao-login h1 {
-  font-size: 1.7rem;
-  letter-spacing: -0.03em;
+  box-shadow: var(--sombra-3);
 }
 
 .cartao-login p {
   margin: 0;
-}
-
-.cartao-login .login-sub {
-  margin: -6px 0 6px;
-  font-size: 0.92rem;
-}
-
-.cartao-login .login-rodape {
-  margin-top: 4px;
-  font-size: 0.75rem;
-  letter-spacing: 0.06em;
-  text-align: center;
-  color: var(--texto-3);
 }
 
 /* ---------- 16. Movimento reduzido ---------- */

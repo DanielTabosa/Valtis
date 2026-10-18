@@ -50,7 +50,7 @@ A **Manutec Válvulas** (Recife/PE) faz manutenção de VRPs — válvulas redut
 | Calendar (M6) | RF-26 a RF-31, RF-33 | Outbox em `evento_agenda` + worker; adaptador Google por REST **sem credencial real**; agenda simulada no local |
 | Pipeline (M10) | RF-41 a RF-46 | Assumir, devolver, desfecho, recusa com pergunta e nova data (RN-09); marca "sem lembrete na agenda" (RN-13) |
 | Importação (M7) | RF-51 a RF-58 | Tela Importar (admin): .xlsx/.xls/.csv, colunas reconhecidas pelo cabeçalho, descarta o resto, prévia editável, gravação tudo ou nada (D-25). **Nunca rodou com a planilha real** |
-| Interface (17/10) | — | Revisão visual com identidade Manutec: lateral no desktop, barra inferior com "Lançar" no celular, tema claro/escuro, Inter auto-hospedada, ícones SVG próprios, arte do login. Crítica e filosofia em `docs/design/`. **Ainda não vista pelo Daniel** |
+| Interface (17/10) | — | Revisão visual com identidade Manutec: lateral no desktop, barra inferior com "Lançar" no celular, tema claro/escuro, Inter auto-hospedada, ícones SVG próprios. Login com o "mostrador" do ciclo de 12 meses (opção C, escolhida pelo Daniel entre 4 em `docs/design/opcoes-login/`). Crítica e filosofia em `docs/design/`. **Ainda não vista pelo Daniel** |
 | Qualidade | AGENTS.md §5 | 78 testes (unitários + integração com Testcontainers), CI no GitHub Actions |
 
 ### O que NÃO existe ainda

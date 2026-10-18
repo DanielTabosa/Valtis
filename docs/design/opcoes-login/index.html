@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Valtis — opções de login</title>
+<style>
+@font-face { font-family: "Inter"; font-weight: 100 900; src: url("inter-latin-wght-normal.woff2") format("woff2-variations"); }
+:root { --azul-900:#0e2a5c; --azul-700:#1a4fa3; --azul-600:#1f5fbf; --azul-500:#3f7fd8; --azul-400:#5e9ce9; --ciano:#38bdf8; }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Inter, "Segoe UI", system-ui, sans-serif; background: #02060f; color: #e8eef8; -webkit-font-smoothing: antialiased; }
+
+/* Barra de escolha (não faz parte do design) */
+.seletor { position: fixed; z-index: 99; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; padding: 5px; border-radius: 14px; background: rgb(0 0 0 / 70%); backdrop-filter: blur(12px); border: 1px solid rgb(255 255 255 / 12%); box-shadow: 0 10px 30px rgb(0 0 0 / 40%); }
+.seletor button { font: inherit; font-size: 13px; font-weight: 600; color: #cbd5e1; background: transparent; border: 0; padding: 8px 14px; border-radius: 10px; cursor: pointer; white-space: nowrap; }
+.seletor button[aria-pressed="true"] { background: #fff; color: #0b1730; }
+.opcao { display: none; min-height: 100vh; }
+@media (max-width: 700px) { .seletor button { padding: 8px 9px; font-size: 12px; } .seletor .longo { display: none; } }
+.opcao.ativa { display: block; }
+
+/* Peças comuns do formulário */
+.marca { display: flex; align-items: center; gap: 14px; }
+.marca h1 { margin: 0; font-size: 28px; letter-spacing: -0.03em; }
+.campo { display: flex; flex-direction: column; gap: 6px; }
+.campo span { font-size: 14px; font-weight: 600; }
+.campo input { height: 46px; padding: 0 14px; border-radius: 12px; font: inherit; }
+.entrar { height: 48px; border: 0; border-radius: 12px; font: inherit; font-weight: 650; color: #fff; cursor: pointer; background: linear-gradient(135deg, var(--azul-500), var(--azul-600) 50%, var(--azul-700)); box-shadow: 0 10px 24px -10px rgb(31 95 191 / 90%), inset 0 1px 0 rgb(255 255 255 / 18%); }
+form { display: flex; flex-direction: column; gap: 16px; }
+.rodape { font-size: 12px; letter-spacing: .08em; text-align: center; }
+
+/* ---------- A: Pressão Contida (atual) ---------- */
+#a { display: none; place-items: center; padding: 16px; background: #040b1c url("a-pressao.jpg") center/cover; position: relative; }
+#a.ativa { display: grid; }
+#a::before { content: ""; position: absolute; inset: 0; background: radial-gradient(520px 420px at 50% 50%, rgb(4 11 28 / 60%), transparent); }
+#a .cartao { position: relative; width: min(420px, 100%); padding: 36px 32px 32px; border-radius: 24px; background: rgb(10 22 46 / 72%); border: 1px solid rgb(125 165 225 / 18%); backdrop-filter: blur(22px); box-shadow: 0 40px 100px -30px #000; display: flex; flex-direction: column; gap: 16px; }
+#a p { margin: -6px 0 6px; color: #a3b3cb; font-size: 15px; line-height: 1.5; }
+#a input { background: rgb(16 33 66 / 60%); border: 1px solid rgb(125 165 225 / 18%); color: #fff; }
+#a .rodape { color: #8496b0; }
+
+/* ---------- B: Isóbaras (tela dividida) ---------- */
+#b.ativa { display: grid; grid-template-columns: 1.05fr 1fr; }
+#b .arte { position: relative; padding: 48px; display: flex; flex-direction: column; justify-content: space-between; background: #0b1f4a url("b-isobaras.jpg") center/cover; overflow: hidden; }
+#b .arte .marca h1 { color: #fff; }
+#b .arte h2 { margin: 0; max-width: 460px; font-size: clamp(30px, 3.2vw, 44px); line-height: 1.08; letter-spacing: -0.035em; font-weight: 700; color: #fff; }
+#b .arte h2 em { font-style: normal; background: linear-gradient(90deg, #7dd3fc, #5e9ce9); -webkit-background-clip: text; background-clip: text; color: transparent; }
+#b .arte ul { list-style: none; margin: 22px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; color: #bfd3f2; font-size: 15px; }
+#b .arte li { display: flex; gap: 10px; align-items: center; }
+#b .arte li::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #38bdf8; box-shadow: 0 0 10px #38bdf8; }
+#b .lado { display: grid; place-items: center; padding: 32px; background: #f6f8fc; color: #0b1730; }
+#b form { width: min(380px, 100%); }
+#b form h3 { margin: 0; font-size: 26px; letter-spacing: -0.03em; }
+#b form > p { margin: -8px 0 8px; color: #4a5a73; }
+#b input { background: #fff; border: 1px solid #dbe3ee; color: #0b1730; }
+#b input:focus { outline: none; border-color: var(--azul-600); box-shadow: 0 0 0 4px rgb(31 95 191 / 18%); }
+#b .rodape { color: #64748b; margin-top: 8px; }
+@media (max-width: 860px) { #b.ativa { grid-template-columns: 1fr; } #b .arte { min-height: 260px; padding: 28px; } #b .arte ul { display: none; } }
+
+/* ---------- C: Mostrador (escuro, sem cartão) ---------- */
+#c.ativa { display: grid; grid-template-columns: minmax(340px, 480px) 1fr; background: radial-gradient(900px 700px at 75% 50%, #0d2550 0%, #050d1f 60%, #030814 100%); }
+#c .lado { display: flex; flex-direction: column; justify-content: center; gap: 28px; padding: 56px; border-right: 1px solid rgb(125 165 225 / 10%); background: rgb(3 8 20 / 55%); }
+#c .lado p { margin: 0; color: #a3b3cb; font-size: 15px; line-height: 1.55; max-width: 340px; }
+#c input { background: transparent; border: 0; border-bottom: 1px solid rgb(125 165 225 / 28%); border-radius: 0; padding: 0 2px; color: #fff; }
+#c input:focus { outline: none; border-bottom-color: var(--ciano); box-shadow: 0 1px 0 var(--ciano); }
+#c .rodape { text-align: left; color: #64748b; }
+#c .palco { position: relative; display: grid; place-items: center; overflow: hidden; }
+#c svg.mostrador { width: min(78vh, 90%); height: auto; }
+#c .ponteiro { transform-origin: 300px 300px; animation: varrer 9s cubic-bezier(.45,.05,.25,1) infinite alternate; }
+@keyframes varrer { from { transform: rotate(-120deg); } to { transform: rotate(95deg); } }
+#c .giro { transform-origin: 300px 300px; animation: girar 60s linear infinite; }
+@keyframes girar { to { transform: rotate(360deg); } }
+#c .legenda { position: absolute; bottom: 40px; display: flex; gap: 22px; font-size: 12px; letter-spacing: .08em; color: #8496b0; }
+#c .legenda span { display: flex; gap: 8px; align-items: center; }
+#c .legenda i { width: 8px; height: 8px; border-radius: 50%; }
+@media (max-width: 860px) { #c.ativa { grid-template-columns: 1fr; } #c .palco { display: none; } #c .lado { padding: 32px 24px; } }
+
+/* ---------- D: Planta técnica (claro) ---------- */
+#d.ativa { display: grid; grid-template-columns: 1fr minmax(360px, 34%); background: #f1f5fa url("d-planta.jpg") left center/cover; color: #0b1730; }
+#d .vazio { display: flex; align-items: flex-start; padding: 40px 48px; }
+#d .vazio .marca h1 { color: var(--azul-900); }
+#d .lado { display: grid; place-items: center; padding: 32px; }
+#d .cartao { width: 100%; max-width: 400px; padding: 34px 30px 30px; border-radius: 20px; background: #fff; border: 1px solid #dbe3ee; box-shadow: 0 30px 70px -24px rgb(14 42 92 / 30%), 0 2px 6px rgb(14 42 92 / 6%); display: flex; flex-direction: column; gap: 16px; }
+#d .cartao h3 { margin: 0; font-size: 24px; letter-spacing: -0.03em; }
+#d .cartao > p { margin: -8px 0 4px; color: #4a5a73; font-size: 15px; }
+#d input { background: #f7f9fc; border: 1px solid #dbe3ee; color: #0b1730; }
+#d input:focus { outline: none; border-color: var(--azul-600); box-shadow: 0 0 0 4px rgb(31 95 191 / 18%); background: #fff; }
+#d .rodape { color: #64748b; }
+@media (max-width: 860px) { #d.ativa { grid-template-columns: 1fr; background-position: 20% center; } #d .vazio { padding: 24px; } }
+</style>
+</head>
+<body>
+
+<nav class="seletor" aria-label="Opções">
+  <button data-alvo="a" aria-pressed="true">A<span class="longo"> · Pressão Contida (atual)</span></button>
+  <button data-alvo="b">B<span class="longo"> · Isóbaras</span></button>
+  <button data-alvo="c">C<span class="longo"> · Mostrador</span></button>
+  <button data-alvo="d">D<span class="longo"> · Planta técnica</span></button>
+</nav>
+
+<template id="marca">
+  <svg width="44" height="44" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3f7fd8"/><stop offset="1" stop-color="#0e2a5c"/></linearGradient></defs><rect width="32" height="32" rx="9" fill="url(#g)"/><path d="M7 12.5v9l9-4.5zM25 12.5v9l-9-4.5z" fill="#fff"/><path d="M16 17V9.5" stroke="#7dd3fc" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="8" r="2.4" fill="#7dd3fc"/></svg>
+</template>
+
+<!-- A -->
+<section id="a" class="opcao ativa">
+  <div class="cartao">
+    <div class="marca"><i data-marca></i><h1>Valtis</h1></div>
+    <p>Ciclo de manutenção das válvulas redutoras de pressão, sem perder nenhum retorno.</p>
+    <form onsubmit="return false">
+      <label class="campo"><span>E-mail</span><input type="email" /></label>
+      <label class="campo"><span>Senha</span><input type="password" /></label>
+      <button class="entrar">Entrar</button>
+    </form>
+    <div class="rodape">MANUTEC VÁLVULAS · RECIFE</div>
+  </div>
+</section>
+
+<!-- B -->
+<section id="b" class="opcao">
+  <div class="arte">
+    <div class="marca"><i data-marca></i><h1>Valtis</h1></div>
+    <div>
+      <h2>Cada válvula no seu ciclo. <em>Nenhum retorno esquecido.</em></h2>
+      <ul>
+        <li>Vencimentos calculados a cada serviço lançado</li>
+        <li>Fila de contato com quem ligar e quando</li>
+        <li>Lembretes direto na agenda da equipe</li>
+      </ul>
+    </div>
+  </div>
+  <div class="lado">
+    <form onsubmit="return false">
+      <h3>Entrar</h3>
+      <p>Use o e-mail cadastrado pela Manutec.</p>
+      <label class="campo"><span>E-mail</span><input type="email" /></label>
+      <label class="campo"><span>Senha</span><input type="password" /></label>
+      <button class="entrar">Entrar</button>
+      <div class="rodape">MANUTEC VÁLVULAS · RECIFE</div>
+    </form>
+  </div>
+</section>
+
+<!-- C -->
+<section id="c" class="opcao">
+  <div class="lado">
+    <div class="marca"><i data-marca></i><h1>Valtis</h1></div>
+    <p>O ciclo de manutenção de cada válvula redutora de pressão, acompanhado do serviço ao próximo retorno.</p>
+    <form onsubmit="return false">
+      <label class="campo"><span>E-mail</span><input type="email" /></label>
+      <label class="campo"><span>Senha</span><input type="password" /></label>
+      <button class="entrar">Entrar</button>
+    </form>
+    <div class="rodape">MANUTEC VÁLVULAS · RECIFE</div>
+  </div>
+  <div class="palco">
+    <svg class="mostrador" viewBox="0 0 600 600" aria-hidden="true">
+      <defs>
+        <linearGradient id="arco" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#22c55e"/><stop offset=".6" stop-color="#f59e0b"/><stop offset="1" stop-color="#ef4444"/></linearGradient>
+        <radialGradient id="miolo"><stop offset="0" stop-color="#12306a"/><stop offset="1" stop-color="#071634"/></radialGradient>
+        <filter id="brilho"><feGaussianBlur stdDeviation="6"/></filter>
+      </defs>
+      <g class="giro" opacity=".5">
+        <circle cx="300" cy="300" r="282" fill="none" stroke="#5e9ce9" stroke-opacity=".25" stroke-dasharray="2 10"/>
+      </g>
+      <circle cx="300" cy="300" r="250" fill="none" stroke="#7da5e1" stroke-opacity=".12" stroke-width="1"/>
+      <g id="marcas"></g>
+      <path d="M 123.2 476.8 A 250 250 0 1 1 476.8 476.8" fill="none" stroke="url(#arco)" stroke-width="6" stroke-linecap="round" opacity=".9"/>
+      <path d="M 123.2 476.8 A 250 250 0 1 1 476.8 476.8" fill="none" stroke="url(#arco)" stroke-width="10" opacity=".35" filter="url(#brilho)"/>
+      <circle cx="300" cy="300" r="170" fill="url(#miolo)" stroke="#7da5e1" stroke-opacity=".18"/>
+      <g class="ponteiro">
+        <path d="M300 300 L300 78" stroke="#7dd3fc" stroke-width="3" stroke-linecap="round"/>
+        <path d="M300 300 L300 78" stroke="#38bdf8" stroke-width="8" opacity=".4" filter="url(#brilho)"/>
+      </g>
+      <circle cx="300" cy="300" r="16" fill="#0b1f4a" stroke="#7dd3fc" stroke-width="2"/>
+      <text x="300" y="372" text-anchor="middle" fill="#a3b3cb" font-size="13" letter-spacing="3" font-family="Inter">CICLO · 12 MESES</text>
+    </svg>
+    <div class="legenda"><span><i style="background:#22c55e"></i>EM DIA</span><span><i style="background:#f59e0b"></i>PRÓXIMO</span><span><i style="background:#ef4444"></i>VENCIDO</span></div>
+  </div>
+</section>
+
+<!-- D -->
+<section id="d" class="opcao">
+  <div class="vazio"><div class="marca"><i data-marca></i><h1>Valtis</h1></div></div>
+  <div class="lado">
+    <div class="cartao">
+      <h3>Bom te ver de novo</h3>
+      <p>Entre para acompanhar o ciclo das válvulas.</p>
+      <form onsubmit="return false">
+        <label class="campo"><span>E-mail</span><input type="email" /></label>
+        <label class="campo"><span>Senha</span><input type="password" /></label>
+        <button class="entrar">Entrar</button>
+      </form>
+      <div class="rodape">MANUTEC VÁLVULAS · RECIFE</div>
+    </div>
+  </div>
+</section>
+
+<script>
+  const marca = document.getElementById("marca").content;
+  // Cada cópia da marca com um id de degradê próprio (o da opção oculta não pinta nas outras).
+  document.querySelectorAll("[data-marca]").forEach((el, i) => {
+    const copia = marca.cloneNode(true);
+    copia.querySelector("linearGradient").id = "g" + i;
+    copia.querySelector("rect").setAttribute("fill", "url(#g" + i + ")");
+    el.replaceWith(copia);
+  });
+  // 12 meses no mostrador, de -135° a +135°
+  const g = document.getElementById("marcas");
+  for (let m = 0; m <= 48; m++) {
+    const ang = (-225 + (m * 270) / 48) * Math.PI / 180;
+    const maior = m % 4 === 0;
+    const r0 = maior ? 214 : 224, r1 = 238;
+    const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    l.setAttribute("x1", 300 + r0 * Math.cos(ang)); l.setAttribute("y1", 300 + r0 * Math.sin(ang));
+    l.setAttribute("x2", 300 + r1 * Math.cos(ang)); l.setAttribute("y2", 300 + r1 * Math.sin(ang));
+    l.setAttribute("stroke", "#9fc2f0"); l.setAttribute("stroke-opacity", maior ? ".7" : ".25"); l.setAttribute("stroke-width", maior ? "2" : "1");
+    g.appendChild(l);
+    if (maior) {
+      const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      t.setAttribute("x", 300 + 196 * Math.cos(ang)); t.setAttribute("y", 300 + 196 * Math.sin(ang) + 4);
+      t.setAttribute("text-anchor", "middle"); t.setAttribute("fill", "#8496b0"); t.setAttribute("font-size", "12"); t.setAttribute("font-family", "Inter");
+      t.textContent = m / 4; g.appendChild(t);
+    }
+  }
+  function mostrar(alvo) {
+    document.querySelectorAll(".seletor button").forEach((x) => x.setAttribute("aria-pressed", x.dataset.alvo === alvo));
+    document.querySelectorAll(".opcao").forEach((s) => s.classList.toggle("ativa", s.id === alvo));
+  }
+  document.querySelectorAll(".seletor button").forEach((b) => b.addEventListener("click", () => { history.replaceState(null, "", "#" + b.dataset.alvo); mostrar(b.dataset.alvo); }));
+  if (/^#[abcd]$/.test(location.hash)) mostrar(location.hash.slice(1));
+  if (location.search.includes("captura")) document.querySelector(".seletor").remove();
+</script>
+</body>
+</html>

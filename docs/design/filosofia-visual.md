@@ -1,6 +1,6 @@
 # Pressão Contida
 
-*Filosofia visual por trás da arte de fundo do login do Valtis (`frontend/public/login-fundo.png`).*
+*Filosofia visual da primeira arte de login (opção A em `docs/design/opcoes-login/`). Em 17/10/2026 o Daniel escolheu a opção C (mostrador); esta arte ficou só como registro.*
 
 **Contenção como forma.** O movimento parte de uma ideia simples: a força só fica bonita quando está sob controle. A composição é um campo de linhas de fluxo que vêm densas, apertadas e nervosas de um lado, passam por um estreitamento e saem do outro lado espaçadas e calmas. Nada explode. Tudo é regulado. O espaço vazio não é sobra: é o alívio que a contenção conquista. É preciso deixar o vazio respirar com a mesma precisão com que se desenha a linha.
 
