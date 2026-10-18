@@ -50,7 +50,7 @@ A **Manutec Válvulas** (Recife/PE) faz manutenção de VRPs — válvulas redut
 | Calendar (M6) | RF-26 a RF-31, RF-33 | Outbox em `evento_agenda` + worker; adaptador Google por REST **sem credencial real**; agenda simulada no local |
 | Pipeline (M10) | RF-41 a RF-46 | Assumir, devolver, desfecho, recusa com pergunta e nova data (RN-09); marca "sem lembrete na agenda" (RN-13) |
 | Importação (M7) | RF-51 a RF-58 | Tela Importar (admin): .xlsx/.xls/.csv, colunas reconhecidas pelo cabeçalho, descarta o resto, prévia editável, gravação tudo ou nada (D-25). **Nunca rodou com a planilha real** |
-| Interface (17/10) | — | Revisão visual com identidade Manutec: lateral no desktop, barra inferior com "Lançar" no celular, tema claro/escuro, Inter auto-hospedada, ícones SVG próprios. Login com o "mostrador" do ciclo de 12 meses (opção C, escolhida pelo Daniel entre 4 em `docs/design/opcoes-login/`). Crítica e filosofia em `docs/design/`. **Ainda não vista pelo Daniel** |
+| Interface (17/10) | — | Revisão visual com identidade Manutec: lateral no desktop, barra inferior com "Lançar" no celular, tema claro/escuro, Inter auto-hospedada, ícones SVG próprios. Login com o "mostrador" do ciclo de 12 meses (opção C, escolhida pelo Daniel entre 4 em `docs/design/opcoes-login/`). Crítica e filosofia em `docs/design/`. Login aprovado pelo Daniel em 17/10; o resto da interface ele ainda está avaliando |
 | Qualidade | AGENTS.md §5 | 78 testes (unitários + integração com Testcontainers), CI no GitHub Actions |
 
 ### O que NÃO existe ainda
@@ -145,6 +145,16 @@ backend/src/main/java/br/com/manutec/valtis/
 ```
 
 `frontend/src/`: `api/` (cliente HTTP e tipos), `sessao/`, `componentes/` (layout, formulários), `paginas/` (uma por tela), `util/`.
+
+### Interface (revisão de 17/10/2026)
+
+- **`index.css`**: um só arquivo, em camadas — primitivos Manutec (`--azul-*`, `--gelo-*`, `--tinta-*`, mesmos do Manutec Clientes), semânticos (`--fundo`, `--superficie`, `--primaria`…) em claro e escuro, depois componentes. Para mudar cor, mexa no semântico, nunca direto no componente. Escuro segue o sistema; a chave grava `data-theme` no `<html>` (`util/useTema.ts`, `localStorage` `valtis.tema`) e o `index.html` aplica antes da primeira pintura.
+- **`componentes/Layout.tsx`**: lateral agrupada (Operação, Cadastros, Administração) a partir de 960px; abaixo disso, topo + barra inferior com "Lançar" no centro e folha "Mais".
+- **`componentes/Icone.tsx`**: ícones de traço desenhados à mão (sem biblioteca, D-24) e a `Marca` do Valtis (símbolo de válvula).
+- **`componentes/Mostrador.tsx`**: manômetro decorativo do login (ciclo de 12 meses). Não mostra dado.
+- **Fonte**: Inter em `public/fontes/` (OFL, licença junto).
+- **Animações** respeitam `prefers-reduced-motion`.
+- Registro do processo de design (portfólio): `docs/design/critica-interface.md`, `filosofia-visual.md`, `opcoes-login/` (as 4 propostas de login e a escolhida).
 
 ### Onde moram as regras de negócio
 
@@ -245,6 +255,9 @@ Resumo. O texto que vale é o `AGENTS.md`.
 | Corpo JSON recusado com `Cannot map null into type boolean` | Jackson 3 recusa campo primitivo ausente | Usar `Boolean` nos DTOs de entrada |
 | Índice único de "um ciclo aberto" recusando o lançamento | Hibernate grava INSERT antes de UPDATE | `repository.flush()` depois de fechar, antes de abrir |
 | `HttpStatus.UNPROCESSABLE_ENTITY` | Renomeado no Spring 7 | `UNPROCESSABLE_CONTENT` |
+| Tela sem estilo nenhum no `npm run dev`, mas o build funciona | Vite guardou o CSS vazio de um instante em que o arquivo estava sendo gravado | Salvar o `index.css` de novo (ou `touch`) e recarregar com Ctrl+F5 |
+| Logo (degradê do SVG) some em um lugar e aparece em outro | Dois SVGs com o mesmo `id` de degradê; se o primeiro está oculto (`display: none`), os outros não pintam | Id único por instância (`useId`, já feito em `Marca`) |
+| Captura do Edge headless "cortada" em largura de celular | O modo headless tem largura mínima de ~500px | Conferir celular no painel do app (emulação mobile), não no headless |
 
 **Ao diagnosticar erro de Spring: a causa raiz está no ÚLTIMO `Caused by:` da pilha, não no primeiro.**
 
@@ -267,9 +280,9 @@ A revisão técnica foi **adiada a pedido dele** (13/10/2026): ele vai estudar p
 
 1. ~~Teste manual do Daniel na branch~~ — refeito em 16/10/2026: tudo funcionou. Ajustes pedidos e já feitos: editar/inativar/excluir válvula pelo técnico, data de hoje no lançamento, cartões do painel que não zeram ao filtrar, atrasados sem lembrete marcados na fila, tela Agenda com cartões que filtram a lista (como o painel). Testado e aprovado pelo Daniel.
 2. ~~Validar S-01 a S-11 e D-21 a D-24~~ — feito em 16/10/2026.
-3. **Daniel avaliar a nova interface** (17/10): rodar local e dizer o que ajustar. Crítica em `docs/design/critica-interface.md`.
-4. **Testar a tela Importar com o Daniel** (ainda não testada por ele): começar com um CSV fictício, depois a planilha real **no banco local**.
-5. **Começar a próxima sessão perguntando que outros ajustes ele quer**: ele disse que "vamos ajustar outras coisas ainda" antes de produção.
+3. **Continuar os ajustes da interface com o Daniel** — em 17/10 ele pediu a revisão visual (feita) e escolheu o login C · Mostrador entre 4 opções. Ele ainda vai navegar pelo resto e dizer o que ajustar. **Começar a próxima sessão perguntando isso.** Quando ele pedir algo visual em aberto, mostrar opções para ele escolher (ele gostou desse formato).
+4. **Testar a tela Importar com o Daniel** (ainda não testada por ele): começar com o CSV fictício pronto em `docs/exemplos/clientes-ficticios.csv` (tem casos de borda de propósito), depois a planilha real **no banco local**.
+5. Outros ajustes funcionais que ele quiser antes de produção ("vamos ajustar outras coisas ainda").
 6. Lista "Base antiga, cadastro incompleto" (P-08).
 7. Só depois: checklist de produção da §4, merge na `main`, credencial do Google.
 
