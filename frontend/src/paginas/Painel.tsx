@@ -25,6 +25,8 @@ export function Painel() {
     [buscaAtrasada, status, tipoAtendimento],
   );
 
+  const totalResumo = dados?.resumo.reduce((soma, r) => soma + r.total, 0) ?? 0;
+
   return (
     <>
       <Cabecalho titulo="Painel de válvulas">
@@ -43,8 +45,11 @@ export function Painel() {
               aria-pressed={status === r.status}
               onClick={() => setStatus(status === r.status ? "" : r.status)}
             >
-              <span className="numero">{r.total}</span>
               <span className="rotulo">{r.rotulo}</span>
+              <span className="numero">{r.total}</span>
+              <span className="proporcao" aria-hidden="true">
+                <span style={{ width: `${totalResumo ? (r.total / totalResumo) * 100 : 0}%` }} />
+              </span>
             </button>
           ))}
         </section>
@@ -106,9 +111,9 @@ export function Painel() {
                   <span className="secundario"> · {l.andaresAtendidos}</span>
                   {l.requerFechamentoGeral && <span className="selo-alerta">fechamento geral</span>}
                 </td>
-                <td data-rotulo="Última">{formatarData(l.ultimaManutencao)}</td>
-                <td data-rotulo="Próxima">{formatarData(l.proximaManutencao)}</td>
-                <td data-rotulo="Prazo">{textoPrazo(l.diasRestantes)}</td>
+                <td data-rotulo="Última" className="sem-quebra">{formatarData(l.ultimaManutencao)}</td>
+                <td data-rotulo="Próxima" className="sem-quebra">{formatarData(l.proximaManutencao)}</td>
+                <td data-rotulo="Prazo" className="sem-quebra">{textoPrazo(l.diasRestantes)}</td>
               </tr>
             ))}
           </tbody>

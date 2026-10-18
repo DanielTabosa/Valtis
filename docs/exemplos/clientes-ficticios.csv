@@ -1,0 +1,7 @@
+Cliente;Endereço;Bairro;Cidade;Síndico;Telefone;E-mail;Contrato;Data NF;Valor;Observação
+Condomínio Edifício Mar Azul;Rua da Aurora, 100;Boa Vista;Recife;Ana Souza;(81) 99999-0001;ana@exemplo.com;Contrato;15/03/2025;850,00;cliente antigo
+Edifício Solar das Palmeiras;Av. Boa Viagem, 2000;Boa Viagem;Recife;Carlos Lima;(81) 99999-0002;;Avulso;02/11/2023;600,00;
+Residencial Jardim Atlântico;Rua dos Navegantes, 45;Boa Viagem;Recife;;(81) 3333-0003;sindico@jardim.com;sim;08/2024;;
+Condomínio Torre Norte;Rua do Futuro, 12;Graças;Recife;Paula Melo;;;mensal;10/09/2026;450,00;atendimento recente
+Edifício Mar Azul;Rua da Aurora, 100;Boa Vista;Recife;Ana Souza;;;Contrato;20/01/2024;;duplicado de propósito
+Prédio sem data;Rua Sem Número;Casa Forte;Recife;;;;;;;

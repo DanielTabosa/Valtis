@@ -1,7 +1,7 @@
 # HANDOFF — Valtis
 
 **Para:** qualquer agente que vá trabalhar neste repositório
-**Atualizado em:** 16/10/2026
+**Atualizado em:** 17/10/2026
 **Branch de trabalho:** `feat/fase-1-mvp` (não publicada, não mesclada na `main`)
 
 Este arquivo é o resumo de situação. Ele **não substitui** `AGENTS.md`, `docs/requirements.md`, `docs/architecture.md`, `docs/database.md` e `docs/decisions.md` — leia-os conforme a ordem do `CLAUDE.md`. O que este arquivo faz é te dizer, rápido: onde o projeto está, o que já foi decidido, o que falta e o que você **não** pode fazer sozinho.
@@ -50,6 +50,7 @@ A **Manutec Válvulas** (Recife/PE) faz manutenção de VRPs — válvulas redut
 | Calendar (M6) | RF-26 a RF-31, RF-33 | Outbox em `evento_agenda` + worker; adaptador Google por REST **sem credencial real**; agenda simulada no local |
 | Pipeline (M10) | RF-41 a RF-46 | Assumir, devolver, desfecho, recusa com pergunta e nova data (RN-09); marca "sem lembrete na agenda" (RN-13) |
 | Importação (M7) | RF-51 a RF-58 | Tela Importar (admin): .xlsx/.xls/.csv, colunas reconhecidas pelo cabeçalho, descarta o resto, prévia editável, gravação tudo ou nada (D-25). **Nunca rodou com a planilha real** |
+| Interface (17/10) | — | Revisão visual com identidade Manutec: lateral no desktop, barra inferior com "Lançar" no celular, tema claro/escuro, Inter auto-hospedada, ícones SVG próprios, arte do login. Crítica e filosofia em `docs/design/`. **Ainda não vista pelo Daniel** |
 | Qualidade | AGENTS.md §5 | 78 testes (unitários + integração com Testcontainers), CI no GitHub Actions |
 
 ### O que NÃO existe ainda
@@ -266,9 +267,10 @@ A revisão técnica foi **adiada a pedido dele** (13/10/2026): ele vai estudar p
 
 1. ~~Teste manual do Daniel na branch~~ — refeito em 16/10/2026: tudo funcionou. Ajustes pedidos e já feitos: editar/inativar/excluir válvula pelo técnico, data de hoje no lançamento, cartões do painel que não zeram ao filtrar, atrasados sem lembrete marcados na fila, tela Agenda com cartões que filtram a lista (como o painel). Testado e aprovado pelo Daniel.
 2. ~~Validar S-01 a S-11 e D-21 a D-24~~ — feito em 16/10/2026.
-3. **Testar a tela Importar com o Daniel** (ainda não testada por ele): começar com um CSV fictício, depois a planilha real **no banco local**.
-4. **Começar a próxima sessão perguntando que outros ajustes ele quer**: ele disse que "vamos ajustar outras coisas ainda" antes de produção.
-5. Lista "Base antiga, cadastro incompleto" (P-08).
-6. Só depois: checklist de produção da §4, merge na `main`, credencial do Google.
+3. **Daniel avaliar a nova interface** (17/10): rodar local e dizer o que ajustar. Crítica em `docs/design/critica-interface.md`.
+4. **Testar a tela Importar com o Daniel** (ainda não testada por ele): começar com um CSV fictício, depois a planilha real **no banco local**.
+5. **Começar a próxima sessão perguntando que outros ajustes ele quer**: ele disse que "vamos ajustar outras coisas ainda" antes de produção.
+6. Lista "Base antiga, cadastro incompleto" (P-08).
+7. Só depois: checklist de produção da §4, merge na `main`, credencial do Google.
 
 **Rodar localmente:** o painel de visualização do app de desktop encerra os servidores depois de um tempo. Para o Daniel testar, suba backend e frontend no Terminal (duas abas), como na §3.

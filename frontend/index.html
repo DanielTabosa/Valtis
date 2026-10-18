@@ -3,9 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Valtis</title>
-    <meta name="theme-color" content="#0f3d5e" />
+    <meta name="theme-color" content="#0e2a5c" />
+    <link rel="preload" href="/fontes/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <script>
+      // Aplica o tema salvo antes da primeira pintura (sem piscar claro → escuro).
+      try {
+        var tema = localStorage.getItem("valtis.tema");
+        if (tema === "escuro") document.documentElement.dataset.theme = "dark";
+        if (tema === "claro") document.documentElement.dataset.theme = "light";
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>
