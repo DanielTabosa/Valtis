@@ -15,6 +15,7 @@ const GRUPOS: Grupo[] = [
       { para: "/", rotulo: "Painel", icone: "painel" },
       { para: "/lancar", rotulo: "Lançar serviço", icone: "lancar" },
       { para: "/oportunidades", rotulo: "Oportunidades", icone: "oportunidades" },
+      { para: "/bombas", rotulo: "Bombas", icone: "bomba" },
       { para: "/agenda", rotulo: "Agenda", icone: "agenda" },
     ],
   },
@@ -23,12 +24,14 @@ const GRUPOS: Grupo[] = [
     itens: [
       { para: "/clientes", rotulo: "Clientes", icone: "clientes" },
       { para: "/especificacoes", rotulo: "Especificações", icone: "especificacoes" },
+      { para: "/patrimonio", rotulo: "Patrimônio", icone: "bomba" },
     ],
   },
   {
     titulo: "Administração",
     itens: [
       { para: "/importar", rotulo: "Importar", icone: "importar", soAdmin: true },
+      { para: "/tipos-bomba", rotulo: "Tipos de bomba", icone: "bomba", soAdmin: true },
       { para: "/usuarios", rotulo: "Usuários", icone: "usuarios", soAdmin: true },
     ],
   },

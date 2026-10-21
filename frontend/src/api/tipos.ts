@@ -303,3 +303,120 @@ export type SituacaoAgenda = {
   eventos: EventoDaAgenda[];
   listaCortada: boolean;
 };
+
+// ── Módulo de bombas (RF-60 a RF-68) ──────────────────────────────────────
+
+export type NaturezaOcupacao = "instalacao" | "emprestimo";
+export type MotivoEncerramento = "retirada" | "devolucao";
+
+export type TipoBomba = { id: string; nome: string; ativo: boolean };
+
+/** Onde a bomba está agora, calculado pelo servidor a partir das ocupações abertas (D-27). */
+export type PosicaoDaBomba = {
+  ocupacaoId: string;
+  conjuntoId: string;
+  conjunto: string;
+  clienteId: string;
+  nomeCondominio: string;
+  numeroPosicao: string;
+  natureza: NaturezaOcupacao;
+  desde: string;
+};
+
+export type Bomba = {
+  id: string;
+  codigoReferencia: string;
+  patrimonioManutec: boolean;
+  clienteId: string | null;
+  nomeCondominio: string | null;
+  fabricante: string | null;
+  modelo: string | null;
+  potenciaCv: number | null;
+  tensaoVolts: number | null;
+  correnteAmperes: number | null;
+  funcao: string | null;
+  dataInstalacao: string | null;
+  periodicidadeMeses: number;
+  ultimaManutencao: string | null;
+  descricao: string;
+  ativo: boolean;
+  proximaManutencao: string | null;
+  diasRestantes: number | null;
+  status: StatusPainel;
+  statusRotulo: string;
+  dadosTecnicosIncompletos: boolean;
+  posicoes: PosicaoDaBomba[];
+  disponivel: boolean;
+};
+
+export type PosicaoOcupada = {
+  ocupacaoId: string;
+  numeroPosicao: string;
+  bombaId: string;
+  codigoBomba: string;
+  descricaoBomba: string;
+  patrimonioManutec: boolean;
+  natureza: NaturezaOcupacao;
+  desde: string;
+};
+
+export type Conjunto = {
+  id: string;
+  clienteId: string;
+  tipoId: string;
+  tipo: string;
+  localizacao: string;
+  observacoes: string | null;
+  ativo: boolean;
+  posicoes: PosicaoOcupada[];
+};
+
+export type Ocupacao = {
+  id: string;
+  bombaId: string;
+  codigoBomba: string;
+  conjuntoId: string;
+  conjunto: string;
+  clienteId: string;
+  nomeCondominio: string;
+  numeroPosicao: string;
+  natureza: NaturezaOcupacao;
+  bombaSubstituidaId: string | null;
+  codigoBombaSubstituida: string | null;
+  inicio: string;
+  fim: string | null;
+  motivoEncerramento: MotivoEncerramento | null;
+  observacoes: string | null;
+  registradoPor: string;
+  aberta: boolean;
+};
+
+export type BombaDetalhe = { bomba: Bomba; historico: Ocupacao[] };
+
+export type PainelBombas = { resumo: ContagemStatus[]; linhas: Bomba[] };
+
+export type DadosConjunto = { tipoId: string; localizacao: string; observacoes: string };
+
+export type DadosBomba = {
+  fabricante: string;
+  modelo: string;
+  potenciaCv: number | null;
+  tensaoVolts: number | null;
+  correnteAmperes: number | null;
+  funcao: string;
+  dataInstalacao: string | null;
+  periodicidadeMeses: number | null;
+  ultimaManutencao: string | null;
+  conjuntoId: string | null;
+};
+
+export type DadosInstalacao = {
+  conjuntoId: string;
+  /** Nulo = o servidor escolhe (a da substituída, ou a próxima livre). */
+  numeroPosicao: string | null;
+  inicio: string;
+  bombaSubstituidaId: string | null;
+  observacoes: string;
+};
+
+export type ResultadoMovimentacao = { ocupacao: Ocupacao; aviso: string | null };

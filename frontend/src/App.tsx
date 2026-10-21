@@ -2,6 +2,7 @@ import { Link, Navigate, Outlet, Route, Routes } from "react-router";
 import { Carregando } from "./componentes/Basicos";
 import { Layout } from "./componentes/Layout";
 import { Agenda } from "./paginas/Agenda";
+import { BombaDetalhe } from "./paginas/BombaDetalhe";
 import { ClienteDetalhe } from "./paginas/ClienteDetalhe";
 import { Clientes } from "./paginas/Clientes";
 import { Conta } from "./paginas/Conta";
@@ -11,6 +12,9 @@ import { Lancamento } from "./paginas/Lancamento";
 import { Login } from "./paginas/Login";
 import { Oportunidades } from "./paginas/Oportunidades";
 import { Painel } from "./paginas/Painel";
+import { PainelBombas } from "./paginas/PainelBombas";
+import { Patrimonio } from "./paginas/Patrimonio";
+import { TiposBomba } from "./paginas/TiposBomba";
 import { Usuarios } from "./paginas/Usuarios";
 import { ValvulaDetalhe } from "./paginas/ValvulaDetalhe";
 import { useSessao } from "./sessao/useSessao";
@@ -57,12 +61,16 @@ export default function App() {
           <Route path="clientes" element={<Clientes />} />
           <Route path="clientes/:id" element={<ClienteDetalhe />} />
           <Route path="valvulas/:id" element={<ValvulaDetalhe />} />
+          <Route path="bombas" element={<PainelBombas />} />
+          <Route path="bombas/:id" element={<BombaDetalhe />} />
+          <Route path="patrimonio" element={<Patrimonio />} />
           <Route path="especificacoes" element={<Especificacoes />} />
           <Route path="agenda" element={<Agenda />} />
           <Route path="conta" element={<Conta />} />
           <Route element={<SoAdmin />}>
             <Route path="usuarios" element={<Usuarios />} />
             <Route path="importar" element={<Importacao />} />
+            <Route path="tipos-bomba" element={<TiposBomba />} />
           </Route>
           <Route
             path="*"

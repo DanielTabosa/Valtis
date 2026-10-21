@@ -36,7 +36,7 @@ A **Manutec Válvulas** (Recife/PE) faz manutenção de VRPs — válvulas redut
 | Backend | https://valtis-production.up.railway.app | Fase 0 |
 | Repositório | https://github.com/DanielTabosa/Valtis | `main` = Fase 0 · `feat/fase-1-mvp` = Fase 1 |
 | Banco de produção | PostgreSQL no Supabase, São Paulo | migrations V1–V3 |
-| Banco local | Docker, `docker-compose.yml`, porta 5433 | V1–V4 |
+| Banco local | Docker, `docker-compose.yml`, porta 5433 (na máquina do Daniel o container está na **5434**; há o perfil `backend-5434` no `.claude/launch.json`) | V1–V5 |
 
 ### O que a branch entrega
 
@@ -51,7 +51,8 @@ A **Manutec Válvulas** (Recife/PE) faz manutenção de VRPs — válvulas redut
 | Pipeline (M10) | RF-41 a RF-46 | Assumir, devolver, desfecho, recusa com pergunta e nova data (RN-09); marca "sem lembrete na agenda" (RN-13) |
 | Importação (M7) | RF-51 a RF-58 | Tela Importar (admin): .xlsx/.xls/.csv, colunas reconhecidas pelo cabeçalho, descarta o resto, prévia editável, gravação tudo ou nada (D-25). **Nunca rodou com a planilha real** |
 | Interface (17/10) | — | Revisão visual com identidade Manutec: lateral no desktop, barra inferior com "Lançar" no celular, tema claro/escuro, Inter auto-hospedada, ícones SVG próprios. Login com o "mostrador" do ciclo de 12 meses (opção C, escolhida pelo Daniel entre 4 em `docs/design/opcoes-login/`). Crítica e filosofia em `docs/design/`. Login aprovado pelo Daniel em 17/10; o resto da interface ele ainda está avaliando |
-| Qualidade | AGENTS.md §5 | 78 testes (unitários + integração com Testcontainers), CI no GitHub Actions |
+| Bombas (M13) | RF-60 a RF-68, RN-15 a RN-20 | Na branch `feat/modulo-bombas` (§12a). Conjuntos, bombas, patrimônio da Manutec, empréstimos com histórico, painel próprio. Sem oportunidade nem agenda (P-14) |
+| Qualidade | AGENTS.md §5 | 78 testes na Fase 1 + 3 classes do módulo de bombas (unitários + integração com Testcontainers), CI no GitHub Actions |
 
 ### O que NÃO existe ainda
 
@@ -278,23 +279,34 @@ A revisão técnica foi **adiada a pedido dele** (13/10/2026): ele vai estudar p
 
 ## 12a. Módulo de bombas — MVP 1 (iniciado em 20/10/2026)
 
-O Daniel trouxe um briefing (feito com o GPT) para um módulo de bombas: `cliente → conjunto de bombeamento → bomba`, catálogo de tipos, bombas patrimoniais da Manutec emprestadas a condomínios, movimentações com histórico. **Está na branch `feat/modulo-bombas`, só com documentação:**
+O Daniel trouxe um briefing (feito com o GPT) para um módulo de bombas: `cliente → conjunto de bombeamento → bomba`, catálogo de tipos, bombas patrimoniais da Manutec emprestadas a condomínios, movimentações com histórico. **Implementado na branch `feat/modulo-bombas`** (criada a partir da `feat/fase-1-mvp`; schema e regras aprovados por ele em 20/10). **Ele ainda não testou na tela.**
 
-- Requisitos RF-60 a RF-69 e regras RN-15 a RN-20 (`docs/requirements.md` §1.9 e §3.1), todos marcados `[PROPOSTA]`.
-- Decisões D-26 (módulo próprio, sem supertipo "equipamento"), D-27 (posição derivada da ocupação aberta) e D-28 (sem conectores de integração) — status **Proposta**.
-- Modelo e rascunho da `V5` em `docs/database.md` §8. **A migração não foi criada:** `ddl-auto: validate` derruba o backend se uma entidade nascer sem tabela, então nenhum código Java de bombas entra antes da aprovação.
-- Lacunas do briefing em P-13 a P-19 (requirements.md §5). **Não foram preenchidas por suposição**; cada uma traz a proposta que vale enquanto ele não responde.
+| Peça | Onde |
+|---|---|
+| Requisitos RF-60 a RF-69, regras RN-15 a RN-20, pendências P-13 a P-19 | `docs/requirements.md` §1.9, §3.1, §5 |
+| Decisões D-26 (módulo próprio, sem supertipo "equipamento"), D-27 (posição derivada da ocupação aberta), D-28 (sem conectores) | `docs/decisions.md` |
+| Modelo: `tipo_bomba`, `conjunto_bombeamento`, `bomba`, `ocupacao_bomba` | `docs/database.md` §8, migração `V5__modulo_bombas.sql` |
+| Backend: pacote `bomba/` | `SituacaoBomba` (tudo o que é calculado: RN-16, RN-17, dados incompletos, onde está), `MovimentacaoService` (instalar/emprestar e encerrar; RN-17 a RN-20), `BombaConsultaService` (fichas, patrimônio, painel) |
+| Endpoints | `/api/tipos-bomba`, `/api/clientes/{id}/conjuntos`, `/api/conjuntos/{id}`, `/api/clientes/{id}/bombas`, `/api/patrimonio/bombas`, `/api/bombas/{id}`, `/api/bombas/{id}/instalacao`, `/api/ocupacoes/{id}/encerramento`, `/api/bombas/painel` |
+| Telas | Painel de bombas (`/bombas`), ficha da bomba com histórico e movimentações (`/bombas/:id`), Patrimônio (`/patrimonio`), Tipos de bomba (admin, `/tipos-bomba`), seção "Bombas" no detalhe do cliente (`ConjuntosDoCliente.tsx`) |
+| Testes | `SituacaoBombaTest`, `OcupacaoBombaTest` (unitários), `BombasIntegracaoTest` (fluxo completo: empréstimo, reinstalação da original com aviso, devolução, código, exclusão) |
 
-**Bloqueio atual:** aprovação do schema (AGENTS.md §10). Depois dela, a ordem é: `V5` → entidades e repositórios → `RegrasRecorrencia` reaproveitada para RN-16 → ocupações (RN-17 a RN-20, com TDD) → endpoints → telas (Conjuntos/Bombas dentro do detalhe do cliente, Patrimônio, Tipos) → painel de bombas.
+**Escolhas de implementação que o Daniel pode querer rever** (não são RN novas, são guardas):
+- Bomba de condomínio não entra no conjunto de **outro** condomínio; quem circula é o patrimônio. Se um dia um condomínio emprestar bomba a outro, cai a verificação em `MovimentacaoService.validarEntrada`.
+- Ao instalar "no lugar de" uma bomba **do próprio condomínio**, a antiga é retirada na mesma data (foi para conserto). No lugar de uma **emprestada**, a emprestada continua lá até a devolução explícita (RN-18), e a tela avisa (RN-19).
+- Cadastrar bomba com "já instalar em" entra na próxima posição livre, na data de instalação ou hoje.
+
+**Lacunas do briefing (P-13 a P-19)** seguem com a proposta registrada: periodicidade obrigatória sem padrão; sem oportunidade nem agenda para bomba; tipo é do conjunto; serviço por bomba fica para o MVP 2 (hoje é só "última manutenção" no cadastro); técnico faz tudo, catálogo é admin.
 
 ## 13. Próxima tarefa sugerida
 
 1. ~~Teste manual do Daniel na branch~~ — refeito em 16/10/2026: tudo funcionou. Ajustes pedidos e já feitos: editar/inativar/excluir válvula pelo técnico, data de hoje no lançamento, cartões do painel que não zeram ao filtrar, atrasados sem lembrete marcados na fila, tela Agenda com cartões que filtram a lista (como o painel). Testado e aprovado pelo Daniel.
 2. ~~Validar S-01 a S-11 e D-21 a D-24~~ — feito em 16/10/2026.
-3. **Continuar os ajustes da interface com o Daniel** — em 17/10 ele pediu a revisão visual (feita) e escolheu o login C · Mostrador entre 4 opções. Ele ainda vai navegar pelo resto e dizer o que ajustar. **Começar a próxima sessão perguntando isso.** Quando ele pedir algo visual em aberto, mostrar opções para ele escolher (ele gostou desse formato).
-4. **Testar a tela Importar com o Daniel** (ainda não testada por ele): começar com o CSV fictício pronto em `docs/exemplos/clientes-ficticios.csv` (tem casos de borda de propósito), depois a planilha real **no banco local**.
-5. Outros ajustes funcionais que ele quiser antes de produção ("vamos ajustar outras coisas ainda").
-6. Lista "Base antiga, cadastro incompleto" (P-08).
-7. Só depois: checklist de produção da §4, merge na `main`, credencial do Google.
+3. **Teste manual do módulo de bombas pelo Daniel** (branch `feat/modulo-bombas`, §12a): tipos → conjunto no cliente → bomba com "já instalar" → bomba no patrimônio → emprestar no lugar da do condomínio → reinstalar a original (ver o aviso) → devolver. Depois, responder P-13 a P-19 e decidir se o módulo entra na `feat/fase-1-mvp` antes de produção.
+4. **Continuar os ajustes da interface com o Daniel** — em 17/10 ele pediu a revisão visual (feita) e escolheu o login C · Mostrador entre 4 opções. Ele ainda vai navegar pelo resto e dizer o que ajustar. Quando ele pedir algo visual em aberto, mostrar opções para ele escolher (ele gostou desse formato).
+5. **Testar a tela Importar com o Daniel** (ainda não testada por ele): começar com o CSV fictício pronto em `docs/exemplos/clientes-ficticios.csv` (tem casos de borda de propósito), depois a planilha real **no banco local**.
+6. Outros ajustes funcionais que ele quiser antes de produção ("vamos ajustar outras coisas ainda").
+7. Lista "Base antiga, cadastro incompleto" (P-08).
+8. Só depois: checklist de produção da §4, merge na `main`, credencial do Google.
 
 **Rodar localmente:** o painel de visualização do app de desktop encerra os servidores depois de um tempo. Para o Daniel testar, suba backend e frontend no Terminal (duas abas), como na §3.

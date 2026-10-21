@@ -8,6 +8,7 @@ import { useSessao } from "../sessao/useSessao";
 import { formatarData } from "../util/formato";
 import { useCarga } from "../util/useCarga";
 import { useEnvio } from "../util/useEnvio";
+import { ConjuntosDoCliente } from "./ConjuntosDoCliente";
 
 type Janela =
   | { tipo: "cliente" }
@@ -167,6 +168,8 @@ export function ClienteDetalhe() {
           )}
         </section>
       ))}
+
+      <ConjuntosDoCliente clienteId={c.id} clienteAtivo={c.ativo} />
 
       <Modal titulo="Editar cliente" aberto={janela?.tipo === "cliente"} aoFechar={() => setJanela(null)}>
         <FormCliente cliente={c} aoSalvar={fecharERecarregar} />

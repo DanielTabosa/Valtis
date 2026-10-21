@@ -2,6 +2,16 @@
 import { http } from "./http";
 import type {
   AnaliseImportacao,
+  Bomba,
+  BombaDetalhe,
+  Conjunto,
+  DadosBomba,
+  DadosConjunto,
+  DadosInstalacao,
+  Ocupacao,
+  PainelBombas,
+  ResultadoMovimentacao,
+  TipoBomba,
   ClienteDetalhe,
   ClienteResumo,
   DadosCliente,
@@ -133,4 +143,39 @@ export const agenda = {
     http.get<SituacaoAgenda>(`/api/agenda/situacao${consulta({ status: status?.toUpperCase() })}`),
   reprocessar: (id: string) => http.post<void>(`/api/agenda/eventos/${id}/reprocessar`),
   sincronizarAgora: () => http.post<void>("/api/agenda/sincronizar"),
+};
+
+export const tiposBomba = {
+  listar: (incluirInativos: boolean) => http.get<TipoBomba[]>(`/api/tipos-bomba${consulta({ incluirInativos })}`),
+  criar: (nome: string) => http.post<TipoBomba>("/api/tipos-bomba", { nome }),
+  renomear: (id: string, nome: string) => http.put<TipoBomba>(`/api/tipos-bomba/${id}`, { nome }),
+  inativar: (id: string) => http.post<void>(`/api/tipos-bomba/${id}/inativar`),
+  reativar: (id: string) => http.post<void>(`/api/tipos-bomba/${id}/reativar`),
+};
+
+export const conjuntos = {
+  doCliente: (clienteId: string) => http.get<Conjunto[]>(`/api/clientes/${clienteId}/conjuntos`),
+  criar: (clienteId: string, dados: DadosConjunto) => http.post<Conjunto>(`/api/clientes/${clienteId}/conjuntos`, dados),
+  atualizar: (id: string, dados: DadosConjunto) => http.put<Conjunto>(`/api/conjuntos/${id}`, dados),
+  inativar: (id: string) => http.post<void>(`/api/conjuntos/${id}/inativar`),
+  reativar: (id: string) => http.post<void>(`/api/conjuntos/${id}/reativar`),
+};
+
+export const bombas = {
+  painel: (status: StatusPainel | "", busca: string) =>
+    http.get<PainelBombas>(`/api/bombas/painel${consulta({ status: status || undefined, busca })}`),
+  doCliente: (clienteId: string) => http.get<Bomba[]>(`/api/clientes/${clienteId}/bombas`),
+  patrimonio: () => http.get<Bomba[]>("/api/patrimonio/bombas"),
+  detalhar: (id: string) => http.get<BombaDetalhe>(`/api/bombas/${id}`),
+  criarDoCondominio: (clienteId: string, dados: DadosBomba) =>
+    http.post<Bomba>(`/api/clientes/${clienteId}/bombas`, dados),
+  criarPatrimonial: (dados: DadosBomba) => http.post<Bomba>("/api/patrimonio/bombas", dados),
+  atualizar: (id: string, dados: DadosBomba) => http.put<Bomba>(`/api/bombas/${id}`, dados),
+  inativar: (id: string) => http.post<void>(`/api/bombas/${id}/inativar`),
+  reativar: (id: string) => http.post<void>(`/api/bombas/${id}/reativar`),
+  excluir: (id: string) => http.delete<void>(`/api/bombas/${id}`),
+  instalar: (id: string, dados: DadosInstalacao) =>
+    http.post<ResultadoMovimentacao>(`/api/bombas/${id}/instalacao`, dados),
+  encerrarOcupacao: (ocupacaoId: string, fim: string, observacoes: string) =>
+    http.post<Ocupacao>(`/api/ocupacoes/${ocupacaoId}/encerramento`, { fim, observacoes }),
 };
