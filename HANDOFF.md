@@ -85,6 +85,14 @@ npm run dev
 
 Login local: `backend/src/main/resources/application-local.yml`, bloco `admin-inicial`. O banco local também tem um técnico de teste (`tec@valtis.local`), criado pela tela de Usuários. A agenda simulada escreve os eventos no log do backend (`[agenda simulada]`) a cada 30 segundos.
 
+**Se o container estiver na 5434** (é o caso na máquina do Daniel em 20/10/2026: `docker start valtis-postgres`), suba o backend apontando para ela:
+
+```powershell
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local" "-Dspring-boot.run.arguments=--spring.datasource.url=jdbc:postgresql://localhost:5434/valtis"
+```
+
+**Roteiro das bombas (20/10):** ver §13, item 3. O banco local já tem um conjunto Recalque no Costa Azul com a `COND-001-BMB-01` e a `MAN-BMB-001` no patrimônio, devolvida e disponível.
+
 **Roteiro sugerido:** criar um usuário técnico → entrar como ele → cadastrar condomínio, estação com 2 válvulas → lançar serviço nas duas, ajustando uma → ver no painel → na fila, assumir e recusar pedindo nova data → conferir a tela Agenda → entrar como admin e inativar uma válvula.
 
 ---
