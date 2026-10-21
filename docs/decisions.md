@@ -454,6 +454,59 @@ Isso troca a função-objetivo. Não se trata mais de "qual stack dá menos trab
 
 ---
 
+## D-26 — Bombas são um módulo próprio, espelhando o modelo das válvulas
+
+**Status:** Proposta · 20/10/2026 · aguarda validação do Daniel
+
+**Contexto.** O Daniel pediu um módulo de bombas (recalque, incêndio, drenagem…) com a mesma lógica de cadastro técnico, histórico e recorrência do módulo de válvulas, mais o controle de bombas patrimoniais da Manutec emprestadas a condomínios. O módulo de válvulas já está validado e não pode ser perturbado.
+
+**Decisão.** Um módulo `bomba` novo, com a hierarquia `cliente → conjunto_bombeamento → bomba`, paralela a `cliente → estacao → valvula`. O cálculo de vencimento e a classificação do painel reutilizam `RegrasRecorrencia` (RN-16 chama o mesmo método de RN-01). Nada em `estacao`, `valvula`, `servico` ou `oportunidade` muda.
+
+**Alternativas descartadas.**
+- **Generalizar válvula e bomba num supertipo `equipamento`** (tabela única com `tipo`, ou herança JPA). É a "solução elegante", mas é abstração antes da terceira repetição (architecture.md §8): são dois equipamentos com campos, numeração e regras diferentes (a bomba se move; a válvula não). Além disso, obrigaria a migrar `valvula`, `servico` e `oportunidade`, que estão validados em uso. Se um terceiro tipo de equipamento aparecer, reavaliar.
+- **Tratar bomba como válvula de outro tipo** (`especificacao.tipo = bomba`). Esconde o domínio: potência, tensão, corrente e empréstimo não cabem numa VRP.
+
+**Consequências.**
+- Código duplicado de forma consciente entre `estacao`/`valvula` e `conjunto`/`bomba` (serviço, controller, tela). É o custo da D-11 e do §8; aceito.
+- Painel de bombas separado do painel de válvulas, no MVP 1. Unificar fica para quando a tela existir e o Daniel vir as duas.
+- Serviço por bomba e oportunidade por bomba **não** entram no MVP 1 (P-14, P-16): a bomba guarda `ultima_manutencao` no cadastro.
+- Modelo em [database.md](database.md#módulo-de-bombas); requisitos RF-60 a RF-69; regras RN-15 a RN-20.
+
+---
+
+## D-27 — A posição de uma bomba é derivada da ocupação aberta, não gravada na bomba
+
+**Status:** Proposta · 20/10/2026 · aguarda validação do Daniel
+
+**Contexto.** A bomba se move: a patrimonial da Manutec é emprestada e devolvida; a do condomínio sai para conserto e volta. Precisamos saber onde cada bomba está, quando esteve em cada lugar e quem ela substituiu — e o briefing exige que a bomba original possa ser reinstalada **antes** de a emprestada ser retirada.
+
+**Decisão.** A bomba não tem coluna "conjunto atual". Existe a tabela `ocupacao_bomba`: uma linha por período em que uma bomba ocupou uma posição (`numero_posicao`) de um conjunto, com início, fim (nulo enquanto aberta), natureza (`instalacao` | `emprestimo`), a bomba substituída e quem registrou. **Onde a bomba está** e **se a patrimonial está disponível** (RN-17) são calculados a partir das ocupações abertas — como o status do painel (D-15). Uma posição **pode** ter duas ocupações abertas ao mesmo tempo (RN-19); o sistema avisa, não bloqueia.
+
+**Alternativas descartadas.**
+- `bomba.conjunto_id` mutável mais uma tabela de log de movimentações. Duas verdades: o log fica inconsistente no primeiro erro de registro, e "reinstalar a original antes de retirar a emprestada" não cabe num ponteiro único.
+- Restrição de unicidade "uma ocupação aberta por posição". Simples, mas proíbe exatamente o caso que o briefing exige.
+
+**Consequências.**
+- "Número da bomba" é o número da posição que ela ocupa agora; a identidade permanente é o `codigo_referencia` (RN-15).
+- A ocupação é histórico (RN-20): nunca se edita a data retroativamente; corrige-se encerrando e abrindo outra.
+- Consulta de "onde está" é uma leitura de ocupações abertas; com ~centenas de bombas, custo irrelevante (RNF-12).
+
+---
+
+## D-28 — Sem conectores nem interfaces para Jiraya e Manutec_clientes por enquanto
+
+**Status:** Proposta · 20/10/2026
+
+**Contexto.** O briefing cita duas integrações futuras: Manutec_clientes como fonte de condomínios e contatos, e Jiraya como sistema de OS que, após validação do gestor, atualizaria o histórico do Valtis. Pede para "preparar interfaces desacopladas quando fizer sentido", sem implementar conectores.
+
+**Decisão.** Não criar interface, adaptador vazio nem campo "id externo" agora. Quando os contratos existirem (P-18), o padrão já está decidido: entrada pelo mesmo mecanismo do Outbox (D-13, D-21) invertido — uma tabela de recebimento com o id do evento externo como chave de idempotência, processada por worker, com retentativa e erro visível.
+
+**Alternativa descartada.** Interfaces "preparatórias" com um único implementador fictício. É abstração sem segundo caso de uso (architecture.md §8) e costuma errar o formato do contrato real.
+
+**Consequências.** `cliente` continua sendo cadastrado no Valtis. Quando a Manutec_clientes virar fonte, a decisão de quem é dono do cadastro vira uma D-xx própria, com aprovação.
+
+---
+
 ## Índice
 
 | ID | Decisão | Status |
@@ -483,3 +536,6 @@ Isso troca a função-objetivo. Não se trata mais de "qual stack dá menos trab
 | D-23 | Google Calendar pela API REST, sem SDK | Aceita |
 | D-24 | CSS próprio, sem Tailwind por enquanto | Aceita |
 | D-25 | Importador reconhece colunas pelo cabeçalho, em duas etapas | Aceita |
+| D-26 | Bombas são módulo próprio, espelhando as válvulas | **Proposta** |
+| D-27 | Posição da bomba derivada da ocupação aberta | **Proposta** |
+| D-28 | Sem conectores nem interfaces de integração por enquanto | **Proposta** |

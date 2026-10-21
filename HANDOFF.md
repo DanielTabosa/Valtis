@@ -1,8 +1,8 @@
 # HANDOFF — Valtis
 
 **Para:** qualquer agente que vá trabalhar neste repositório
-**Atualizado em:** 17/10/2026
-**Branch de trabalho:** `feat/fase-1-mvp` (não publicada, não mesclada na `main`)
+**Atualizado em:** 20/10/2026
+**Branches de trabalho:** `feat/fase-1-mvp` (Fase 1, publicada, não mesclada na `main`) · `feat/modulo-bombas` (criada a partir dela em 20/10; só documentação até a aprovação do schema)
 
 Este arquivo é o resumo de situação. Ele **não substitui** `AGENTS.md`, `docs/requirements.md`, `docs/architecture.md`, `docs/database.md` e `docs/decisions.md` — leia-os conforme a ordem do `CLAUDE.md`. O que este arquivo faz é te dizer, rápido: onde o projeto está, o que já foi decidido, o que falta e o que você **não** pode fazer sozinho.
 
@@ -275,6 +275,17 @@ O Valtis tem **duplo objetivo**: resolver a dor da empresa **e** ser o portfóli
 A revisão técnica foi **adiada a pedido dele** (13/10/2026): ele vai estudar por uma apostila feita para isso (Claude Docs, "Apostila Valtis — conceitos e entrevista"), com questionário e gabarito.
 
 ---
+
+## 12a. Módulo de bombas — MVP 1 (iniciado em 20/10/2026)
+
+O Daniel trouxe um briefing (feito com o GPT) para um módulo de bombas: `cliente → conjunto de bombeamento → bomba`, catálogo de tipos, bombas patrimoniais da Manutec emprestadas a condomínios, movimentações com histórico. **Está na branch `feat/modulo-bombas`, só com documentação:**
+
+- Requisitos RF-60 a RF-69 e regras RN-15 a RN-20 (`docs/requirements.md` §1.9 e §3.1), todos marcados `[PROPOSTA]`.
+- Decisões D-26 (módulo próprio, sem supertipo "equipamento"), D-27 (posição derivada da ocupação aberta) e D-28 (sem conectores de integração) — status **Proposta**.
+- Modelo e rascunho da `V5` em `docs/database.md` §8. **A migração não foi criada:** `ddl-auto: validate` derruba o backend se uma entidade nascer sem tabela, então nenhum código Java de bombas entra antes da aprovação.
+- Lacunas do briefing em P-13 a P-19 (requirements.md §5). **Não foram preenchidas por suposição**; cada uma traz a proposta que vale enquanto ele não responde.
+
+**Bloqueio atual:** aprovação do schema (AGENTS.md §10). Depois dela, a ordem é: `V5` → entidades e repositórios → `RegrasRecorrencia` reaproveitada para RN-16 → ocupações (RN-17 a RN-20, com TDD) → endpoints → telas (Conjuntos/Bombas dentro do detalhe do cliente, Patrimônio, Tipos) → painel de bombas.
 
 ## 13. Próxima tarefa sugerida
 

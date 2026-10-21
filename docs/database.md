@@ -338,7 +338,176 @@ Poucos, e só onde há consulta real. O volume não justifica mais (RNF-12).
 
 Implementados em `V2__schema_inicial.sql` e `V4__oportunidade_e_agenda.sql`. A V4 também remove a tabela `teste_conexao` da Fase 0.
 
-## 8. Glossário do domínio {#glossário-do-domínio}
+## 8. Módulo de bombas — PROPOSTA, aguarda aprovação {#módulo-de-bombas}
+
+> ⚠️ **Nada desta seção existe no banco.** É a proposta de modelo para o MVP 1 de bombas (RF-60 a RF-68, D-26, D-27). A migração `V5` só será escrita depois da aprovação do Daniel (AGENTS.md §10). O módulo de válvulas (§3) não é alterado.
+
+### Hierarquia
+
+```
+cliente (condomínio)
+  └── conjunto_bombeamento (recalque, incêndio, drenagem…)
+        └── posição 01, 02, …  ──ocupada por──►  bomba (equipamento físico)
+
+bomba patrimonial da Manutec: sem cliente; ocupa posições por empréstimo
+```
+
+A bomba **não** aponta para o conjunto. Quem liga bomba a posição é `ocupacao_bomba`, com período (D-27). A tabela `bomba` guarda a identidade e os dados técnicos; a tabela `ocupacao_bomba` guarda onde ela esteve e está.
+
+### tipo_bomba
+Catálogo configurável (RF-60). A migração insere os oito tipos iniciais.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `nome` | text | único, sem diferença de maiúsculas (índice em `lower(nome)`) |
+| `ativo` | boolean | inativar tira da lista suspensa; conjuntos existentes mantêm o tipo |
+| `criado_em` | timestamptz | |
+
+Iniciais: `Recalque` · `Incêndio` · `Drenagem` · `Pressurização` · `Pluvial` · `Piscina` · `Jacuzzi` · `Esgoto`.
+
+### conjunto_bombeamento
+O agrupamento de bombas de uma função no prédio. Equivale à `estacao` das válvulas.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `cliente_id` | uuid FK → cliente | |
+| `tipo_bomba_id` | uuid FK → tipo_bomba | tipo é do conjunto (P-15) |
+| `localizacao` | text | ex.: "Casa de bombas - subsolo 2" |
+| `observacoes` | text, nulo | |
+| `ativo` | boolean | |
+| `criado_em` / `atualizado_em` | timestamptz | |
+
+### bomba
+O equipamento físico, com identidade permanente.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `codigo_referencia` | text | único. `COND-001-BMB-01` ou `MAN-BMB-001` (RN-15) |
+| `patrimonio_manutec` | boolean | `true` = bomba própria da Manutec (RF-65) |
+| `cliente_id` | uuid FK → cliente, nulo | dono, quando é do condomínio. **Nulo se e só se `patrimonio_manutec`** (`ck_bomba_dono`) |
+| `fabricante` | text, nulo | RF-63: pode ficar em branco |
+| `modelo` | text, nulo | idem |
+| `potencia_cv` | numeric(6,2), nulo | idem |
+| `tensao_volts` | integer, nulo | idem |
+| `corrente_amperes` | numeric(6,2), nulo | idem |
+| `funcao` | text, nulo | ex.: "principal", "reserva" (P-15) |
+| `data_instalacao` | date, nulo | |
+| `periodicidade_meses` | integer | obrigatória, sem padrão até P-13. `> 0` |
+| `ultima_manutencao` | date, nulo | informada no cadastro (P-16). Próxima = calculada (RN-16) |
+| `ativo` | boolean | |
+| `criado_em` / `atualizado_em` | timestamptz | |
+
+**Calculados, não gravados** (D-15, D-27): `proxima_manutencao`, `status_painel`, `dados_tecnicos_incompletos` (algum dos cinco campos técnicos nulo), `posicao_atual` e `disponivel` (a partir das ocupações abertas).
+
+### ocupacao_bomba
+Um período em que uma bomba ocupou uma posição de um conjunto. Histórico puro: nunca se apaga nem se reescreve (RN-20).
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `bomba_id` | uuid FK → bomba | |
+| `conjunto_id` | uuid FK → conjunto_bombeamento | |
+| `numero_posicao` | text | `01`, `02`… sequencial no conjunto, mesma convenção de `numero_valvula` |
+| `natureza` | enum `natureza_ocupacao` | `instalacao` (bomba do próprio condomínio) \| `emprestimo` (bomba patrimonial da Manutec) |
+| `bomba_substituida_id` | uuid FK → bomba, nulo | a que saiu para esta entrar (RF-66) |
+| `inicio` | date | |
+| `fim` | date, nulo | **nulo = ocupação aberta.** Preenchido na retirada ou devolução (RN-18) |
+| `motivo_encerramento` | enum `motivo_encerramento`, nulo | `retirada` \| `devolucao`. Obrigatório quando `fim` preenchido (`ck_ocupacao_encerramento`) |
+| `observacoes` | text, nulo | |
+| `registrado_por_id` | uuid FK → usuario | |
+| `criado_em` | timestamptz | |
+
+Restrições: `fim >= inicio`; `natureza = emprestimo` só para bomba com `patrimonio_manutec` (regra de serviço, não cabe em CHECK entre tabelas). **Sem** unicidade de ocupação aberta por posição — RN-19 exige permitir duas (a original reinstalada e a emprestada ainda lá).
+
+### Enums novos
+
+| Enum | Valores |
+|---|---|
+| `natureza_ocupacao` | `instalacao` · `emprestimo` |
+| `motivo_encerramento` | `retirada` · `devolucao` |
+
+Como as demais: `VARCHAR` + `CHECK`, não enum nativo (ver `V2`).
+
+### Índices
+
+- `conjunto_bombeamento (cliente_id)`
+- `bomba (cliente_id)`
+- `ocupacao_bomba (bomba_id) WHERE fim IS NULL` — "onde está" e disponibilidade (RN-17)
+- `ocupacao_bomba (conjunto_id, numero_posicao) WHERE fim IS NULL` — quem ocupa cada posição
+- `tipo_bomba (lower(nome))`, único
+
+### Rascunho da migração `V5__modulo_bombas.sql` (não aplicado)
+
+```sql
+CREATE TABLE tipo_bomba (
+    id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    nome      TEXT        NOT NULL,
+    ativo     BOOLEAN     NOT NULL DEFAULT TRUE,
+    criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE UNIQUE INDEX ux_tipo_bomba_nome ON tipo_bomba (lower(nome));
+INSERT INTO tipo_bomba (nome) VALUES
+    ('Recalque'), ('Incêndio'), ('Drenagem'), ('Pressurização'),
+    ('Pluvial'), ('Piscina'), ('Jacuzzi'), ('Esgoto');
+
+CREATE TABLE conjunto_bombeamento (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    cliente_id    UUID        NOT NULL REFERENCES cliente (id),
+    tipo_bomba_id UUID        NOT NULL REFERENCES tipo_bomba (id),
+    localizacao   TEXT        NOT NULL,
+    observacoes   TEXT,
+    ativo         BOOLEAN     NOT NULL DEFAULT TRUE,
+    criado_em     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_conjunto_cliente ON conjunto_bombeamento (cliente_id);
+
+CREATE TABLE bomba (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    codigo_referencia   TEXT        NOT NULL UNIQUE,
+    patrimonio_manutec  BOOLEAN     NOT NULL DEFAULT FALSE,
+    cliente_id          UUID        REFERENCES cliente (id),
+    fabricante          TEXT,
+    modelo              TEXT,
+    potencia_cv         NUMERIC(6, 2),
+    tensao_volts        INTEGER,
+    corrente_amperes    NUMERIC(6, 2),
+    funcao              TEXT,
+    data_instalacao     DATE,
+    periodicidade_meses INTEGER     NOT NULL,
+    ultima_manutencao   DATE,
+    ativo               BOOLEAN     NOT NULL DEFAULT TRUE,
+    criado_em           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    atualizado_em       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT ck_bomba_periodicidade CHECK (periodicidade_meses > 0),
+    CONSTRAINT ck_bomba_dono CHECK (patrimonio_manutec = (cliente_id IS NULL))
+);
+CREATE INDEX idx_bomba_cliente ON bomba (cliente_id);
+
+CREATE TABLE ocupacao_bomba (
+    id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    bomba_id             UUID        NOT NULL REFERENCES bomba (id),
+    conjunto_id          UUID        NOT NULL REFERENCES conjunto_bombeamento (id),
+    numero_posicao       TEXT        NOT NULL,
+    natureza             VARCHAR(20) NOT NULL CHECK (natureza IN ('instalacao', 'emprestimo')),
+    bomba_substituida_id UUID        REFERENCES bomba (id),
+    inicio               DATE        NOT NULL,
+    fim                  DATE,
+    motivo_encerramento  VARCHAR(20) CHECK (motivo_encerramento IN ('retirada', 'devolucao')),
+    observacoes          TEXT,
+    registrado_por_id    UUID        NOT NULL REFERENCES usuario (id),
+    criado_em            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT ck_ocupacao_periodo      CHECK (fim IS NULL OR fim >= inicio),
+    CONSTRAINT ck_ocupacao_encerramento CHECK ((fim IS NULL) = (motivo_encerramento IS NULL))
+);
+CREATE INDEX idx_ocupacao_bomba_aberta    ON ocupacao_bomba (bomba_id) WHERE fim IS NULL;
+CREATE INDEX idx_ocupacao_posicao_aberta  ON ocupacao_bomba (conjunto_id, numero_posicao) WHERE fim IS NULL;
+```
+
+## 9. Glossário do domínio {#glossário-do-domínio}
 
 | Termo | Significado |
 |---|---|
@@ -354,3 +523,7 @@ Implementados em `V2__schema_inicial.sql` e `V4__oportunidade_e_agenda.sql`. A V
 | **Avulso × Contrato** | Modalidade comercial do atendimento. Não altera a periodicidade técnica (RN-03) |
 | **Soft delete** | Inativação lógica; o registro permanece no banco (RN-11) |
 | **Outbox** | Padrão em que a integração externa é gravada no banco e executada depois, em segundo plano |
+| **Conjunto de bombeamento** | Grupo de bombas de uma mesma função no prédio (recalque, incêndio…). Equivale à estação, para bombas |
+| **Bomba patrimonial** | Bomba própria da Manutec, emprestada a condomínios enquanto a deles está em conserto |
+| **Ocupação** | Período em que uma bomba esteve numa posição de um conjunto. É o que diz onde a bomba está (D-27) |
+| **Recalque** | Bombeamento da cisterna para a caixa d'água superior. O tipo mais comum em prédio |

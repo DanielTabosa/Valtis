@@ -151,6 +151,7 @@ A Manutec usa **Gmail comum**, não Google Workspace. Isso elimina a conta de se
 | M10 | **Pipeline** | Fila, assumir, desfecho, recusa com pergunta, fechamento de ciclo | 3 |
 | M11 | **Indicadores** | Conversão e clientes recuperados | 3 |
 | M12 | **Administração** | Configurações, auditoria | 3 |
+| M13 | **Bombas** `[PROPOSTA]` | Catálogo de tipos, conjunto de bombeamento, bomba, patrimônio da Manutec, ocupações e movimentações, painel de bombas. Módulo paralelo ao de válvulas, sem supertipo comum (D-26, D-27). Reutiliza `RegrasRecorrencia` de M5 | Bombas MVP 1 |
 
 **Dependências:** M1 e M2 sustentam todos os demais. M5 depende de M3. M4 e M6 dependem de M5. M7 depende de M2. M10 depende de M5.
 

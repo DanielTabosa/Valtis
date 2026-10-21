@@ -125,6 +125,27 @@ Ver o mapeamento completo em [database.md](database.md#importação-da-base-lega
 | RF-58 | Marcar a data importada como **aproximada** | P0 | `[PLANILHA]` |
 | RF-59 | Ao lançar a primeira manutenção real de um cliente importado, completar o cadastro e retirar o estado "incompleto" | P1 | `[SUGESTÃO]` |
 
+### 1.9 Módulo de bombas — MVP 1 `[PROPOSTA · 20/10/2026]`
+
+> **Status:** proposta documentada a partir do briefing do Daniel de 20/10/2026. Os requisitos abaixo descrevem o que foi pedido; as regras RN-15 a RN-20 e o modelo em [database.md](database.md#módulo-de-bombas) **aguardam aprovação** (AGENTS.md §10) antes de qualquer migração. O módulo de válvulas não muda.
+
+Estrutura: `cliente (condomínio) → conjunto de bombeamento → bomba`. Uma bomba é um equipamento físico com identidade própria; a **posição** que ela ocupa num conjunto pode mudar ao longo do tempo (empréstimo, substituição), e o histórico pertence à bomba, não à posição — o mesmo princípio de D-18.
+
+| ID | Requisito | Prio | Origem |
+|---|---|---|---|
+| RF-60 | Catálogo **configurável** de tipos de bombeamento, com os iniciais: recalque, incêndio, drenagem, pressurização, pluvial, piscina, jacuzzi e esgoto. Admin inclui e inativa tipos; a tela usa lista suspensa (RNF-06) | P0 | `[INFORMADO]` |
+| RF-61 | Cadastrar **conjunto de bombeamento** vinculado ao cliente, com tipo (RF-60), localização e observações | P0 | `[INFORMADO]` |
+| RF-62 | Cadastrar **bomba individual** com código, fabricante, modelo, potência (CV), tensão (V), corrente (A), função, data de instalação, periodicidade e última manutenção. A **próxima manutenção é calculada**, nunca digitada (RN-16) | P0 | `[INFORMADO]` |
+| RF-63 | Dados técnicos desconhecidos (fabricante, modelo, potência, tensão, corrente) podem ficar em branco e ser **completados depois**. A bomba aparece marcada "dados técnicos incompletos" enquanto faltar algum | P0 | `[INFORMADO]` |
+| RF-64 | Gerar o código da bomba automaticamente: `COND-001-BMB-01` para bomba do condomínio, `MAN-BMB-001` para bomba patrimonial da Manutec (RN-15) | P0 | `[SUGESTÃO]` · espelha RF-09 |
+| RF-65 | Cadastrar **bomba patrimonial da Manutec** (sem condomínio dono) e consultar sua situação: disponível, ou emprestada a qual condomínio desde quando (RN-17) | P0 | `[INFORMADO]` |
+| RF-66 | Registrar **movimentações**: instalação de bomba em posição de um conjunto, empréstimo de bomba patrimonial, devolução e retirada, sempre com data e, quando houver, qual bomba foi substituída | P0 | `[INFORMADO]` |
+| RF-67 | Ver o **histórico individual** de cada bomba: posições ocupadas, períodos, substituições e quem registrou. Trocar uma bomba de posição não apaga nada (RN-20) | P0 | `[INFORMADO]` |
+| RF-68 | Listagem e consulta **responsivas**: bombas por cliente e por conjunto, com próxima manutenção e situação; patrimônio da Manutec com disponibilidade | P0 | `[INFORMADO]` |
+| RF-69 | Integrações futuras: Manutec_clientes como fonte de condomínios e contatos; Jiraya como sistema de OS que, após validação do gestor, atualiza o histórico no Valtis. **Não implementar agora** — sem contratos nem autorização (D-28) | P2 | `[A DEFINIR]` · P-18 |
+
+**Fora do MVP 1 de bombas:** orçamento, financeiro, estoque de peças, ordem de serviço completa, sincronização real com outros sistemas, fotos e PDF de bomba.
+
 ---
 
 ## 2. Requisitos Não Funcionais
@@ -214,6 +235,19 @@ D-02 removeu a necessidade de operação offline.
 | RN-13 | **Nenhum** alerta com data passada vai para o Calendar, importado ou não. A oportunidade aberta que já está na janela de contato e não tem lembrete na agenda aparece na fila marcada "sem lembrete na agenda"; os alertas descartados ficam listados na tela Agenda, com o motivo | `[DECIDIDO]` 16/10/2026 |
 | RN-14 | Código do equipamento = código do cliente + `-VRP-` + sequencial | `[PLANILHA]` |
 
+### 3.1 Regras do módulo de bombas `[PROPOSTA · aguardam aprovação]`
+
+Nenhuma destas regras está implementada. Foram formalizadas a partir do briefing de 20/10/2026; onde o briefing não dizia, a lacuna está em **P-13 a P-19**, não preenchida por suposição.
+
+| ID | Regra | Origem |
+|---|---|---|
+| RN-15 | Código da bomba de condomínio = código do cliente + `-BMB-` + sequencial do cliente (`COND-001-BMB-01`). Bomba patrimonial da Manutec = `MAN-BMB-` + sequencial global (`MAN-BMB-001`). Gerado pelo sistema; nunca muda, mesmo quando a bomba troca de posição | `[SUGESTÃO]` · espelha RN-14 |
+| RN-16 | `proxima_manutencao = ultima_manutencao + periodicidade_meses` — o mesmo cálculo de RN-01, pela mesma classe (`RegrasRecorrencia`). Bomba sem última manutenção é **SEM REGISTRO** e não tem próxima data. A classificação do painel segue RN-04 | `[INFORMADO]` · periodicidade padrão em aberto (P-13) |
+| RN-17 | Bomba patrimonial da Manutec está **disponível** quando não tem nenhuma ocupação aberta. Só bomba disponível pode ser emprestada. Disponibilidade é **calculada** a partir das ocupações, nunca gravada (D-27) | `[INFORMADO]` |
+| RN-18 | A **devolução registrada** encerra a ocupação de empréstimo; só a partir dela a bomba volta a ficar disponível. Não existe devolução implícita: instalar outra bomba na posição não devolve a emprestada | `[INFORMADO]` |
+| RN-19 | A bomba original pode ser **reinstalada antes** da retirada da emprestada. Por isso uma posição pode ter mais de uma ocupação aberta ao mesmo tempo; o sistema avisa, mas não impede | `[INFORMADO]` |
+| RN-20 | Ocupação é histórico: nunca é apagada nem reescrita. Erro de registro se corrige com encerramento e nova ocupação, com observação do motivo. Mesma lógica de RF-18 e RN-11 | `[SUGESTÃO]` |
+
 ---
 
 ## 4. Fora de escopo
@@ -244,3 +278,15 @@ Declarado explicitamente. Um agente que "adicionar" qualquer item desta lista es
 | P-06 | Identificação física da válvula em campo: existe plaqueta? Vale QR Code? | RF-11 |
 | P-07 | Teto de custo mensal, preferência por dados no Brasil, domínio disponível. Tendência (16/10/2026): **domínio único** para frontend e backend, o que reabre D-22 | Escolha de hospedagem |
 | P-08 | ~~Painel de válvulas e lista de clientes importados: telas separadas ou visão unificada?~~ **Respondida em 16/10/2026: telas separadas.** O painel segue uma linha por válvula; os importados terão lista própria ("base antiga, cadastro incompleto") e entram na fila normalmente | RF-34, RF-53 |
+
+### Pendências do módulo de bombas (20/10/2026)
+
+| # | Pendência | Bloqueia | Proposta enquanto não há resposta |
+|---|---|---|---|
+| P-13 | Qual a **periodicidade padrão** da manutenção de bombas? É única (como os 12 meses da VRP) ou varia por tipo (incêndio ≠ piscina)? | RN-16 | Campo obrigatório no cadastro, **sem padrão**; a tela não sugere valor |
+| P-14 | Manutenção de bomba **gera oportunidade e eventos na agenda** como a de VRP (RN-07, RN-06)? | M5/M6 para bombas | MVP 1 **não gera**. Painel de bombas só classifica (RN-16) |
+| P-15 | O tipo (recalque, incêndio…) é do **conjunto** ou de cada **bomba**? | RF-61, RF-62 | Do conjunto. Na bomba, `funcao` é texto livre curto (ex.: "principal", "reserva") |
+| P-16 | **Lançamento de serviço** para bomba segue o mesmo fluxo da válvula? Hoje `servico.valvula_id` é obrigatório | M3 para bombas | MVP 1 registra só `ultima_manutencao` no cadastro da bomba. Serviço por bomba fica para o MVP 2 |
+| P-17 | Empréstimo de bomba patrimonial tem **cobrança** (locação)? | Escopo | Fora do escopo; não entra nem como campo |
+| P-18 | **Contratos** de integração com Jiraya e Manutec_clientes: quem chama quem, formato, identificador comum do condomínio | RF-69 | Nada implementado (D-28) |
+| P-19 | **Técnico** cadastra conjunto e bomba e registra movimentação, como faz com válvula (S-01)? | `@PreAuthorize` | Sim: mesmo perfil de permissão da válvula. Catálogo de tipos (RF-60), só admin |
