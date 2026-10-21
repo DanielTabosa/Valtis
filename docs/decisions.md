@@ -456,7 +456,7 @@ Isso troca a função-objetivo. Não se trata mais de "qual stack dá menos trab
 
 ## D-26 — Bombas são um módulo próprio, espelhando o modelo das válvulas
 
-**Status:** Proposta · 20/10/2026 · aguarda validação do Daniel
+**Status:** Aceita · 20/10/2026 · aprovada pelo Daniel no mesmo dia
 
 **Contexto.** O Daniel pediu um módulo de bombas (recalque, incêndio, drenagem…) com a mesma lógica de cadastro técnico, histórico e recorrência do módulo de válvulas, mais o controle de bombas patrimoniais da Manutec emprestadas a condomínios. O módulo de válvulas já está validado e não pode ser perturbado.
 
@@ -476,7 +476,7 @@ Isso troca a função-objetivo. Não se trata mais de "qual stack dá menos trab
 
 ## D-27 — A posição de uma bomba é derivada da ocupação aberta, não gravada na bomba
 
-**Status:** Proposta · 20/10/2026 · aguarda validação do Daniel
+**Status:** Aceita · 20/10/2026 · aprovada pelo Daniel no mesmo dia
 
 **Contexto.** A bomba se move: a patrimonial da Manutec é emprestada e devolvida; a do condomínio sai para conserto e volta. Precisamos saber onde cada bomba está, quando esteve em cada lugar e quem ela substituiu — e o briefing exige que a bomba original possa ser reinstalada **antes** de a emprestada ser retirada.
 
@@ -495,7 +495,7 @@ Isso troca a função-objetivo. Não se trata mais de "qual stack dá menos trab
 
 ## D-28 — Sem conectores nem interfaces para Jiraya e Manutec_clientes por enquanto
 
-**Status:** Proposta · 20/10/2026
+**Status:** Aceita · 20/10/2026
 
 **Contexto.** O briefing cita duas integrações futuras: Manutec_clientes como fonte de condomínios e contatos, e Jiraya como sistema de OS que, após validação do gestor, atualizaria o histórico do Valtis. Pede para "preparar interfaces desacopladas quando fizer sentido", sem implementar conectores.
 
@@ -536,6 +536,6 @@ Isso troca a função-objetivo. Não se trata mais de "qual stack dá menos trab
 | D-23 | Google Calendar pela API REST, sem SDK | Aceita |
 | D-24 | CSS próprio, sem Tailwind por enquanto | Aceita |
 | D-25 | Importador reconhece colunas pelo cabeçalho, em duas etapas | Aceita |
-| D-26 | Bombas são módulo próprio, espelhando as válvulas | **Proposta** |
-| D-27 | Posição da bomba derivada da ocupação aberta | **Proposta** |
-| D-28 | Sem conectores nem interfaces de integração por enquanto | **Proposta** |
+| D-26 | Bombas são módulo próprio, espelhando as válvulas | Aceita |
+| D-27 | Posição da bomba derivada da ocupação aberta | Aceita |
+| D-28 | Sem conectores nem interfaces de integração por enquanto | Aceita |

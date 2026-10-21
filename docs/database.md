@@ -38,6 +38,11 @@ erDiagram
     cliente       ||--o{ oportunidade  : "escopo legado"
     oportunidade  ||--o| servico       : "resulta em"
     usuario       ||--o{ auditoria     : "registra"
+    cliente       ||--o{ conjunto_bombeamento : "possui"
+    tipo_bomba    ||--o{ conjunto_bombeamento : "classifica"
+    cliente       ||--o{ bomba         : "é dona de"
+    bomba         ||--o{ ocupacao_bomba : "ocupa"
+    conjunto_bombeamento ||--o{ ocupacao_bomba : "tem posições"
 ```
 
 ### Hierarquia central
@@ -257,6 +262,8 @@ Valores fixos vindos da planilha da Manutec. **A interface usa lista suspensa; n
 | `origem_registro` | `sistema` · `importacao` |
 | `tipo_evento` | `alerta_comercial` · `lembrete_final` |
 | `status_evento` | `pendente` · `criado` · `falhou` · `descartado` |
+| `natureza_ocupacao` | `instalacao` · `emprestimo` (§8) |
+| `motivo_encerramento` | `retirada` · `devolucao` (§8) |
 | `status_painel` | **calculado, não persistido** — ver §5 |
 
 ## 5. Status do painel — calculado, nunca armazenado
@@ -336,11 +343,11 @@ Poucos, e só onde há consulta real. O volume não justifica mais (RNF-12).
 - `evento_agenda (proxima_tentativa_em) WHERE status = 'pendente'` — varredura do worker do Outbox
 - `cliente (nome_condominio)` — busca
 
-Implementados em `V2__schema_inicial.sql` e `V4__oportunidade_e_agenda.sql`. A V4 também remove a tabela `teste_conexao` da Fase 0.
+Implementados em `V2__schema_inicial.sql`, `V4__oportunidade_e_agenda.sql` e `V5__modulo_bombas.sql` (§8). A V4 também remove a tabela `teste_conexao` da Fase 0.
 
-## 8. Módulo de bombas — PROPOSTA, aguarda aprovação {#módulo-de-bombas}
+## 8. Módulo de bombas {#módulo-de-bombas}
 
-> ⚠️ **Nada desta seção existe no banco.** É a proposta de modelo para o MVP 1 de bombas (RF-60 a RF-68, D-26, D-27). A migração `V5` só será escrita depois da aprovação do Daniel (AGENTS.md §10). O módulo de válvulas (§3) não é alterado.
+> Modelo do MVP 1 de bombas (RF-60 a RF-68, D-26, D-27). **Aprovado pelo Daniel em 20/10/2026** e criado pela migração `V5__modulo_bombas.sql`. O módulo de válvulas (§3) não foi alterado.
 
 ### Hierarquia
 
@@ -439,7 +446,7 @@ Como as demais: `VARCHAR` + `CHECK`, não enum nativo (ver `V2`).
 - `ocupacao_bomba (conjunto_id, numero_posicao) WHERE fim IS NULL` — quem ocupa cada posição
 - `tipo_bomba (lower(nome))`, único
 
-### Rascunho da migração `V5__modulo_bombas.sql` (não aplicado)
+### Migração `V5__modulo_bombas.sql`
 
 ```sql
 CREATE TABLE tipo_bomba (

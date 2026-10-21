@@ -127,7 +127,7 @@ Ver o mapeamento completo em [database.md](database.md#importação-da-base-lega
 
 ### 1.9 Módulo de bombas — MVP 1 `[PROPOSTA · 20/10/2026]`
 
-> **Status:** proposta documentada a partir do briefing do Daniel de 20/10/2026. Os requisitos abaixo descrevem o que foi pedido; as regras RN-15 a RN-20 e o modelo em [database.md](database.md#módulo-de-bombas) **aguardam aprovação** (AGENTS.md §10) antes de qualquer migração. O módulo de válvulas não muda.
+> **Status:** briefing do Daniel de 20/10/2026; schema (`V5`) e regras RN-15 a RN-20 **aprovados por ele no mesmo dia** e implementados na branch `feat/modulo-bombas`. Modelo em [database.md](database.md#módulo-de-bombas). O módulo de válvulas não mudou.
 
 Estrutura: `cliente (condomínio) → conjunto de bombeamento → bomba`. Uma bomba é um equipamento físico com identidade própria; a **posição** que ela ocupa num conjunto pode mudar ao longo do tempo (empréstimo, substituição), e o histórico pertence à bomba, não à posição — o mesmo princípio de D-18.
 
@@ -235,9 +235,9 @@ D-02 removeu a necessidade de operação offline.
 | RN-13 | **Nenhum** alerta com data passada vai para o Calendar, importado ou não. A oportunidade aberta que já está na janela de contato e não tem lembrete na agenda aparece na fila marcada "sem lembrete na agenda"; os alertas descartados ficam listados na tela Agenda, com o motivo | `[DECIDIDO]` 16/10/2026 |
 | RN-14 | Código do equipamento = código do cliente + `-VRP-` + sequencial | `[PLANILHA]` |
 
-### 3.1 Regras do módulo de bombas `[PROPOSTA · aguardam aprovação]`
+### 3.1 Regras do módulo de bombas `[DECIDIDO]` · 20/10/2026
 
-Nenhuma destas regras está implementada. Foram formalizadas a partir do briefing de 20/10/2026; onde o briefing não dizia, a lacuna está em **P-13 a P-19**, não preenchida por suposição.
+Formalizadas a partir do briefing de 20/10/2026 e aprovadas pelo Daniel no mesmo dia. Implementadas em `bomba/SituacaoBomba` (RN-16, RN-17), `bomba/OcupacaoBomba` (RN-18, RN-20) e `bomba/MovimentacaoService` (RN-17, RN-19), com testes. Onde o briefing não dizia, a lacuna está em **P-13 a P-19**, com a proposta que vale enquanto ele não responde.
 
 | ID | Regra | Origem |
 |---|---|---|
