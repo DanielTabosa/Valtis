@@ -26,7 +26,8 @@ public class MovimentacaoService {
     /** Corpo de "colocar a bomba nesta posição". */
     public record DadosInstalacao(
             @NotNull(message = "Escolha o conjunto.") UUID conjuntoId,
-            @Pattern(regexp = "^[0-9]{1,3}$", message = "A posição deve ser 01, 02, 03...") String numeroPosicao,
+            // Aceita vazio, como DadosValvula: a tela pode mandar "" em vez de omitir.
+            @Pattern(regexp = "^([0-9]{1,3})?$", message = "A posição deve ser 01, 02, 03...") String numeroPosicao,
             @NotNull(message = "Informe a data de entrada.")
             @PastOrPresent(message = "A data de entrada não pode estar no futuro.") LocalDate inicio,
             UUID bombaSubstituidaId,

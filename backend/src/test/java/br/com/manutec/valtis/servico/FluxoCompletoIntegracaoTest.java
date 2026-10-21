@@ -70,6 +70,16 @@ class FluxoCompletoIntegracaoTest extends TesteDeIntegracao {
     }
 
     @Test
+    void numeroVazioUsaOProximoLivre() throws Exception {
+        // A tela manda "" quando o campo fica em branco ("vazio = próximo livre"). Bug de 20/10/2026:
+        // o servidor recusava o texto vazio com "Há campos inválidos".
+        enviar(post("/api/estacoes/" + estacaoId + "/valvulas"), token, """
+                {"especificacaoId":"bbbbbbbb-0000-0000-0000-000000000001","numeroValvula":""}""")
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.numeroValvula").value("03"));
+    }
+
+    @Test
     void duplicidadeNaEstacaoEhBarrada() throws Exception {
         enviar(post("/api/estacoes/" + estacaoId + "/valvulas"), token, """
                 {"especificacaoId":"bbbbbbbb-0000-0000-0000-000000000001","numeroValvula":"1"}""")

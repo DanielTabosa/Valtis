@@ -256,6 +256,7 @@ Resumo. O texto que vale é o `AGENTS.md`.
 | Corpo JSON recusado com `Cannot map null into type boolean` | Jackson 3 recusa campo primitivo ausente | Usar `Boolean` nos DTOs de entrada |
 | Índice único de "um ciclo aberto" recusando o lançamento | Hibernate grava INSERT antes de UPDATE | `repository.flush()` depois de fechar, antes de abrir |
 | `HttpStatus.UNPROCESSABLE_ENTITY` | Renomeado no Spring 7 | `UNPROCESSABLE_CONTENT` |
+| Campo opcional de texto volta "Há campos inválidos" quando fica em branco | `@Pattern` só pula `null`; a tela manda `""` | Regex que aceita vazio: `^(...)?$` (feito em `DadosValvula` e `DadosInstalacao`) |
 | Tela sem estilo nenhum no `npm run dev`, mas o build funciona | Vite guardou o CSS vazio de um instante em que o arquivo estava sendo gravado | Salvar o `index.css` de novo (ou `touch`) e recarregar com Ctrl+F5 |
 | Logo (degradê do SVG) some em um lugar e aparece em outro | Dois SVGs com o mesmo `id` de degradê; se o primeiro está oculto (`display: none`), os outros não pintam | Id único por instância (`useId`, já feito em `Marca`) |
 | Captura do Edge headless "cortada" em largura de celular | O modo headless tem largura mínima de ~500px | Conferir celular no painel do app (emulação mobile), não no headless |

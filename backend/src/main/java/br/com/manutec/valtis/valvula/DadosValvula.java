@@ -17,7 +17,8 @@ import java.util.UUID;
  * `periodicidadeMeses` vazio = 12 (RN-02).
  */
 public record DadosValvula(
-        @Pattern(regexp = "^[0-9]{1,3}$", message = "O número da válvula deve ser 01, 02, 03...")
+        // Aceita vazio: @Pattern só pula null, e a tela manda "" quando o campo fica em branco.
+        @Pattern(regexp = "^([0-9]{1,3})?$", message = "O número da válvula deve ser 01, 02, 03...")
         String numeroValvula,
         @NotNull(message = "Escolha a especificação.") UUID especificacaoId,
         @Size(max = 80) String numeroSerie,
