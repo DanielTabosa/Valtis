@@ -1,7 +1,7 @@
 # HANDOFF — Valtis
 
 **Para:** qualquer agente que vá trabalhar neste repositório
-**Atualizado em:** 20/10/2026
+**Atualizado em:** 30/10/2026
 **Branches de trabalho:** `feat/fase-1-mvp` (Fase 1, publicada, não mesclada na `main`) · `feat/modulo-bombas` (criada a partir dela em 20/10, publicada no GitHub, sem PR; módulo de bombas completo, não mesclada)
 
 Este arquivo é o resumo de situação. Ele **não substitui** `AGENTS.md`, `docs/requirements.md`, `docs/architecture.md`, `docs/database.md` e `docs/decisions.md` — leia-os conforme a ordem do `CLAUDE.md`. O que este arquivo faz é te dizer, rápido: onde o projeto está, o que já foi decidido, o que falta e o que você **não** pode fazer sozinho.
@@ -312,6 +312,7 @@ O Daniel trouxe um briefing (feito com o GPT) para um módulo de bombas: `client
 1. ~~Teste manual do Daniel na branch~~ — refeito em 16/10/2026: tudo funcionou. Ajustes pedidos e já feitos: editar/inativar/excluir válvula pelo técnico, data de hoje no lançamento, cartões do painel que não zeram ao filtrar, atrasados sem lembrete marcados na fila, tela Agenda com cartões que filtram a lista (como o painel). Testado e aprovado pelo Daniel.
 2. ~~Validar S-01 a S-11 e D-21 a D-24~~ — feito em 16/10/2026.
 3. **Teste manual do módulo de bombas pelo Daniel** (branch `feat/modulo-bombas`, §12a): tipos → conjunto no cliente → bomba com "já instalar" → bomba no patrimônio → emprestar no lugar da do condomínio → reinstalar a original (ver o aviso) → devolver. Depois, responder P-13 a P-19 e decidir se o módulo entra na `feat/fase-1-mvp` antes de produção.
+   **Situação em 30/10/2026:** a aplicação foi subida para ele testar nessa branch; ele vai relatar o resultado e os ajustes **numa sessão nova**. Comece a próxima sessão perguntando o que ele encontrou no teste e as respostas a P-13, P-14 e P-16, que são as que mais mudam o módulo.
 4. **Continuar os ajustes da interface com o Daniel** — em 17/10 ele pediu a revisão visual (feita) e escolheu o login C · Mostrador entre 4 opções. Ele ainda vai navegar pelo resto e dizer o que ajustar. Quando ele pedir algo visual em aberto, mostrar opções para ele escolher (ele gostou desse formato).
 5. **Testar a tela Importar com o Daniel** (ainda não testada por ele): começar com o CSV fictício pronto em `docs/exemplos/clientes-ficticios.csv` (tem casos de borda de propósito), depois a planilha real **no banco local**.
 6. Outros ajustes funcionais que ele quiser antes de produção ("vamos ajustar outras coisas ainda").
