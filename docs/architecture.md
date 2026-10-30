@@ -34,7 +34,7 @@ Corolário para agentes: quando houver duas soluções, **escolha a mais simples
 │                                                      │
 │  ── Adaptadores ───────────────────────────────────  │
 │     Repositórios · Calendar · Storage · PDF          │
-│     · Planilha                                       │
+│     · Planilha · Manutec Clientes · Jiraya (leitura) │
 └──────┬─────────────────┬──────────────┬──────────────┘
        │                 │              │
 ┌──────▼──────┐  ┌───────▼──────┐  ┌────▼─────────────┐
@@ -152,8 +152,9 @@ A Manutec usa **Gmail comum**, não Google Workspace. Isso elimina a conta de se
 | M11 | **Indicadores** | Conversão e clientes recuperados | 3 |
 | M12 | **Administração** | Configurações, auditoria | 3 |
 | M13 | **Bombas** | Catálogo de tipos, conjunto de bombeamento, bomba, patrimônio da Manutec, ocupações e movimentações, painel de bombas. Módulo paralelo ao de válvulas, sem supertipo comum (D-26, D-27). Reutiliza `RegrasRecorrencia` de M5 | Bombas MVP 1 |
+| M14 | **Integração** | Modo de operação (`propria` / `externa`, D-29). Leitores com cursor do Manutec Clientes e do Jiraya, tabela de recebimento `evento_recebido`, worker que aplica cada evento uma vez (RN-23), pendências de integração e tela de estado. Escreve em `cliente`, `valvula`, `bomba`, `servico`; os demais módulos não sabem que ele existe (D-30) | Modo integrado |
 
-**Dependências:** M1 e M2 sustentam todos os demais. M5 depende de M3. M4 e M6 dependem de M5. M7 depende de M2. M10 depende de M5.
+**Dependências:** M1 e M2 sustentam todos os demais. M5 depende de M3. M4 e M6 dependem de M5. M7 depende de M2. M10 depende de M5. M14 escreve nas tabelas de M2, M3 e M13 e, em `externa`, substitui a tela como escritor delas; M7 e as movimentações de M13 só existem em `propria`.
 
 ## 7. Stack
 
@@ -222,3 +223,21 @@ Coisas que parecem boas práticas e aqui são erro. Um agente que introduzir qua
 - **Regra de negócio no componente.** Ver §2.
 - **Agrupar serviços numa entidade "visita".** O registro é por válvula (D-18). Três válvulas atendidas juntas são três linhas — isso é intencional, não duplicação a ser normalizada.
 - **Assumir no máximo duas válvulas por estação.** São N (D-19).
+
+## 9. Modo de operação: quem escreve os cadastros {#modo}
+
+Decisão D-29. O Valtis roda em um de dois modos, definido por configuração na subida:
+
+| | `propria` (produto independente) | `externa` (Manutec) |
+|---|---|---|
+| Cliente | Tela do Valtis | Espelho do Manutec Clientes (`manutec_id`) |
+| Estação, válvula, conjunto, bomba | Tela do Valtis | Espelho do Jiraya (`jiraya_equipamento_id`); estação e conjunto derivados da localização interna |
+| Serviço | Lançamento manual | OS de manutenção concluída no Jiraya (`jiraya_os_id`) **e** lançamento manual como correção |
+| Importador, movimentações, patrimônio | Ativos | Desligados: vivem no Jiraya |
+| Recorrência, oportunidade, fila, agenda, painel | Iguais | Iguais |
+
+**A regra de desenho:** as tabelas não mudam entre os modos, só o escritor. Recorrência, oportunidade, agenda e painel leem as mesmas entidades e não consultam o modo. O modo é verificado em dois lugares apenas: nos controllers de cadastro, que em `externa` recusam escrita com uma mensagem dizendo onde o dado é gerido, e na ativação dos leitores de M14, que só sobem em `externa`.
+
+**Entrada é o Outbox invertido** (D-30). O leitor grava cada item recebido em `evento_recebido` com chave idempotente e avança o cursor; um worker aplica os eventos pendentes, com retentativa e erro visível, exatamente como o `SincronizadorDaAgenda` faz na saída. O caso de uso que aplica uma OS chama o **mesmo** `LancamentoService` do lançamento manual: a regra RN-07 e RN-10 não tem segunda cópia.
+
+**O que a fronteira proíbe aqui:** caso de uso que chama a API do Jiraya em tempo real (o painel não depende de outro sistema estar no ar); leitura direta do banco do Jiraya ou do Manutec Clientes; escrita em qualquer um dos dois (RN-24).

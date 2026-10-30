@@ -142,9 +142,33 @@ Estrutura: `cliente (condomínio) → conjunto de bombeamento → bomba`. Uma bo
 | RF-66 | Registrar **movimentações**: instalação de bomba em posição de um conjunto, empréstimo de bomba patrimonial, devolução e retirada, sempre com data e, quando houver, qual bomba foi substituída | P0 | `[INFORMADO]` |
 | RF-67 | Ver o **histórico individual** de cada bomba: posições ocupadas, períodos, substituições e quem registrou. Trocar uma bomba de posição não apaga nada (RN-20) | P0 | `[INFORMADO]` |
 | RF-68 | Listagem e consulta **responsivas**: bombas por cliente e por conjunto, com próxima manutenção e situação; patrimônio da Manutec com disponibilidade | P0 | `[INFORMADO]` |
-| RF-69 | Integrações futuras: Manutec_clientes como fonte de condomínios e contatos; Jiraya como sistema de OS que, após validação do gestor, atualiza o histórico no Valtis. **Não implementar agora** — sem contratos nem autorização (D-28) | P2 | `[A DEFINIR]` · P-18 |
+| ~~RF-69~~ | ~~Integrações futuras com Manutec_clientes e Jiraya, sem implementar (D-28)~~ **Substituído em 30/10/2026 pela seção 1.10** (RF-70 a RF-79, D-29 a D-31) | — | — |
 
 **Fora do MVP 1 de bombas:** orçamento, financeiro, estoque de peças, ordem de serviço completa, sincronização real com outros sistemas, fotos e PDF de bomba.
+
+---
+
+### 1.10 Modo integrado — Valtis como monitor de prazos `[DECIDIDO · 30/10/2026]`
+
+> **Status:** decisões D-29, D-30 e D-31 e requisitos RF-70 a RF-80 **aprovados pelo Daniel em 30/10/2026**. Schema (`V6`) ainda a aprovar à parte. Nada implementado. Contrato da API Jiraya → Valtis ainda a escrever (`docs/integracao/jiraya.md`).
+
+O Valtis passa a ter dois **modos de operação** (RF-70). No modo `propria` tudo funciona como nas seções 1.2, 1.8 e 1.9. No modo `externa`, que é o da Manutec, cliente vem do **Manutec Clientes**, equipamento e serviço vêm do **Jiraya**, e o Valtis fica com o que nenhum dos dois faz: ciclo de 12 meses, oportunidade, fila, agenda e painel. As tabelas são as mesmas; muda quem escreve nelas (D-29).
+
+| ID | Requisito | Prio | Origem |
+|---|---|---|---|
+| RF-70 | Configuração **origem dos cadastros**: `propria` ou `externa`. Lida na subida; não muda em tempo de execução. A tela mostra o modo ativo | P0 | `[DECIDIDO]` · D-29 |
+| RF-71 | Em `externa`, **clientes** são lidos do Manutec Clientes (busca, detalhe, alterações com cursor) e espelhados com `manutec_id`. Criar, editar e inativar cliente ficam indisponíveis na tela, que indica "gerido no Manutec Clientes". Cliente inativado na fonte é inativado no Valtis (RN-12) | P0 | `[INFORMADO]` · D-29 |
+| RF-72 | Em `externa`, **equipamentos** são lidos do Jiraya e espelhados com `jiraya_equipamento_id`. Tipo de equipamento do Jiraya mapeado para válvula ou bomba por lista configurável (nome contém "VRP" → válvula; contém "bomba" → bomba); tipos não mapeados são ignorados e listados nas pendências (RF-75) | P0 | `[INFORMADO]` · D-29 |
+| RF-73 | **Estação** e **conjunto** derivados da localização interna do Jiraya: uma estação por (cliente, localização) para VRPs, um conjunto por (cliente, localização) para bombas. Sem localização, uma estação ou conjunto "sem localização" por cliente | P0 | `[SUGESTÃO]` · D-29 |
+| RF-74 | **OS concluída** no Jiraya com tipo de serviço de manutenção (RN-22) vira **serviço** no Valtis para cada equipamento mapeado da OS, com `jiraya_os_id`, `data_realizada` = data de conclusão, técnico = quem concluiu e observação com a descrição da OS. Dispara RN-07 e RN-10 exatamente como um lançamento manual | P0 | `[INFORMADO]` · D-31 |
+| RF-75 | Tela **Pendências de integração** (admin): eventos recebidos que não puderam ser aplicados (equipamento de tipo não mapeado, cliente sem referência, data ausente, OS sem equipamento), com o motivo e ação de resolver ou descartar com justificativa. Nada é descartado em silêncio | P0 | `[INFORMADO]` · D-29 |
+| RF-76 | **Lançamento manual** continua em `externa`, para válvula e para bomba, marcado "lançado no Valtis". Não é enviado ao Jiraya (RN-24) | P0 | `[INFORMADO]` · D-29 |
+| RF-77 | Em `externa`, importador (RF-51 a RF-59), movimentações e patrimônio de bombas (RF-65 a RF-67) e cadastro de tipos de bomba (RF-60) ficam **desligados**: o Jiraya é a verdade. O código permanece para o modo `propria` | P0 | `[DECIDIDO]` · D-29 |
+| RF-78 | Tela **Estado da integração** (admin): por origem, cursor atual, última leitura bem-sucedida, eventos pendentes e com erro, botão "ler agora" | P1 | `[SUGESTÃO]` · D-30 |
+| RF-79 | **Substituição** de equipamento no Jiraya: o Valtis inativa o antigo, cria o novo com o histórico do antigo preservado, e o ciclo do novo começa sem registro (RN-05) até a primeira manutenção | P1 | `[SUGESTÃO]` · D-29 |
+| RF-80 | **Serviço por bomba**: `servico` aceita válvula **ou** bomba. Lançamento manual, histórico e oportunidade de escopo bomba, com o mesmo fluxo da válvula | P0 | `[DECIDIDO]` · D-31 · resolve P-16 |
+
+**Trabalho que fica no Jiraya, não no Valtis** (P-24): API de leitura de equipamentos e OS com cursor e token; campo "tipo de serviço" na OS; patrimônio de bombas emprestadas da Manutec (hoje só no Valtis, RF-65 a RF-67).
 
 ---
 
@@ -242,11 +266,25 @@ Formalizadas a partir do briefing de 20/10/2026 e aprovadas pelo Daniel no mesmo
 | ID | Regra | Origem |
 |---|---|---|
 | RN-15 | Código da bomba de condomínio = código do cliente + `-BMB-` + sequencial do cliente (`COND-001-BMB-01`). Bomba patrimonial da Manutec = `MAN-BMB-` + sequencial global (`MAN-BMB-001`). Gerado pelo sistema; nunca muda, mesmo quando a bomba troca de posição | `[SUGESTÃO]` · espelha RN-14 |
-| RN-16 | `proxima_manutencao = ultima_manutencao + periodicidade_meses` — o mesmo cálculo de RN-01, pela mesma classe (`RegrasRecorrencia`). Bomba sem última manutenção é **SEM REGISTRO** e não tem próxima data. A classificação do painel segue RN-04 | `[INFORMADO]` · periodicidade padrão em aberto (P-13) |
+| RN-16 | `proxima_manutencao = ultima_manutencao + periodicidade_meses` — o mesmo cálculo de RN-01, pela mesma classe (`RegrasRecorrencia`). Bomba sem última manutenção é **SEM REGISTRO** e não tem próxima data. A classificação do painel segue RN-04. **Periodicidade padrão: 12 meses**, como a VRP, editável por bomba (P-22, 30/10/2026) | `[INFORMADO]` `[DECIDIDO]` |
 | RN-17 | Bomba patrimonial da Manutec está **disponível** quando não tem nenhuma ocupação aberta. Só bomba disponível pode ser emprestada. Disponibilidade é **calculada** a partir das ocupações, nunca gravada (D-27) | `[INFORMADO]` |
 | RN-18 | A **devolução registrada** encerra a ocupação de empréstimo; só a partir dela a bomba volta a ficar disponível. Não existe devolução implícita: instalar outra bomba na posição não devolve a emprestada | `[INFORMADO]` |
 | RN-19 | A bomba original pode ser **reinstalada antes** da retirada da emprestada. Por isso uma posição pode ter mais de uma ocupação aberta ao mesmo tempo; o sistema avisa, mas não impede | `[INFORMADO]` |
 | RN-20 | Ocupação é histórico: nunca é apagada nem reescrita. Erro de registro se corrige com encerramento e nova ocupação, com observação do motivo. Mesma lógica de RF-18 e RN-11 | `[SUGESTÃO]` |
+
+---
+
+### 3.2 Regras do modo integrado `[DECIDIDO]` · 30/10/2026
+
+Aprovadas pelo Daniel em 30/10/2026 (D-29 a D-31). Nenhuma implementada ainda; toda regra exige teste automatizado quando entrar.
+
+| ID | Regra | Origem |
+|---|---|---|
+| RN-21 | Toda manutenção concluída reinicia o ciclo do equipamento, **com ou sem contrato** e esteja ou não em plano preventivo do Jiraya. Reafirma RN-03: contrato é informação comercial, não altera prazo | `[INFORMADO]` · D-31 |
+| RN-22 | Só reinicia o ciclo a OS do Jiraya com `status` concluída **e** tipo de serviço **manutenção preventiva**, **manutenção corretiva** ou **instalação**. Visita técnica, orçamento e outro não reiniciam | `[DECIDIDO]` · D-31 · P-20 |
+| RN-23 | Evento externo é aplicado **uma vez só**: chave idempotente (origem, tipo, id externo, versão). Reler o mesmo lote ou reprocessar um evento não duplica cliente, equipamento, serviço nem oportunidade | `[SUGESTÃO]` · D-30 · espelha a idempotência do Outbox |
+| RN-24 | Em `externa` a integração é de **mão única**: o Valtis só lê o Manutec Clientes e o Jiraya, nunca escreve neles. Cadastro espelhado não é editável no Valtis; lançamento manual fica só no Valtis | `[INFORMADO]` · D-29 |
+| RN-25 | Serviço vindo de OS com data **anterior** ao último serviço do equipamento entra no histórico e não muda o ciclo, como no lançamento manual (S-03) | `[DECIDIDO]` · S-03 |
 
 ---
 
@@ -283,10 +321,22 @@ Declarado explicitamente. Um agente que "adicionar" qualquer item desta lista es
 
 | # | Pendência | Bloqueia | Proposta enquanto não há resposta |
 |---|---|---|---|
-| P-13 | Qual a **periodicidade padrão** da manutenção de bombas? É única (como os 12 meses da VRP) ou varia por tipo (incêndio ≠ piscina)? | RN-16 | Campo obrigatório no cadastro, **sem padrão**; a tela não sugere valor |
-| P-14 | Manutenção de bomba **gera oportunidade e eventos na agenda** como a de VRP (RN-07, RN-06)? | M5/M6 para bombas | MVP 1 **não gera**. Painel de bombas só classifica (RN-16) |
+| ~~P-13~~ | ~~Periodicidade padrão da manutenção de bombas?~~ **Respondida em 30/10/2026 (via P-22): 12 meses**, como a VRP, editável por bomba | — | — |
+| ~~P-14~~ | ~~Manutenção de bomba gera oportunidade e eventos na agenda?~~ **Respondida em 30/10/2026: sim**, como a VRP (D-31, RF-80) | — | — |
 | P-15 | O tipo (recalque, incêndio…) é do **conjunto** ou de cada **bomba**? | RF-61, RF-62 | Do conjunto. Na bomba, `funcao` é texto livre curto (ex.: "principal", "reserva") |
-| P-16 | **Lançamento de serviço** para bomba segue o mesmo fluxo da válvula? Hoje `servico.valvula_id` é obrigatório | M3 para bombas | MVP 1 registra só `ultima_manutencao` no cadastro da bomba. Serviço por bomba fica para o MVP 2 |
+| ~~P-16~~ | ~~Lançamento de serviço para bomba segue o mesmo fluxo da válvula?~~ **Respondida em 30/10/2026: sim** (RF-80). Em `externa` vem da OS do Jiraya; manual continua | — | — |
 | P-17 | Empréstimo de bomba patrimonial tem **cobrança** (locação)? | Escopo | Fora do escopo; não entra nem como campo |
-| P-18 | **Contratos** de integração com Jiraya e Manutec_clientes: quem chama quem, formato, identificador comum do condomínio | RF-69 | Nada implementado (D-28) |
+| ~~P-18~~ | ~~Contratos de integração: quem chama quem, formato, identificador comum~~ **Respondida em 30/10/2026:** o Valtis lê com cursor (D-30); identificador comum do cliente é o `manutec_id`. Contrato Jiraya → Valtis a escrever em `docs/integracao/jiraya.md` | — | — |
 | P-19 | **Técnico** cadastra conjunto e bomba e registra movimentação, como faz com válvula (S-01)? | `@PreAuthorize` | Sim: mesmo perfil de permissão da válvula. Catálogo de tipos (RF-60), só admin |
+
+### Pendências do modo integrado (30/10/2026) — todas respondidas pelo Daniel no mesmo dia
+
+| # | Pendência | Resposta |
+|---|---|---|
+| ~~P-20~~ | Tipo de serviço na OS do Jiraya: quais reiniciam o ciclo? | **Manutenção preventiva, manutenção corretiva e instalação** reiniciam. Visita técnica, orçamento e outro não (RN-22). Campo a criar no Jiraya |
+| ~~P-21~~ | Mapeamento de tipos de equipamento Jiraya → Valtis | **Um tipo por função no Jiraya**, espelhando RF-60 (recalque, incêndio, drenagem, pressurização, pluvial, piscina, jacuzzi, esgoto). O Valtis mapeia por lista configurável: nome contém "bomba" → bomba; contém "VRP" → válvula (RF-72) |
+| ~~P-22~~ | Periodicidade em `externa` | **Fica no Valtis**, por equipamento, **padrão 12 meses para VRP e bomba**, editável em exceções. Nada muda no Jiraya. Absorve P-13 |
+| ~~P-23~~ | Intervalo de leitura | **5 minutos**, configurável (D-30) |
+| ~~P-24~~ | Lado do Jiraya: quando | **Etapa própria antes da E8** do roadmap do Jiraya, logo após a E7b: API de leitura (equipamentos, OS) com cursor e token, tipo de serviço na OS, tipos de equipamento por função, patrimônio de bombas emprestadas. O contrato nasce no Valtis (`docs/integracao/jiraya.md`) |
+| ~~P-25~~ | Base histórica dos 296 clientes | **Pelo Jiraya**: equipamento e OS retroativa cadastrados lá; o Valtis recebe pela integração. Importador (RF-51 a RF-59) só em `propria` (RF-77). D-09 vale para o produto independente |
+| ~~P-26~~ | Teste manual do módulo de bombas | **Só o que sobrevive em `externa`**: ficha da bomba, painel, próxima manutenção. Conjunto, empréstimo e patrimônio ficam no código para o modo `propria`, sem teste agora |

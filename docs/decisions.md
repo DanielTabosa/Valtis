@@ -495,7 +495,7 @@ Isso troca a função-objetivo. Não se trata mais de "qual stack dá menos trab
 
 ## D-28 — Sem conectores nem interfaces para Jiraya e Manutec_clientes por enquanto
 
-**Status:** Aceita · 20/10/2026
+**Status:** **Substituída por D-29 e D-30** · 30/10/2026. Valeu de 20/10 a 30/10/2026; o padrão de entrada que ela antecipou (recebimento idempotente processado por worker) foi mantido na D-30
 
 **Contexto.** O briefing cita duas integrações futuras: Manutec_clientes como fonte de condomínios e contatos, e Jiraya como sistema de OS que, após validação do gestor, atualizaria o histórico do Valtis. Pede para "preparar interfaces desacopladas quando fizer sentido", sem implementar conectores.
 
@@ -504,6 +504,92 @@ Isso troca a função-objetivo. Não se trata mais de "qual stack dá menos trab
 **Alternativa descartada.** Interfaces "preparatórias" com um único implementador fictício. É abstração sem segundo caso de uso (architecture.md §8) e costuma errar o formato do contrato real.
 
 **Consequências.** `cliente` continua sendo cadastrado no Valtis. Quando a Manutec_clientes virar fonte, a decisão de quem é dono do cadastro vira uma D-xx própria, com aprovação.
+
+---
+
+## D-29 — O Valtis é o monitor de prazos; cliente, equipamento e serviço podem vir de fora (modo de operação)
+
+**Status:** Aceita · 30/10/2026 · aprovada pelo Daniel no mesmo dia. O schema (`V6`) ainda será apresentado à parte antes de rodar (AGENTS.md §10)
+
+**Contexto.** A Manutec passou a ter três sistemas em construção, e o Daniel definiu o papel de cada um:
+
+| Sistema | Papel | O que já tem (conferido em 30/10/2026) |
+|---|---|---|
+| **Manutec Clientes** (Django) | Fonte única de clientes, administradoras e contatos | API de leitura `api/integracao/v1/clientes/` com busca, detalhe e `alteracoes/` com cursor; token Bearer de serviço |
+| **Jiraya** (Spring) | Mestre operacional: OS, equipes, agenda, preventivas, orçamento, estoque | Clientes espelhados do Manutec Clientes (V19); **equipamentos por cliente** (E4, V16, tipos "Bomba de recalque" e "VRP", substituição com histórico); OS ligada a equipamento com `completed_at` (E5, V21); planos preventivos (E6, V24). **Não expõe API** para terceiros |
+| **Valtis** | Monitor de prazos e apontador de oportunidades de revenda da manutenção de 12 meses, para VRPs e bombas | Recorrência, oportunidade, fila, agenda Google, painel; e cadastros próprios, hoje redundantes com os dois acima |
+
+Cadastrar cliente e equipamento no Valtis e lançar serviço nele seria retrabalho: tudo isso já acontece, ou vai acontecer, no Jiraya. Ao mesmo tempo o Daniel quer **manter tudo o que o Valtis já tem**, porque pretende comercializá-lo depois como produto independente (SaaS), onde não haverá Jiraya nem Manutec Clientes.
+
+**Decisão.**
+
+1. O Valtis ganha uma configuração de **origem dos cadastros**, `valtis.cadastros.origem`, com dois valores:
+   - `propria` — como hoje. Cliente, estação, válvula, conjunto e bomba são cadastrados no Valtis; importador e movimentações de bombas ativos. É o modo do produto independente.
+   - `externa` — o modo da Manutec. Cliente é espelho do Manutec Clientes; equipamento (VRP e bomba) é espelho do Jiraya; serviço nasce de OS concluída no Jiraya. As telas de cadastro viram consulta e dizem onde o dado é gerido. Importador, movimentações e patrimônio de bombas ficam desligados: vivem no Jiraya.
+2. **As tabelas são as mesmas nos dois modos.** O que muda é **quem escreve** nelas: a tela (modo `propria`) ou o sincronizador (modo `externa`). Recorrência, oportunidade, agenda, painel e fila leem `cliente`, `valvula`, `bomba` e `servico` do mesmo jeito e **não sabem em que modo estão**.
+3. As entidades espelhadas guardam a referência externa: `cliente.manutec_id`, `valvula.jiraya_equipamento_id`, `bomba.jiraya_equipamento_id`, `servico.jiraya_os_id`, mais `sincronizado_em`. Como o Jiraya é plano (cliente → endereço → equipamento com `internal_location`), **estação e conjunto são derivados**: uma estação por (cliente, localização interna) para VRPs, um conjunto por (cliente, localização interna) para bombas.
+4. O **lançamento manual continua** no modo `externa`, como correção para quando a OS não chegou ou chegou errada. É marcado "lançado no Valtis" e **não volta** ao Jiraya: a integração é de mão única (RN-24).
+5. O que faltar num evento recebido (equipamento de tipo não mapeado, cliente sem referência, data ausente) vai para uma tela de **pendências de integração**; nada é descartado em silêncio.
+
+**Alternativas descartadas.**
+- **Clonar o Valtis com outro nome para a Manutec** e manter o original para o SaaS. Dois códigos divergindo desde o primeiro dia; cada correção na recorrência, fila ou agenda feita duas vezes, com ~10h semanais. O motor é o mesmo nos dois usos; só muda a origem de cliente e equipamento. Quando o SaaS virar prioridade, um fork a partir de uma base madura leva um minuto e vai divergir de qualquer forma (multi-cliente, cobrança, marca).
+- **Interface `FonteDeCadastro` com dois implementadores** (banco próprio × APIs externas), lida em tempo real pelos casos de uso. Abstração sem necessidade: as tabelas são as mesmas, só o escritor muda. Além disso faria o painel depender da disponibilidade do Jiraya a cada consulta.
+- **Ler o banco do Jiraya diretamente.** Acopla o Valtis ao schema interno de outro sistema e viola a fronteira da architecture.md §2. A leitura é por API, com contrato.
+- **Mover a recorrência e a fila para dentro do Jiraya.** O Jiraya já tem preventivas, mas elas são agenda operacional da equipe elétrica. A fila comercial de bombas e VRPs é outra coisa, e o Daniel quer o Valtis como produto separado.
+
+**Consequências.**
+- D-28 substituída. RF-69 substituído pela seção 1.10 dos requisitos (RF-70 a RF-79); regras novas RN-21 a RN-24.
+- **Alteração de schema** (colunas de referência externa, tabelas de recebimento e cursor): exige aprovação e migração `V6` própria.
+- No modo `externa` o módulo de bombas se reduz a monitorar: RN-16 e, agora, oportunidade e agenda (D-31). Conjunto, ocupação e patrimônio emprestado continuam existindo no código, ativos só em `propria`. O **patrimônio emprestado precisa nascer no Jiraya** (trabalho naquele repositório, fora do Valtis).
+- A importação dos 296 clientes (D-09) deixa de ser caminho da Manutec: a base histórica entra pelo Manutec Clientes (clientes) e pelo Jiraya (equipamentos e OS). O importador continua para o modo `propria`. Ver P-25.
+- A Manutec sobe em `externa` desde o primeiro deploy. Até o Jiraya expor a API (D-30), o Valtis não tem dado em produção: a ordem de implantação passa a depender do Jiraya.
+
+---
+
+## D-30 — Entrada de dados externos por leitura com cursor, idempotente
+
+**Status:** Aceita · 30/10/2026 · escolhida e aprovada pelo Daniel no mesmo dia. Intervalo de leitura: 5 minutos, configurável (P-23)
+
+**Contexto.** O Valtis precisa saber de três coisas que acontecem fora dele: cliente criado ou alterado (Manutec Clientes), equipamento criado, alterado ou substituído (Jiraya) e OS de manutenção concluída (Jiraya). O Manutec Clientes já oferece `alteracoes/` com cursor, e o Jiraya já consome esse padrão (V19, `manutec_sync_cursor`). O Jiraya não expõe nada ainda.
+
+**Decisão.**
+- O Valtis **puxa**: um job por origem, a cada intervalo configurável (proposta: 5 minutos), chama `alteracoes?desde=<cursor>` e avança o cursor só depois de gravar o lote. Autenticação por token Bearer de serviço, um por origem, em variável de ambiente (`VALTIS_MANUTEC_CLIENTES_URL/TOKEN`, `VALTIS_JIRAYA_URL/TOKEN`).
+- Cada item recebido é gravado **antes de ser aplicado** numa tabela de recebimento (`evento_recebido`: origem, tipo, id externo, versão ou `atualizado_em`, corpo, estado, tentativas, erro), com índice único em (origem, tipo, id externo, versão). É o Outbox (D-13, D-21) invertido: o mesmo worker, a mesma retentativa, o mesmo erro visível. Reprocessar não duplica serviço nem oportunidade (RN-23).
+- O Jiraya precisa ganhar uma API de leitura para o Valtis, no molde do `INTEGRACAO_JIRAYA.md` do Manutec Clientes: equipamentos (com tipo, cliente `manutec_id`, localização interna, substituição) e OS concluídas (com equipamentos, data de conclusão, quem concluiu, **tipo de serviço**). O contrato é escrito no Valtis, em `docs/integracao/jiraya.md`, e implementado no repositório do Jiraya.
+
+**Alternativas descartadas.**
+- **Webhook** (Jiraya chama o Valtis ao concluir a OS). Imediato, mas exige fila e retentativa dos dois lados, um endpoint público no Valtis e tratamento de evento perdido. Para um ciclo de 12 meses, latência de 5 minutos é irrelevante.
+- **Os dois.** Fica como evolução se um dia a latência importar.
+
+**Consequências.**
+- Latência igual ao intervalo de leitura. Sem Jiraya no ar, o Valtis continua funcionando com o que já espelhou: o painel não depende da outra API em tempo real.
+- Tela de estado da integração (RF-78): cursor, última leitura, erros, "ler agora".
+- Dependência externa nova para a Manutec: três itens no Jiraya (API de leitura, tipo de serviço na OS, patrimônio emprestado) e um token no Manutec Clientes. Ver P-24.
+
+---
+
+## D-31 — Toda manutenção concluída é oportunidade, inclusive sob contrato; só OS de manutenção reinicia o ciclo
+
+**Status:** Aceita · 30/10/2026 · aprovada pelo Daniel no mesmo dia. Reiniciam o ciclo: manutenção preventiva, manutenção corretiva e instalação (P-20)
+
+**Contexto.** O Jiraya tem planos preventivos que geram OS periódicas para clientes sob contrato. Parecia duplicidade com o Valtis. O Daniel esclareceu: **toda manutenção é oportunidade de receita**, porque as peças não são cobertas pelo contrato e têm margem; as preventivas do Jiraya são da equipe elétrica, e o Valtis é do pessoal de bombas e VRP. Uma bomba de condomínio com contrato e manutenção vencida precisa aparecer no Valtis do mesmo jeito. Quando o Jiraya registrar a manutenção, o Valtis recebe e o alerta some.
+
+Por outro lado, a OS do Jiraya hoje **não tem tipo**: uma visita para orçar e uma troca de peças são a mesma coisa para o banco. Se qualquer OS concluída reiniciasse o ciclo, uma visita adiaria o alerta em 12 meses.
+
+**Decisão.**
+- O Valtis **não filtra por contrato nem por plano preventivo**. Coerente com RN-03: contrato é informação comercial, não altera prazo (RN-21).
+- Só reinicia o ciclo a OS **concluída** cujo **tipo de serviço** seja manutenção (preventiva ou corretiva) e cujo equipamento seja de tipo mapeado (VRP → válvula; bomba → bomba). Instalação de equipamento novo também inicia o ciclo. Visita técnica, orçamento e outros tipos não reiniciam (RN-22). O campo "tipo de serviço" **não existe no Jiraya** e precisa ser criado lá.
+- Bomba passa a gerar oportunidade e eventos de agenda como a VRP: responde P-14 (era "não gera no MVP 1").
+
+**Alternativas descartadas.**
+- **Ignorar equipamento em plano preventivo ativo.** Esconderia justamente a receita de peças que o Daniel quer ver.
+- **Qualquer OS concluída reinicia o ciclo.** Zero mudança no Jiraya, mas visita de orçamento adiaria o alerta.
+- **Toda OS chega como pendência para alguém confirmar.** Zero mudança no Jiraya, mas transforma a integração em trabalho manual diário.
+
+**Consequências.**
+- RN-21 e RN-22 novas; RN-07 e RN-10 passam a valer também para bomba.
+- Serviço por bomba (`servico.bomba_id`, hoje `valvula_id` é obrigatório) precisa existir: responde P-16. Em `externa` vem do Jiraya; o lançamento manual por bomba entra junto.
+- Um `tipo de serviço` novo na OS do Jiraya: trabalho naquele repositório.
 
 ---
 
@@ -538,4 +624,7 @@ Isso troca a função-objetivo. Não se trata mais de "qual stack dá menos trab
 | D-25 | Importador reconhece colunas pelo cabeçalho, em duas etapas | Aceita |
 | D-26 | Bombas são módulo próprio, espelhando as válvulas | Aceita |
 | D-27 | Posição da bomba derivada da ocupação aberta | Aceita |
-| D-28 | Sem conectores nem interfaces de integração por enquanto | Aceita |
+| D-28 | Sem conectores nem interfaces de integração por enquanto | **Substituída por D-29 e D-30** |
+| D-29 | Valtis como monitor de prazos; cadastros e serviços podem vir de fora (modo `propria` / `externa`) | Aceita |
+| D-30 | Entrada externa por leitura com cursor, idempotente (`evento_recebido`) | Aceita |
+| D-31 | Toda manutenção é oportunidade, inclusive sob contrato; só OS de manutenção reinicia o ciclo | Aceita |

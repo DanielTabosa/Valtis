@@ -1,7 +1,7 @@
 # HANDOFF — Valtis
 
 **Para:** qualquer agente que vá trabalhar neste repositório
-**Atualizado em:** 30/10/2026
+**Atualizado em:** 30/10/2026 (noite, sessão encerrada pelo Daniel; próximo passo é o item 0b da §13)
 **Branches de trabalho:** `feat/fase-1-mvp` (Fase 1, publicada, não mesclada na `main`) · `feat/modulo-bombas` (criada a partir dela em 20/10, publicada no GitHub, sem PR; módulo de bombas completo, não mesclada)
 
 Este arquivo é o resumo de situação. Ele **não substitui** `AGENTS.md`, `docs/requirements.md`, `docs/architecture.md`, `docs/database.md` e `docs/decisions.md` — leia-os conforme a ordem do `CLAUDE.md`. O que este arquivo faz é te dizer, rápido: onde o projeto está, o que já foi decidido, o que falta e o que você **não** pode fazer sozinho.
@@ -307,34 +307,36 @@ O Daniel trouxe um briefing (feito com o GPT) para um módulo de bombas: `client
 
 **Lacunas do briefing (P-13 a P-19)** seguem com a proposta registrada: periodicidade obrigatória sem padrão; sem oportunidade nem agenda para bomba; tipo é do conjunto; serviço por bomba fica para o MVP 2 (hoje é só "última manutenção" no cadastro); técnico faz tudo, catálogo é admin.
 
-## 12b. Redirecionamento de arquitetura — em discussão (30/10/2026, sessão pausada)
+## 12b. Redirecionamento de arquitetura — modo integrado (30/10/2026, **aprovado**)
 
-O Daniel trouxe uma mudança de rumo, **ainda não decidida nem aprovada**. Resumo do que ele disse e do que foi conferido nos repositórios `C:\dev\Jiraya` e `C:\dev\manutec-clientes`:
+O Daniel redefiniu o papel do Valtis: **monitor de prazos e apontador de oportunidades** de revenda da manutenção de 12 meses (VRPs e bombas), integrado aos outros dois sistemas da Manutec. Tudo o que o Valtis já tem **se mantém**, para virar um SaaS independente depois. Decisões D-29 a D-31, requisitos §1.10 (RF-70 a RF-80), regras RN-21 a RN-25 e architecture.md §9 **aprovados por ele em 30/10/2026**; P-20 a P-26 respondidas (requirements.md §5). **O schema `V6` ainda não foi apresentado nem aprovado.** Nada implementado.
 
-**Papel de cada sistema (visão dele):** o **Jiraya** é o mestre operacional (OS, estoque, orçamento, equipes); o **Manutec Clientes** é a fonte única de clientes; o **Valtis** é só o **monitor de prazos e apontador de oportunidades** de revenda da manutenção de 12 meses, para válvulas e bombas. Os três devem estar conectados por API, sem redundância.
+| Sistema | Papel | Já tem (conferido em `C:\dev\Jiraya` e `C:\dev\manutec-clientes`) |
+|---|---|---|
+| Manutec Clientes | Fonte única de clientes | API `api/integracao/v1/clientes/` (busca, detalhe, `alteracoes/` com cursor, token Bearer). Contrato em `manutec-clientes/docs/INTEGRACAO_JIRAYA.md` |
+| Jiraya | Mestre operacional | Clientes espelhados (V19); **equipamentos por cliente** (E4, V16, tipos "VRP" e "Bomba de recalque", substituição); OS ligada a equipamento com `completed_at` (E5, V21); preventivas (E6, V24). **Não expõe API**; OS **não tem tipo** |
+| Valtis | Monitor de prazos | Recorrência, oportunidade, fila, agenda, painel |
 
-**O que já existe nos outros dois (conferido em 30/10):**
-- Manutec Clientes expõe `api/integracao/v1/clientes/` (busca, detalhe, `alteracoes/` com cursor), token Bearer em `backend/.env`. Contrato em `manutec-clientes/docs/INTEGRACAO_JIRAYA.md`. O Jiraya já consome (V19: `clients.manutec_id`, `synced_at`, `manutec_sync_cursor`).
-- Jiraya **cadastra equipamentos por cliente** (E4, V16: `equipments`, `equipment_types` com "Bomba de recalque" e "VRP", `equipment_replacements`). Modelo plano: cliente → endereço → equipamento com `internal_location`. **Não** tem estação com N válvulas, conjunto com posições, nem patrimônio da Manutec emprestado.
-- Jiraya tem OS ligada a equipamento (E5, V21: `service_orders.completed_at`, `service_order_equipment`) e **preventivas periódicas** (E6, V24: `preventive_plans`).
-- Jiraya **não expõe** API para terceiros lerem OS. Teria que ser criada lá (molde do Manutec Clientes: lista de OS concluídas com cursor).
+**O que ele decidiu (clicando, 30/10):**
+1. Toda manutenção é oportunidade, **inclusive sob contrato** (peças têm margem). Só OS de manutenção reinicia o ciclo; o Jiraya precisa de um campo "tipo de serviço" (D-31).
+2. Patrimônio de bombas emprestadas e agrupamento estação/conjunto: **tudo no Jiraya** (D-29).
+3. Integração por **leitura com cursor**, não webhook (D-30).
+4. **Um código só, com chave de modo** `propria` / `externa`; clonar para o SaaS só quando ele virar prioridade (D-29). Ele perguntou se valia clonar agora; a recomendação foi não, e ele aceitou.
+5. Ordem: **documentação primeiro** (feita e aprovada), contrato da API Jiraya → Valtis escrito aqui no Valtis (próximo), código só depois da aprovação do schema.
+6. Pendências fechadas no mesmo dia: reiniciam o ciclo manutenção preventiva, corretiva **e instalação**; um tipo de equipamento por função no Jiraya; periodicidade fica no Valtis, 12 meses para tudo; leitura a cada 5 min; lado do Jiraya como etapa antes da E8; base histórica entra pelo Jiraya; teste de bombas só do que sobrevive em `externa`.
 
-**Consequência provável:** o Valtis perde cadastro de cliente/estação/válvula/conjunto/bomba e a importação da planilha; mantém recorrência, oportunidade, fila, agenda Google, painel, lançamento manual como correção e uma tela de pendências para OS que chegarem incompletas.
-
-**Perguntas em aberto para o Daniel (ele voltaria com as respostas):**
-1. Fronteira entre preventiva do Jiraya (cliente sob contrato) e oportunidade do Valtis (sem contrato): o Valtis ignora equipamento em plano preventivo ativo?
-2. Patrimônio de bombas emprestadas e agrupamento em estação/conjunto: vão para o Jiraya ou ficam no Valtis?
-3. Jiraya → Valtis por leitura com cursor (recomendado) ou webhook?
-4. "Preciso desses dois": Fase 1 + módulo de bombas, ou duas fases do Valtis?
-
-Isso é decisão de arquitetura (D-nova), com reescrita de requisitos e schema: **exige aprovação explícita antes de código** (§10).
+**O que fica para o Jiraya** (P-24): API de leitura de equipamentos e OS com cursor e token; tipo de serviço na OS; patrimônio emprestado.
 
 ## 13. Próxima tarefa sugerida
+
+0. ~~Aprovação das decisões D-29 a D-31 e P-20 a P-26~~ — **feito em 30/10/2026**. O Daniel gostou de responder por perguntas de múltipla escolha, uma rodada de até 4 por vez, com a recomendação marcada: use esse formato para pendências.
+0b. **Comece a próxima sessão por aqui: escrever o contrato Jiraya → Valtis** em `docs/integracao/jiraya.md`, no molde de `C:\dev\manutec-clientes\docs\INTEGRACAO_JIRAYA.md`: equipamentos e OS concluídas com `alteracoes` e cursor, token Bearer, campos, exemplos. O Daniel leva para o repositório do Jiraya implementar.
+0c. **Apresentar o schema `V6`** para aprovação (referências externas em `cliente`, `valvula`, `bomba`, `servico`; `servico.bomba_id` com `valvula_id` passando a opcional, um dos dois obrigatório; `evento_recebido`; `cursor_integracao`; `periodicidade_meses` na bomba com padrão 12). Só depois: módulo `integracao/`, modo `externa` nos controllers, RF-80, telas de pendências e estado.
 
 1. ~~Teste manual do Daniel na branch~~ — refeito em 16/10/2026: tudo funcionou. Ajustes pedidos e já feitos: editar/inativar/excluir válvula pelo técnico, data de hoje no lançamento, cartões do painel que não zeram ao filtrar, atrasados sem lembrete marcados na fila, tela Agenda com cartões que filtram a lista (como o painel). Testado e aprovado pelo Daniel.
 2. ~~Validar S-01 a S-11 e D-21 a D-24~~ — feito em 16/10/2026.
 3. **Teste manual do módulo de bombas pelo Daniel** (branch `feat/modulo-bombas`, §12a): tipos → conjunto no cliente → bomba com "já instalar" → bomba no patrimônio → emprestar no lugar da do condomínio → reinstalar a original (ver o aviso) → devolver. Depois, responder P-13 a P-19 e decidir se o módulo entra na `feat/fase-1-mvp` antes de produção.
-   **Situação em 30/10/2026 (tarde):** antes do relato do teste, o Daniel abriu a discussão da §12b, que pode tornar boa parte deste módulo redundante com a E4 do Jiraya. **Comece a próxima sessão pela §12b**: pegar as respostas às 4 perguntas e só então decidir o que fazer com o teste das bombas e com P-13 a P-19.
+   **Situação em 30/10/2026 (noite):** em modo `externa` conjunto, ocupação e patrimônio ficam desligados (vão para o Jiraya). Ver P-26: testar só o que sobrevive (ficha, painel, próxima manutenção). P-14, P-16 e P-18 respondidas; P-13 absorvida por P-22.
 4. **Continuar os ajustes da interface com o Daniel** — em 17/10 ele pediu a revisão visual (feita) e escolheu o login C · Mostrador entre 4 opções. Ele ainda vai navegar pelo resto e dizer o que ajustar. Quando ele pedir algo visual em aberto, mostrar opções para ele escolher (ele gostou desse formato).
 5. **Testar a tela Importar com o Daniel** (ainda não testada por ele): começar com o CSV fictício pronto em `docs/exemplos/clientes-ficticios.csv` (tem casos de borda de propósito), depois a planilha real **no banco local**.
 6. Outros ajustes funcionais que ele quiser antes de produção ("vamos ajustar outras coisas ainda").
