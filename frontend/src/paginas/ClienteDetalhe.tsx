@@ -2,9 +2,17 @@ import { useState } from "react";
 import { Link, useParams } from "react-router";
 import type { Estacao, Valvula } from "../api/tipos";
 import { clientes, estacoes } from "../api/valtis";
-import { Cabecalho, Carregando, MensagemErro, Modal } from "../componentes/Basicos";
-import { FormCliente, FormEstacao, FormValvula } from "../componentes/Formularios";
+import { Cabecalho, Carregando, MensagemErro, Modal, NotaGerido, SeloOrigem } from "../componentes/Basicos";
+import {
+  FormCliente,
+  FormComplementoCliente,
+  FormComplementoEstacao,
+  FormComplementoValvula,
+  FormEstacao,
+  FormValvula,
+} from "../componentes/Formularios";
 import { useSessao } from "../sessao/useSessao";
+import { useSistema } from "../sessao/useSistema";
 import { formatarData } from "../util/formato";
 import { useCarga } from "../util/useCarga";
 import { useEnvio } from "../util/useEnvio";
@@ -17,9 +25,14 @@ type Janela =
   | { tipo: "nova-valvula"; estacao: Estacao }
   | { tipo: "valvula"; valvula: Valvula };
 
+/**
+ * Ficha do cliente. Registro espelhado (do Manutec Clientes ou do Jiraya) edita só os
+ * campos do Valtis, pela rota de complemento, e não se inativa por aqui (RN-24, D-32).
+ */
 export function ClienteDetalhe() {
   const { id = "" } = useParams();
   const { ehAdmin } = useSessao();
+  const { externo } = useSistema();
   const { dados: c, carregando, erro, recarregar } = useCarga(() => clientes.detalhar(id), [id]);
   const [janela, setJanela] = useState<Janela | null>(null);
   const acao = useEnvio();
@@ -56,14 +69,20 @@ export function ClienteDetalhe() {
           </Link>
         )}
         <button type="button" className="botao" onClick={() => setJanela({ tipo: "cliente" })}>
-          Editar
+          {c.espelhado ? "Completar dados" : "Editar"}
         </button>
-        {ehAdmin && (
+        {ehAdmin && !c.espelhado && (
           <button type="button" className="botao-texto" disabled={acao.enviando} onClick={alternarCliente}>
             {c.ativo ? "Inativar" : "Reativar"}
           </button>
         )}
       </Cabecalho>
+      {c.espelhado && (
+        <p className="secundario">
+          <SeloOrigem fonte="manutec_clientes" /> Nome, endereço, contato e situação vêm do Manutec Clientes e só mudam
+          lá.
+        </p>
+      )}
       <MensagemErro erro={acao.erro} />
 
       {!c.ativo && <div className="aviso alerta">Cliente inativo: fora do painel e da fila de oportunidades.</div>}
@@ -109,10 +128,14 @@ export function ClienteDetalhe() {
 
       <div className="cabecalho-secao">
         <h2>Estações</h2>
-        {c.ativo && (
+        {externo ? (
+          <NotaGerido oQue="Novas estações" fonte="jiraya" />
+        ) : (
+          c.ativo && (
           <button type="button" className="botao" onClick={() => setJanela({ tipo: "nova-estacao" })}>
             + Nova estação
-          </button>
+            </button>
+          )
         )}
       </div>
 
@@ -122,7 +145,10 @@ export function ClienteDetalhe() {
         <section key={e.id} className={`bloco ${e.ativo ? "" : "inativo"}`}>
           <div className="bloco-topo">
             <div>
-              <h3>{e.localizacaoInstalacao}</h3>
+              <h3>
+                {e.localizacaoInstalacao}
+                {e.derivada && <SeloOrigem fonte="jiraya" />}
+              </h3>
               <p className="secundario">
                 Andares: {e.andares}
                 {e.requerFechamentoGeral && <span className="selo-alerta">fechamento geral</span>}
@@ -130,21 +156,33 @@ export function ClienteDetalhe() {
               </p>
             </div>
             <div className="acoes">
-              {e.ativo && (
+              {e.ativo && !externo && (
                 <button type="button" className="botao" onClick={() => setJanela({ tipo: "nova-valvula", estacao: e })}>
                   + Válvula
                 </button>
               )}
               <button type="button" className="botao-texto" onClick={() => setJanela({ tipo: "estacao", estacao: e })}>
-                Editar
+                {e.derivada ? "Completar" : "Editar"}
               </button>
-              {ehAdmin && (
+              {ehAdmin && !e.derivada && (
                 <button type="button" className="botao-texto" onClick={() => alternarEstacao(e)}>
                   {e.ativo ? "Inativar" : "Reativar"}
                 </button>
               )}
             </div>
           </div>
+          {e.aCompletar && (
+            <div className="aviso alerta">
+              Andares a completar: o Jiraya não informa os andares desta estação.{" "}
+              <button
+                type="button"
+                className="botao-texto"
+                onClick={() => setJanela({ tipo: "estacao", estacao: e })}
+              >
+                Completar andares
+              </button>
+            </div>
+          )}
           {e.valvulas.length === 0 ? (
             <p className="secundario">Nenhuma válvula nesta estação.</p>
           ) : (
@@ -156,11 +194,12 @@ export function ClienteDetalhe() {
                   </Link>
                   <span>Nº {v.numeroValvula}</span>
                   <span className="secundario">{v.especificacao}</span>
+                  {v.espelhada && <SeloOrigem fonte="jiraya" />}
                   {v.numeroSerie && <span className="secundario">série {v.numeroSerie}</span>}
                   {v.periodicidadeMeses !== 12 && <span className="selo">a cada {v.periodicidadeMeses} meses</span>}
                   {!v.ativo && <span className="selo">inativa</span>}
                   <button type="button" className="botao-texto" onClick={() => setJanela({ tipo: "valvula", valvula: v })}>
-                    Editar
+                    {v.espelhada ? "Completar" : "Editar"}
                   </button>
                 </li>
               ))}
@@ -171,24 +210,42 @@ export function ClienteDetalhe() {
 
       <ConjuntosDoCliente clienteId={c.id} clienteAtivo={c.ativo} />
 
-      <Modal titulo="Editar cliente" aberto={janela?.tipo === "cliente"} aoFechar={() => setJanela(null)}>
-        <FormCliente cliente={c} aoSalvar={fecharERecarregar} />
+      <Modal
+        titulo={c.espelhado ? "Completar cliente" : "Editar cliente"}
+        aberto={janela?.tipo === "cliente"}
+        aoFechar={() => setJanela(null)}
+      >
+        {c.espelhado ? (
+          <FormComplementoCliente cliente={c} aoSalvar={fecharERecarregar} />
+        ) : (
+          <FormCliente cliente={c} aoSalvar={fecharERecarregar} />
+        )}
       </Modal>
       <Modal titulo="Nova estação" aberto={janela?.tipo === "nova-estacao"} aoFechar={() => setJanela(null)}>
         <FormEstacao clienteId={c.id} aoSalvar={fecharERecarregar} />
       </Modal>
-      <Modal titulo="Editar estação" aberto={janela?.tipo === "estacao"} aoFechar={() => setJanela(null)}>
-        {janela?.tipo === "estacao" && (
-          <FormEstacao clienteId={c.id} estacao={janela.estacao} aoSalvar={fecharERecarregar} />
-        )}
+      <Modal
+        titulo={janela?.tipo === "estacao" && janela.estacao.derivada ? "Completar estação" : "Editar estação"}
+        aberto={janela?.tipo === "estacao"} aoFechar={() => setJanela(null)}>
+        {janela?.tipo === "estacao" &&
+          (janela.estacao.derivada ? (
+            <FormComplementoEstacao estacao={janela.estacao} aoSalvar={fecharERecarregar} />
+          ) : (
+            <FormEstacao clienteId={c.id} estacao={janela.estacao} aoSalvar={fecharERecarregar} />
+          ))}
       </Modal>
       <Modal titulo="Nova válvula" aberto={janela?.tipo === "nova-valvula"} aoFechar={() => setJanela(null)}>
         {janela?.tipo === "nova-valvula" && <FormValvula estacaoId={janela.estacao.id} aoSalvar={fecharERecarregar} />}
       </Modal>
-      <Modal titulo="Editar válvula" aberto={janela?.tipo === "valvula"} aoFechar={() => setJanela(null)}>
-        {janela?.tipo === "valvula" && (
-          <FormValvula estacaoId={janela.valvula.estacaoId} valvula={janela.valvula} aoSalvar={fecharERecarregar} />
-        )}
+      <Modal
+        titulo={janela?.tipo === "valvula" && janela.valvula.espelhada ? "Completar válvula" : "Editar válvula"}
+        aberto={janela?.tipo === "valvula"} aoFechar={() => setJanela(null)}>
+        {janela?.tipo === "valvula" &&
+          (janela.valvula.espelhada ? (
+            <FormComplementoValvula valvula={janela.valvula} aoSalvar={fecharERecarregar} />
+          ) : (
+            <FormValvula estacaoId={janela.valvula.estacaoId} valvula={janela.valvula} aoSalvar={fecharERecarregar} />
+          ))}
       </Modal>
     </>
   );

@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Link } from "react-router";
 import type { Bomba, Conjunto } from "../api/tipos";
 import { bombas, conjuntos } from "../api/valtis";
-import { Carregando, MensagemErro, MensagemSucesso, Modal } from "../componentes/Basicos";
+import { Carregando, MensagemErro, MensagemSucesso, Modal, NotaGerido, SeloOrigem } from "../componentes/Basicos";
 import { FormBomba, FormConjunto, FormInstalacao } from "../componentes/FormulariosBombas";
 import { useSessao } from "../sessao/useSessao";
+import { useSistema } from "../sessao/useSistema";
 import { formatarData } from "../util/formato";
 import { useCarga } from "../util/useCarga";
 import { useEnvio } from "../util/useEnvio";
@@ -16,9 +17,14 @@ type Janela =
   | { tipo: "bomba"; bomba: Bomba }
   | { tipo: "instalar"; bomba: Bomba };
 
-/** Seção "Bombas" da tela do cliente: conjuntos com as posições e as bombas dele (RF-61, RF-62, RF-68). */
+/**
+ * Seção "Bombas" da tela do cliente: conjuntos com as posições e as bombas dele (RF-61, RF-62, RF-68).
+ * No modo integrado, conjuntos, bombas e posições vêm do Jiraya (RF-73, RF-77): aqui só se lê
+ * e se completa a bomba.
+ */
 export function ConjuntosDoCliente({ clienteId, clienteAtivo }: { clienteId: string; clienteAtivo: boolean }) {
   const { ehAdmin } = useSessao();
+  const { externo } = useSistema();
   const lista = useCarga(() => conjuntos.doCliente(clienteId), [clienteId]);
   const doCliente = useCarga(() => bombas.doCliente(clienteId), [clienteId]);
   const [janela, setJanela] = useState<Janela | null>(null);
@@ -45,7 +51,8 @@ export function ConjuntosDoCliente({ clienteId, clienteAtivo }: { clienteId: str
     <>
       <div className="cabecalho-secao">
         <h2>Bombas</h2>
-        {clienteAtivo && (
+        {externo && <NotaGerido oQue="Conjuntos e bombas" fonte="jiraya" />}
+        {clienteAtivo && !externo && (
           <div className="acoes">
             <button type="button" className="botao" onClick={() => setJanela({ tipo: "novo-conjunto" })}>
               + Novo conjunto
@@ -67,22 +74,30 @@ export function ConjuntosDoCliente({ clienteId, clienteAtivo }: { clienteId: str
             <div>
               <h3>
                 {c.tipo} · {c.localizacao}
+                {c.derivado && <SeloOrigem fonte="jiraya" />}
               </h3>
               <p className="secundario">
                 {c.observacoes}
                 {!c.ativo && <span className="selo">inativo</span>}
               </p>
             </div>
-            <div className="acoes">
-              <button type="button" className="botao-texto" onClick={() => setJanela({ tipo: "conjunto", conjunto: c })}>
-                Editar
-              </button>
-              {ehAdmin && (
-                <button type="button" className="botao-texto" onClick={() => alternarConjunto(c)}>
-                  {c.ativo ? "Inativar" : "Reativar"}
+            {/* O derivado acompanha o Jiraya: não se edita nem se inativa aqui. */}
+            {!c.derivado && (
+              <div className="acoes">
+                <button
+                  type="button"
+                  className="botao-texto"
+                  onClick={() => setJanela({ tipo: "conjunto", conjunto: c })}
+                >
+                  Editar
                 </button>
-              )}
-            </div>
+                {ehAdmin && (
+                  <button type="button" className="botao-texto" onClick={() => alternarConjunto(c)}>
+                    {c.ativo ? "Inativar" : "Reativar"}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
           {c.posicoes.length === 0 ? (
             <p className="secundario">Nenhuma bomba em posição neste conjunto.</p>
@@ -120,13 +135,14 @@ export function ConjuntosDoCliente({ clienteId, clienteAtivo }: { clienteId: str
                 </Link>
                 <span className="secundario">{b.descricao}</span>
                 {b.dadosTecnicosIncompletos && <span className="selo">dados incompletos</span>}
-                {clienteAtivo && lista.dados && lista.dados.some((c) => c.ativo) && (
+                {b.espelhada && <SeloOrigem fonte="jiraya" />}
+                {clienteAtivo && !externo && lista.dados && lista.dados.some((c) => c.ativo) && (
                   <button type="button" className="botao-texto" onClick={() => setJanela({ tipo: "instalar", bomba: b })}>
                     Instalar
                   </button>
                 )}
                 <button type="button" className="botao-texto" onClick={() => setJanela({ tipo: "bomba", bomba: b })}>
-                  Editar
+                  {b.espelhada ? "Completar" : "Editar"}
                 </button>
               </li>
             ))}

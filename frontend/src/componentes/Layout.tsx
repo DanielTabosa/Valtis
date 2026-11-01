@@ -1,10 +1,18 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router";
 import { useSessao } from "../sessao/useSessao";
+import { useSistema } from "../sessao/useSistema";
 import { useTema } from "../util/useTema";
 import { Icone, Marca, type NomeIcone } from "./Icone";
 
-type Item = { para: string; rotulo: string; icone: NomeIcone; soAdmin?: boolean };
+type Item = {
+  para: string;
+  rotulo: string;
+  icone: NomeIcone;
+  soAdmin?: boolean;
+  /** true: só no modo integrado; false: só com cadastro próprio; ausente: nos dois (D-30). */
+  soExterno?: boolean;
+};
 type Grupo = { titulo: string; itens: Item[] };
 
 /** Agrupado por tarefa: o técnico vive em "Operação"; o resto é apoio. */
@@ -30,12 +38,18 @@ const GRUPOS: Grupo[] = [
   {
     titulo: "Administração",
     itens: [
-      { para: "/importar", rotulo: "Importar", icone: "importar", soAdmin: true },
-      { para: "/tipos-bomba", rotulo: "Tipos de bomba", icone: "bomba", soAdmin: true },
+      { para: "/importar", rotulo: "Importar", icone: "importar", soAdmin: true, soExterno: false },
+      // No modo integrado o catálogo vem do Jiraya: a tela de escrita sai do menu.
+      { para: "/tipos-bomba", rotulo: "Tipos de bomba", icone: "bomba", soAdmin: true, soExterno: false },
+      { para: "/integracao", rotulo: "Integração", icone: "sincronia", soAdmin: true, soExterno: true },
+      { para: "/integracao/pendencias", rotulo: "Pendências", icone: "alerta", soAdmin: true, soExterno: true },
       { para: "/usuarios", rotulo: "Usuários", icone: "usuarios", soAdmin: true },
     ],
   },
 ];
+
+/** Rotas que têm filhas no menu: só ficam marcadas na própria página, não nas de baixo. */
+const ROTAS_EXATAS = new Set(["/", "/integracao"]);
 
 /** Barra inferior do celular: no máximo cinco destinos, com "Lançar" no centro. */
 const BARRA: Item[] = [
@@ -53,6 +67,7 @@ function iniciais(nome: string | undefined): string {
 
 export function Layout() {
   const { usuario, sair, ehAdmin } = useSessao();
+  const { externo } = useSistema();
   const { tema, alternar } = useTema();
   const [maisAberto, setMaisAberto] = useState(false);
   const local = useLocation();
@@ -64,7 +79,8 @@ export function Layout() {
     return () => window.removeEventListener("keydown", fecharComEsc);
   }, [maisAberto]);
 
-  const grupos = GRUPOS.map((g) => ({ ...g, itens: g.itens.filter((i) => !i.soAdmin || ehAdmin) })).filter(
+  const visivel = (i: Item) => (!i.soAdmin || ehAdmin) && (i.soExterno === undefined || i.soExterno === externo);
+  const grupos = GRUPOS.map((g) => ({ ...g, itens: g.itens.filter(visivel) })).filter(
     (g) => g.itens.length > 0,
   );
   const rotuloTema = tema === "escuro" ? "Usar tema claro" : "Usar tema escuro";
@@ -88,7 +104,7 @@ export function Layout() {
                 <NavLink
                   key={item.para}
                   to={item.para}
-                  end={item.para === "/"}
+                  end={ROTAS_EXATAS.has(item.para)}
                   className={({ isActive }) => `nav-item ${isActive ? "ativo" : ""}`}
                 >
                   <Icone nome={item.icone} />
@@ -141,7 +157,7 @@ export function Layout() {
           <NavLink
             key={item.para}
             to={item.para}
-            end={item.para === "/"}
+            end={ROTAS_EXATAS.has(item.para)}
             className={({ isActive }) =>
               `barra-item ${item.para === "/lancar" ? "destaque" : ""} ${isActive ? "ativo" : ""}`
             }
@@ -180,7 +196,7 @@ export function Layout() {
                     <NavLink
                       key={item.para}
                       to={item.para}
-                      end={item.para === "/"}
+                      end={ROTAS_EXATAS.has(item.para)}
                       className={({ isActive }) => `folha-item ${isActive ? "ativo" : ""}`}
                       onClick={() => setMaisAberto(false)}
                     >

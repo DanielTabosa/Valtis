@@ -3,7 +3,11 @@
 import { useState, type FormEvent } from "react";
 import type {
   ClienteDetalhe,
+  ComplementoEstacao,
+  ComplementoValvula,
   DadosCliente,
+  StatusContrato,
+  TipoAtendimento,
   DadosEspecificacao,
   DadosEstacao,
   DadosValvula,
@@ -104,8 +108,8 @@ type PropsFormEstacao = { clienteId: string; estacao?: Estacao; aoSalvar: (estac
 
 export function FormEstacao({ clienteId, estacao, aoSalvar }: PropsFormEstacao) {
   const [localizacao, setLocalizacao] = useState(estacao?.localizacaoInstalacao ?? "");
-  const [andarInicial, setAndarInicial] = useState(estacao ? String(estacao.andarInicial) : "");
-  const [andarFinal, setAndarFinal] = useState(estacao ? String(estacao.andarFinal) : "");
+  const [andarInicial, setAndarInicial] = useState(textoDoAndar(estacao?.andarInicial));
+  const [andarFinal, setAndarFinal] = useState(textoDoAndar(estacao?.andarFinal));
   const [fechamento, setFechamento] = useState(estacao?.requerFechamentoGeral ?? false);
   const { enviando, erro, campos, executar } = useEnvio();
 
@@ -155,6 +159,185 @@ export function FormEstacao({ clienteId, estacao, aoSalvar }: PropsFormEstacao) 
       </label>
       <button type="submit" className="botao primario" disabled={enviando}>
         {enviando ? "Salvando…" : estacao ? "Salvar alterações" : "Cadastrar estação"}
+      </button>
+    </form>
+  );
+}
+
+function textoDoAndar(andar: number | null | undefined): string {
+  return andar === null || andar === undefined ? "" : String(andar);
+}
+
+type PropsFormComplementoCliente = { cliente: ClienteDetalhe; aoSalvar: (cliente: ClienteDetalhe) => void };
+
+/**
+ * Cliente espelhado do Manutec Clientes: nome, endereço e contato vêm de lá;
+ * aqui só se edita o que é do Valtis (RN-24 por campo, D-32).
+ */
+export function FormComplementoCliente({ cliente, aoSalvar }: PropsFormComplementoCliente) {
+  const [tipoAtendimento, setTipoAtendimento] = useState<TipoAtendimento>(cliente.tipoAtendimento);
+  const [statusContrato, setStatusContrato] = useState<StatusContrato>(cliente.statusContrato);
+  const { enviando, erro, campos, executar } = useEnvio();
+
+  async function enviar(evento: FormEvent) {
+    evento.preventDefault();
+    const resultado = await executar(() => clientes.completar(cliente.id, { tipoAtendimento, statusContrato }));
+    if (resultado.ok) aoSalvar(resultado.valor);
+  }
+
+  return (
+    <form className="formulario" onSubmit={enviar}>
+      <MensagemErro erro={erro} />
+      <p className="secundario">Nome, endereço e contato vêm do Manutec Clientes e só mudam lá.</p>
+      <div className="linha-campos">
+        <Campo rotulo="Atendimento" erro={campos.tipoAtendimento} dica="Não muda o prazo de manutenção.">
+          <select value={tipoAtendimento} onChange={(e) => setTipoAtendimento(e.target.value as TipoAtendimento)}>
+            <option value="Avulso">Avulso</option>
+            <option value="Contrato">Contrato</option>
+          </select>
+        </Campo>
+        <Campo rotulo="Situação do contrato" erro={campos.statusContrato}>
+          <select value={statusContrato} onChange={(e) => setStatusContrato(e.target.value as StatusContrato)}>
+            <option value="Ativo">Ativo</option>
+            <option value="Suspenso">Suspenso</option>
+            <option value="Inativo">Inativo</option>
+          </select>
+        </Campo>
+      </div>
+      <button type="submit" className="botao primario" disabled={enviando}>
+        {enviando ? "Salvando…" : "Salvar alterações"}
+      </button>
+    </form>
+  );
+}
+
+type PropsFormComplementoEstacao = { estacao: Estacao; aoSalvar: (estacao: Estacao) => void };
+
+/**
+ * Estação derivada do Jiraya: a localização vem de lá; andares e fechamento
+ * geral são do Valtis. Os andares vão juntos: os dois ou nenhum.
+ */
+export function FormComplementoEstacao({ estacao, aoSalvar }: PropsFormComplementoEstacao) {
+  const [andarInicial, setAndarInicial] = useState(textoDoAndar(estacao.andarInicial));
+  const [andarFinal, setAndarFinal] = useState(textoDoAndar(estacao.andarFinal));
+  const [fechamento, setFechamento] = useState(estacao.requerFechamentoGeral);
+  const { enviando, erro, campos, executar } = useEnvio();
+  // Na própria, os andares continuam obrigatórios; a derivada pode ficar sem os dois,
+  // mas, preenchido um, o outro passa a ser exigido.
+  const obrigatorio = !estacao.derivada || andarInicial !== "" || andarFinal !== "";
+
+  async function enviar(evento: FormEvent) {
+    evento.preventDefault();
+    const dados: ComplementoEstacao = {
+      andarInicial: numeroOuNulo(andarInicial),
+      andarFinal: numeroOuNulo(andarFinal),
+      requerFechamentoGeral: fechamento,
+    };
+    const resultado = await executar(() => estacoes.completar(estacao.id, dados));
+    if (resultado.ok) aoSalvar(resultado.valor);
+  }
+
+  return (
+    <form className="formulario" onSubmit={enviar}>
+      <MensagemErro erro={erro} />
+      <p className="secundario">
+        <strong>{estacao.localizacaoInstalacao}</strong>
+        {estacao.derivada && " · a localização vem do Jiraya e só muda lá."}
+      </p>
+      <div className="linha-campos">
+        <Campo
+          rotulo={obrigatorio ? "Andar inicial *" : "Andar inicial"}
+          erro={campos.andarInicial}
+          dica="Térreo = 0, subsolo negativo"
+        >
+          <input
+            type="number"
+            inputMode="numeric"
+            required={obrigatorio}
+            value={andarInicial}
+            onChange={(e) => setAndarInicial(e.target.value)}
+          />
+        </Campo>
+        <Campo rotulo={obrigatorio ? "Andar final *" : "Andar final"} erro={campos.andarFinal}>
+          <input
+            type="number"
+            inputMode="numeric"
+            required={obrigatorio}
+            value={andarFinal}
+            onChange={(e) => setAndarFinal(e.target.value)}
+          />
+        </Campo>
+      </div>
+      <label className="caixa">
+        <input type="checkbox" checked={fechamento} onChange={(e) => setFechamento(e.target.checked)} />
+        Exige fechamento geral do prédio
+      </label>
+      <button type="submit" className="botao primario" disabled={enviando}>
+        {enviando ? "Salvando…" : "Salvar alterações"}
+      </button>
+    </form>
+  );
+}
+
+type PropsFormComplementoValvula = { valvula: Valvula; aoSalvar: (valvula: Valvula) => void };
+
+/**
+ * Válvula espelhada do Jiraya: número, fabricante, modelo e identificação vêm de
+ * lá. Especificação, instalação e periodicidade são do Valtis.
+ */
+export function FormComplementoValvula({ valvula, aoSalvar }: PropsFormComplementoValvula) {
+  const catalogo = useCarga(() => especificacoes.listar(false), []);
+  const [especificacaoId, setEspecificacaoId] = useState(valvula.especificacaoId ?? "");
+  const [dataInstalacao, setDataInstalacao] = useState(valvula.dataInstalacao ?? "");
+  const [periodicidade, setPeriodicidade] = useState(String(valvula.periodicidadeMeses));
+  const { enviando, erro, campos, executar } = useEnvio();
+
+  async function enviar(evento: FormEvent) {
+    evento.preventDefault();
+    const dados: ComplementoValvula = {
+      especificacaoId: especificacaoId || null,
+      dataInstalacao: dataInstalacao || null,
+      periodicidadeMeses: numeroOuNulo(periodicidade),
+    };
+    const resultado = await executar(() => valvulas.completar(valvula.id, dados));
+    if (resultado.ok) aoSalvar(resultado.valor);
+  }
+
+  const daFonte = [valvula.fabricante, valvula.modelo, valvula.identificacaoExterna].filter(Boolean).join(" · ");
+
+  return (
+    <form className="formulario" onSubmit={enviar}>
+      <MensagemErro erro={erro ?? catalogo.erro} />
+      <p className="secundario">
+        {daFonte ? `${daFonte}: ` : ""}número, fabricante, modelo e identificação vêm do Jiraya e só mudam lá.
+      </p>
+      <Campo rotulo="Especificação" erro={campos.especificacaoId} dica="Pode ficar a completar.">
+        <select value={especificacaoId} onChange={(e) => setEspecificacaoId(e.target.value)}>
+          <option value="">A completar</option>
+          {(catalogo.dados ?? []).map((e) => (
+            <option key={e.id} value={e.id}>
+              {e.descricaoCompleta}
+            </option>
+          ))}
+        </select>
+      </Campo>
+      <div className="linha-campos">
+        <Campo rotulo="Periodicidade (meses)" erro={campos.periodicidadeMeses} dica="Padrão 12. Mude só em exceção.">
+          <input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={60}
+            value={periodicidade}
+            onChange={(e) => setPeriodicidade(e.target.value)}
+          />
+        </Campo>
+        <Campo rotulo="Data de instalação" erro={campos.dataInstalacao}>
+          <input type="date" value={dataInstalacao} onChange={(e) => setDataInstalacao(e.target.value)} />
+        </Campo>
+      </div>
+      <button type="submit" className="botao primario" disabled={enviando}>
+        {enviando ? "Salvando…" : "Salvar alterações"}
       </button>
     </form>
   );

@@ -89,3 +89,29 @@ export function Campo({ rotulo, erro, dica, children }: PropsCampo) {
     </label>
   );
 }
+
+/** De onde vem o registro espelhado (D-30). */
+export type FonteExterna = "jiraya" | "manutec_clientes";
+
+const NOME_DA_FONTE: Record<FonteExterna, string> = {
+  jiraya: "Jiraya",
+  manutec_clientes: "Manutec Clientes",
+};
+
+/** Selo discreto do registro que veio de fora: os campos da fonte só mudam lá (RN-24). */
+export function SeloOrigem({ fonte }: { fonte: FonteExterna }) {
+  return (
+    <span className="selo selo-origem" title={`Cadastro gerido no ${NOME_DA_FONTE[fonte]}`}>
+      do {NOME_DA_FONTE[fonte]}
+    </span>
+  );
+}
+
+/** Nota no lugar do botão "criar" que o modo integrado esconde. */
+export function NotaGerido({ oQue, fonte }: { oQue: string; fonte: FonteExterna }) {
+  return (
+    <span className="nota-gerido">
+      {oQue}: gerido no {NOME_DA_FONTE[fonte]}
+    </span>
+  );
+}

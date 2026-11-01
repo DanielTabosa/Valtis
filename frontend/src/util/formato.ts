@@ -1,5 +1,6 @@
 // Formatação para exibição. Nenhuma regra de negócio aqui: status e prazos
 // já chegam calculados do servidor (AGENTS.md §3).
+import type { EstadoEventoRecebido, OrigemIntegracao, TipoEventoRecebido, TipoManutencao } from "../api/tipos";
 
 /** "2026-07-03" → "03/07/2026". Corta o texto em vez de usar Date, que mudaria o dia pelo fuso. */
 export function formatarData(iso: string | null | undefined): string {
@@ -63,3 +64,30 @@ export function numeroOuNulo(texto: string): number | null {
   const numero = Number(texto.replace(",", "."));
   return Number.isFinite(numero) ? numero : null;
 }
+
+/** Rótulo do tipo de manutenção: o valor da API não tem acento ("Instalacao"). */
+export const ROTULO_MANUTENCAO: Record<TipoManutencao, string> = {
+  Preventiva: "Preventiva",
+  Corretiva: "Corretiva",
+  Instalacao: "Instalação",
+};
+
+export const ROTULO_ORIGEM_INTEGRACAO: Record<OrigemIntegracao, string> = {
+  manutec_clientes: "Manutec Clientes",
+  jiraya: "Jiraya",
+};
+
+export const ROTULO_TIPO_RECEBIDO: Record<TipoEventoRecebido, string> = {
+  cliente: "Cliente",
+  equipamento: "Equipamento",
+  ordem_servico: "Ordem de serviço",
+};
+
+export const ROTULO_ESTADO_RECEBIDO: Record<EstadoEventoRecebido, string> = {
+  pendente: "A aplicar",
+  aplicado: "Aplicados",
+  pendencia: "Pendências",
+  falhou: "Falharam",
+  descartado: "Descartados",
+  superado: "Superados",
+};

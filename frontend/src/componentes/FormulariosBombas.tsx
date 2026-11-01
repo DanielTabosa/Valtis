@@ -93,12 +93,15 @@ export function FormBomba({ clienteId, conjuntosDoCliente = [], bomba, aoSalvar 
       ultimaManutencao: ultima || null,
       conjuntoId: conjuntoId || null,
     };
+    // Espelhada: só os campos do Valtis, pela rota de complemento (RN-24 por campo, D-32).
     const resultado = await executar(() =>
-      bomba
-        ? bombas.atualizar(bomba.id, dados)
-        : clienteId
-          ? bombas.criarDoCondominio(clienteId, dados)
-          : bombas.criarPatrimonial(dados),
+      bomba?.espelhada
+        ? bombas.completar(bomba.id, dados)
+        : bomba
+          ? bombas.atualizar(bomba.id, dados)
+          : clienteId
+            ? bombas.criarDoCondominio(clienteId, dados)
+            : bombas.criarPatrimonial(dados),
     );
     if (resultado.ok) aoSalvar(resultado.valor);
   }
@@ -106,15 +109,24 @@ export function FormBomba({ clienteId, conjuntosDoCliente = [], bomba, aoSalvar 
   return (
     <form className="formulario" onSubmit={enviar}>
       <MensagemErro erro={erro} />
-      <p className="secundario">Os dados técnicos podem ficar em branco e ser completados depois.</p>
-      <div className="linha-campos">
-        <Campo rotulo="Fabricante" erro={campos.fabricante}>
-          <input placeholder="WEG" value={fabricante} onChange={(e) => setFabricante(e.target.value)} />
-        </Campo>
-        <Campo rotulo="Modelo" erro={campos.modelo}>
-          <input placeholder="BC-92" value={modelo} onChange={(e) => setModelo(e.target.value)} />
-        </Campo>
-      </div>
+      {bomba?.espelhada ? (
+        <p className="secundario">
+          {[bomba.fabricante, bomba.modelo, bomba.identificacaoExterna].filter(Boolean).join(" · ") || "Sem fabricante e modelo"}
+          : fabricante, modelo e identificação vêm do Jiraya e só mudam lá.
+        </p>
+      ) : (
+        <>
+          <p className="secundario">Os dados técnicos podem ficar em branco e ser completados depois.</p>
+          <div className="linha-campos">
+            <Campo rotulo="Fabricante" erro={campos.fabricante}>
+              <input placeholder="WEG" value={fabricante} onChange={(e) => setFabricante(e.target.value)} />
+            </Campo>
+            <Campo rotulo="Modelo" erro={campos.modelo}>
+              <input placeholder="BC-92" value={modelo} onChange={(e) => setModelo(e.target.value)} />
+            </Campo>
+          </div>
+        </>
+      )}
       <div className="linha-campos">
         <Campo rotulo="Potência (CV)" erro={campos.potenciaCv}>
           <input inputMode="decimal" value={potencia} onChange={(e) => setPotencia(e.target.value)} />

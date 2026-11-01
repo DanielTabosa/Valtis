@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import type { StatusPainel } from "../api/tipos";
 import { painel } from "../api/valtis";
 import { Cabecalho, Carregando, EtiquetaStatus, MensagemErro } from "../componentes/Basicos";
@@ -10,7 +10,9 @@ import { useCarga } from "../util/useCarga";
 
 /** Painel de status (RF-34 a RF-39): uma linha por válvula ativa, calculado no servidor. */
 export function Painel() {
-  const [busca, setBusca] = useState("");
+  const [parametros] = useSearchParams();
+  // "?busca=" permite chegar já filtrado, como a tela de pendências faz pelo código do equipamento.
+  const [busca, setBusca] = useState(() => parametros.get("busca") ?? "");
   const [status, setStatus] = useState<StatusPainel | "">("");
   const [tipoAtendimento, setTipoAtendimento] = useState("");
   const buscaAtrasada = useAtrasado(busca);

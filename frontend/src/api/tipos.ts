@@ -4,11 +4,16 @@ export type Perfil = "tecnico" | "admin";
 export type TipoAtendimento = "Contrato" | "Avulso";
 export type StatusContrato = "Ativo" | "Suspenso" | "Inativo";
 export type TipoRegistro = "Esfera" | "Gaveta";
-export type TipoManutencao = "Preventiva" | "Corretiva";
+export type TipoManutencao = "Preventiva" | "Corretiva" | "Instalacao";
 export type StatusPainel = "VENCIDO" | "PROXIMO_DO_VENCIMENTO" | "SEM_REGISTRO" | "EM_DIA";
 export type StatusOportunidade = "agendado" | "contatado" | "aceito" | "recusado" | "executado" | "perdido";
 export type TipoEvento = "alerta_comercial" | "lembrete_final";
 export type StatusEvento = "pendente" | "criado" | "falhou" | "descartado";
+
+/** Quem é dono dos cadastros (D-30): o próprio Valtis ou os sistemas externos (Manutec Clientes e Jiraya). */
+export type ModoCadastros = "propria" | "externa";
+
+export type Sistema = { modoCadastros: ModoCadastros };
 
 export type UsuarioSessao = {
   id: string;
@@ -64,24 +69,34 @@ export type Valvula = {
   estacaoId: string;
   codigoReferencia: string;
   numeroValvula: string;
-  especificacaoId: string;
+  /** Nula na válvula espelhada ainda sem especificação do Valtis ("especificação a completar"). */
+  especificacaoId: string | null;
   especificacao: string;
   numeroSerie: string | null;
   dataInstalacao: string | null;
   periodicidadeMeses: number;
   ativo: boolean;
+  /** Veio do Jiraya: fabricante, modelo e identificação são só leitura (RN-24). */
+  espelhada: boolean;
+  fabricante: string | null;
+  modelo: string | null;
+  identificacaoExterna: string | null;
 };
 
 export type Estacao = {
   id: string;
   clienteId: string;
   localizacaoInstalacao: string;
-  andarInicial: number;
-  andarFinal: number;
+  andarInicial: number | null;
+  andarFinal: number | null;
   andares: string;
   requerFechamentoGeral: boolean;
   ativo: boolean;
   valvulas: Valvula[];
+  /** Nasceu da localização do Jiraya (RF-73). */
+  derivada: boolean;
+  /** Faltam os andares, que só o Valtis conhece. */
+  aCompletar: boolean;
 };
 
 export type ClienteDetalhe = {
@@ -102,6 +117,9 @@ export type ClienteDetalhe = {
   dataLegadoAproximada: boolean;
   cadastroIncompleto: boolean;
   estacoes: Estacao[];
+  /** Veio do Manutec Clientes: nome, endereço e contato são só leitura (RN-24). */
+  espelhado: boolean;
+  manutecId: number | null;
 };
 
 export type DadosCliente = {
@@ -131,6 +149,23 @@ export type DadosValvula = {
   periodicidadeMeses: number | null;
 };
 
+// Complementos (RN-24 por campo, D-32): só os campos que o Valtis guarda, inclusive no registro espelhado.
+
+export type ComplementoCliente = { tipoAtendimento: TipoAtendimento; statusContrato: StatusContrato };
+
+/** Andares: os dois ou nenhum. */
+export type ComplementoEstacao = {
+  andarInicial: number | null;
+  andarFinal: number | null;
+  requerFechamentoGeral: boolean;
+};
+
+export type ComplementoValvula = {
+  especificacaoId: string | null;
+  dataInstalacao: string | null;
+  periodicidadeMeses: number | null;
+};
+
 export type Especificacao = {
   id: string;
   marca: string;
@@ -148,8 +183,10 @@ export type DadosEspecificacao = {
   tipoRegistro: TipoRegistro;
 };
 
+/** Exatamente um entre `valvulaId` e `bombaId` (RF-80). Item de bomba não tem pressões. */
 export type ItemLancamento = {
-  valvulaId: string;
+  valvulaId: string | null;
+  bombaId: string | null;
   dataRealizada: string;
   tipoManutencao: TipoManutencao;
   tecnicoResponsavelId: string;
@@ -161,11 +198,15 @@ export type ItemLancamento = {
 
 export type ResultadoLancamento = {
   servicoId: string;
-  valvulaId: string;
-  codigoValvula: string;
+  valvulaId: string | null;
+  codigoValvula: string | null;
+  bombaId: string | null;
+  codigoBomba: string | null;
   dataRealizada: string;
   proximaManutencao: string | null;
 };
+
+export type OrigemServico = "manual" | "jiraya";
 
 export type ServicoDoHistorico = {
   id: string;
@@ -176,8 +217,14 @@ export type ServicoDoHistorico = {
   pressaoEntrada: number | null;
   pressaoSaida: number | null;
   observacoes: string | null;
+  /** "Jiraya" quando o serviço veio de uma OS de lá. */
   lancadoPor: string;
   lancadoEm: string;
+  origem: OrigemServico;
+  jirayaOsId: number | null;
+  /** Inativo continua no histórico, riscado, com o motivo (RN-26). */
+  ativo: boolean;
+  motivoInativacao: string | null;
 };
 
 export type OportunidadeDoHistorico = {
@@ -211,7 +258,7 @@ export type ValvulaDetalhe = {
 
 export type Oportunidade = {
   id: string;
-  escopo: "valvula" | "cliente";
+  escopo: "valvula" | "cliente" | "bomba";
   status: StatusOportunidade;
   aberta: boolean;
   origem: "sistema" | "importacao";
@@ -232,6 +279,9 @@ export type Oportunidade = {
   localizacaoInstalacao: string | null;
   andares: string | null;
   requerFechamentoGeral: boolean | null;
+  bombaId: string | null;
+  codigoBomba: string | null;
+  descricaoBomba: string | null;
   responsavelId: string | null;
   responsavelNome: string | null;
   assumidaEm: string | null;
@@ -340,6 +390,8 @@ export type Bomba = {
   ultimaManutencao: string | null;
   descricao: string;
   ativo: boolean;
+  /** A data-base do ciclo: a mais recente entre o cadastro e o último serviço ativo (RF-80). */
+  ultimaManutencaoConsiderada: string | null;
   proximaManutencao: string | null;
   diasRestantes: number | null;
   status: StatusPainel;
@@ -347,6 +399,9 @@ export type Bomba = {
   dadosTecnicosIncompletos: boolean;
   posicoes: PosicaoDaBomba[];
   disponivel: boolean;
+  /** Veio do Jiraya: fabricante, modelo e identificação são só leitura (RN-24). */
+  espelhada: boolean;
+  identificacaoExterna: string | null;
 };
 
 export type PosicaoOcupada = {
@@ -369,6 +424,8 @@ export type Conjunto = {
   observacoes: string | null;
   ativo: boolean;
   posicoes: PosicaoOcupada[];
+  /** Nasceu da localização e do tipo das bombas no Jiraya (RF-73): só muda por lá. */
+  derivado: boolean;
 };
 
 export type Ocupacao = {
@@ -391,7 +448,13 @@ export type Ocupacao = {
   aberta: boolean;
 };
 
-export type BombaDetalhe = { bomba: Bomba; historico: Ocupacao[] };
+/** `historico` são as posições (D-27); `servicos` e `oportunidades`, como na ficha da válvula (RF-80). */
+export type BombaDetalhe = {
+  bomba: Bomba;
+  historico: Ocupacao[];
+  servicos: ServicoDoHistorico[];
+  oportunidades: OportunidadeDoHistorico[];
+};
 
 export type PainelBombas = { resumo: ContagemStatus[]; linhas: Bomba[] };
 
@@ -420,3 +483,51 @@ export type DadosInstalacao = {
 };
 
 export type ResultadoMovimentacao = { ocupacao: Ocupacao; aviso: string | null };
+
+// ── Modo integrado: telas de admin (RF-75, RF-78) ─────────────────────────
+
+export type OrigemIntegracao = "manutec_clientes" | "jiraya";
+export type TipoEventoRecebido = "cliente" | "equipamento" | "ordem_servico";
+export type EstadoEventoRecebido = "pendente" | "aplicado" | "pendencia" | "falhou" | "descartado" | "superado";
+
+export type ServicoDaPendencia = {
+  id: string;
+  codigoEquipamento: string;
+  dataRealizada: string;
+  ativo: boolean;
+  valvulaId: string | null;
+  bombaId: string | null;
+};
+
+export type Pendencia = {
+  id: string;
+  origem: OrigemIntegracao;
+  tipo: TipoEventoRecebido;
+  idExterno: number;
+  versao: string;
+  estado: "pendencia" | "falhou";
+  motivo: string | null;
+  ultimoErro: string | null;
+  tentativas: number;
+  recebidoEm: string;
+  resumo: string;
+  servicos: ServicoDaPendencia[];
+};
+
+export type CursorIntegracao = {
+  origem: string;
+  recurso: string;
+  desde: string | null;
+  ultimaLeituraEm: string | null;
+  ultimaLeituraOkEm: string | null;
+  ultimoErro: string | null;
+};
+
+export type EstadoIntegracao = {
+  modoCadastros: ModoCadastros;
+  leituraAtiva: boolean;
+  cursores: CursorIntegracao[];
+  eventos: Partial<Record<EstadoEventoRecebido, number>>;
+};
+
+export type ResumoDaLeitura = { recebidos: number; aplicados: number };

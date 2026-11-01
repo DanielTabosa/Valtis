@@ -85,7 +85,14 @@ export function Oportunidades() {
                   <strong>{o.nomeCondominio}</strong>
                 </Link>
                 <div className="secundario">
-                  {o.codigoValvula ? (
+                  {o.escopo === "bomba" && o.bombaId ? (
+                    <>
+                      <Link to={`/bombas/${o.bombaId}`} className="mono">
+                        {o.codigoBomba}
+                      </Link>
+                      {o.descricaoBomba && ` · ${o.descricaoBomba}`}
+                    </>
+                  ) : o.codigoValvula ? (
                     <Link to={`/valvulas/${o.valvulaId}`} className="mono">
                       {o.codigoValvula}
                     </Link>
@@ -223,7 +230,7 @@ function FormDesfecho({ oportunidade, aoSalvar }: { oportunidade: Oportunidade; 
     <form className="formulario" onSubmit={enviar}>
       <p>
         <strong>{oportunidade.nomeCondominio}</strong>
-        <span className="secundario"> · {oportunidade.codigoValvula ?? oportunidade.codigoCliente}</span>
+        <span className="secundario"> · {oportunidade.codigoBomba ?? oportunidade.codigoValvula ?? oportunidade.codigoCliente}</span>
       </p>
       <MensagemErro erro={erro} />
       <fieldset className="opcoes-radio">

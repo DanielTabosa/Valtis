@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import type { Bomba, StatusPainel } from "../api/tipos";
 import { bombas } from "../api/valtis";
 import { Cabecalho, Carregando, EtiquetaStatus, MensagemErro } from "../componentes/Basicos";
@@ -18,7 +18,9 @@ export function textoPosicao(b: Bomba): string {
 
 /** Painel de bombas (RF-68): mesma classificação do painel de válvulas (RN-16), calculada no servidor. */
 export function PainelBombas() {
-  const [busca, setBusca] = useState("");
+  const [parametros] = useSearchParams();
+  // "?busca=" permite chegar já filtrado, como a tela de pendências faz pelo código do equipamento.
+  const [busca, setBusca] = useState(() => parametros.get("busca") ?? "");
   const [status, setStatus] = useState<StatusPainel | "">("");
   const buscaAtrasada = useAtrasado(busca);
   const { dados, carregando, erro } = useCarga(() => bombas.painel(status, buscaAtrasada), [status, buscaAtrasada]);
@@ -104,7 +106,7 @@ export function PainelBombas() {
                     <span className="secundario">{textoPosicao(b)}</span>
                   )}
                 </td>
-                <td data-rotulo="Última" className="sem-quebra">{formatarData(b.ultimaManutencao)}</td>
+                <td data-rotulo="Última" className="sem-quebra">{formatarData(b.ultimaManutencaoConsiderada)}</td>
                 <td data-rotulo="Próxima" className="sem-quebra">{formatarData(b.proximaManutencao)}</td>
                 <td data-rotulo="Prazo" className="sem-quebra">{textoPrazo(b.diasRestantes)}</td>
               </tr>

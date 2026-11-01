@@ -117,6 +117,22 @@ cd C:\dev\Valtis\backend
 .\mvnw.cmd test      # precisa do Docker Desktop aberto
 ```
 
+### Modo integrado (opcional, D-29)
+
+Por padrão o backend sobe no modo `propria`: cadastros feitos na tela, como sempre. Para o modo da Manutec,
+em que clientes vêm do Manutec Clientes e equipamentos e OS vêm do Jiraya:
+
+```powershell
+$env:VALTIS_CADASTROS_ORIGEM = "externa"
+$env:VALTIS_MANUTEC_CLIENTES_URL = "http://127.0.0.1:8000/api/integracao/v1/"
+$env:VALTIS_MANUTEC_CLIENTES_TOKEN = "<token de serviço, 32+ caracteres>"
+$env:VALTIS_JIRAYA_URL = "<url do Jiraya>/api/integracao/v1/"   # quando o Jiraya expuser a API (J-1 a J-3)
+$env:VALTIS_JIRAYA_TOKEN = "<token de serviço>"
+```
+
+A leitura roda a cada 5 minutos; a tela Integração (admin) tem "Ler agora". Contratos em
+`docs/integracao/jiraya.md` e no `INTEGRACAO_JIRAYA.md` do Manutec Clientes.
+
 ### Rodar contra o banco de produção (evite)
 
 Sem o perfil `local`, o backend usa as variáveis `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` e também exige

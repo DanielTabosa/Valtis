@@ -2,14 +2,16 @@ import { useState } from "react";
 import { Link } from "react-router";
 import type { Bomba } from "../api/tipos";
 import { bombas } from "../api/valtis";
-import { Cabecalho, Carregando, MensagemErro, Modal } from "../componentes/Basicos";
+import { Cabecalho, Carregando, MensagemErro, Modal, NotaGerido } from "../componentes/Basicos";
 import { FormBomba } from "../componentes/FormulariosBombas";
+import { useSistema } from "../sessao/useSistema";
 import { formatarData } from "../util/formato";
 import { useCarga } from "../util/useCarga";
 import { textoPosicao } from "./PainelBombas";
 
 /** Bombas próprias da Manutec (RF-65): o que está disponível e o que está emprestado a quem. */
 export function Patrimonio() {
+  const { externo } = useSistema();
   const [nova, setNova] = useState(false);
   const { dados, carregando, erro, recarregar } = useCarga(() => bombas.patrimonio(), []);
 
@@ -19,9 +21,13 @@ export function Patrimonio() {
   return (
     <>
       <Cabecalho titulo="Patrimônio da Manutec">
-        <button type="button" className="botao primario" onClick={() => setNova(true)}>
-          + Nova bomba
-        </button>
+        {externo ? (
+          <NotaGerido oQue="Novas bombas" fonte="jiraya" />
+        ) : (
+          <button type="button" className="botao primario" onClick={() => setNova(true)}>
+            + Nova bomba
+          </button>
+        )}
       </Cabecalho>
       <p className="secundario">
         Bombas da Manutec emprestadas aos condomínios enquanto a deles está em conserto. A bomba só volta a ficar
@@ -72,7 +78,7 @@ export function Patrimonio() {
                     )}
                   </td>
                   <td data-rotulo="Última manutenção" className="sem-quebra">
-                    {formatarData(b.ultimaManutencao)}
+                    {formatarData(b.ultimaManutencaoConsiderada)}
                   </td>
                 </tr>
               ))}

@@ -28,7 +28,8 @@ import java.util.stream.Collectors;
 @Service
 public class IntegracaoService {
 
-    public record ServicoDaPendencia(UUID id, String codigoEquipamento, LocalDate dataRealizada, boolean ativo) {}
+    public record ServicoDaPendencia(UUID id, String codigoEquipamento, LocalDate dataRealizada, boolean ativo,
+                                     UUID valvulaId, UUID bombaId) {}
 
     /** Uma pendência como a tela mostra: o motivo e um resumo legível do item (sem o corpo inteiro). */
     public record Pendencia(UUID id, OrigemIntegracao origem, TipoEventoRecebido tipo, long idExterno, String versao,
@@ -121,7 +122,8 @@ public class IntegracaoService {
 
     private static ServicoDaPendencia servico(Servico s) {
         String codigo = s.isDaBomba() ? s.getBomba().getCodigoReferencia() : s.getValvula().getCodigoReferencia();
-        return new ServicoDaPendencia(s.getId(), codigo, s.getDataRealizada(), s.isAtivo());
+        return new ServicoDaPendencia(s.getId(), codigo, s.getDataRealizada(), s.isAtivo(),
+                s.getValvula() == null ? null : s.getValvula().getId(), s.isDaBomba() ? s.getBomba().getId() : null);
     }
 
     /** "Bomba de recalque BR-01 · Cond. X", "OS 1234 · Cond. X · concluida", "Cond. X". Sem contato (LGPD). */

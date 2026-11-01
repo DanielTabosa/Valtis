@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { clientes } from "../api/valtis";
-import { Cabecalho, Carregando, MensagemErro, Modal } from "../componentes/Basicos";
+import { Cabecalho, Carregando, MensagemErro, Modal, NotaGerido } from "../componentes/Basicos";
 import { FormCliente } from "../componentes/Formularios";
+import { useSistema } from "../sessao/useSistema";
 import { useAtrasado } from "../util/useAtrasado";
 import { useCarga } from "../util/useCarga";
 
 /** Cadastro de clientes (RF-05, RF-11). */
 export function Clientes() {
   const navegar = useNavigate();
+  const { externo } = useSistema();
   const [busca, setBusca] = useState("");
   const [incluirInativos, setIncluirInativos] = useState(false);
   const [criando, setCriando] = useState(false);
@@ -21,9 +23,13 @@ export function Clientes() {
   return (
     <>
       <Cabecalho titulo="Clientes">
-        <button type="button" className="botao primario" onClick={() => setCriando(true)}>
-          + Novo cliente
-        </button>
+        {externo ? (
+          <NotaGerido oQue="Novos clientes" fonte="manutec_clientes" />
+        ) : (
+          <button type="button" className="botao primario" onClick={() => setCriando(true)}>
+            + Novo cliente
+          </button>
+        )}
       </Cabecalho>
 
       <div className="filtros">
@@ -74,9 +80,11 @@ export function Clientes() {
         </table>
       )}
 
-      <Modal titulo="Novo cliente" aberto={criando} aoFechar={() => setCriando(false)}>
-        <FormCliente aoSalvar={(c) => navegar(`/clientes/${c.id}`)} />
-      </Modal>
+      {!externo && (
+        <Modal titulo="Novo cliente" aberto={criando} aoFechar={() => setCriando(false)}>
+          <FormCliente aoSalvar={(c) => navegar(`/clientes/${c.id}`)} />
+        </Modal>
+      )}
     </>
   );
 }

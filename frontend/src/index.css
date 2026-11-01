@@ -1045,6 +1045,28 @@ a:hover {
   color: var(--vermelho);
 }
 
+/* Registro espelhado do Manutec Clientes ou do Jiraya (D-30): discreto, no tom da marca. */
+.selo-origem {
+  background: var(--primaria-suave);
+  color: var(--primaria-suave-texto);
+}
+
+.nota-gerido {
+  display: inline-flex;
+  align-items: center;
+  color: var(--texto-3);
+  font-size: 0.82rem;
+}
+
+/* Serviço inativado (RN-26): continua no histórico, mas fica claro que não conta mais. */
+.linha-do-tempo li.servico-inativo {
+  opacity: 0.6;
+}
+
+.linha-do-tempo li.servico-inativo .linha-do-tempo-topo strong {
+  text-decoration: line-through;
+}
+
 /* ---------- 8. Resumo (cartões de situação) ---------- */
 
 .resumo {
@@ -1190,8 +1212,36 @@ button.cartao-resumo:hover {
   --cor: var(--verde-vivo);
 }
 
-.cartao-resumo.evento-descartado {
+.cartao-resumo.evento-descartado,
+.cartao-resumo.integracao-descartado,
+.cartao-resumo.integracao-superado {
   --cor: var(--cinza-vivo);
+}
+
+/* Estados dos eventos recebidos do Manutec Clientes e do Jiraya (RF-78). */
+.cartao-resumo.integracao-pendente,
+.cartao-resumo.integracao-pendencia {
+  --cor: var(--ambar-vivo);
+}
+
+.cartao-resumo.integracao-aplicado {
+  --cor: var(--verde-vivo);
+}
+
+.cartao-resumo.integracao-falhou {
+  --cor: var(--vermelho-vivo);
+}
+
+@media (min-width: 720px) {
+  .resumo.seis {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1200px) {
+  .resumo.seis {
+    grid-template-columns: repeat(6, 1fr);
+  }
 }
 
 /* ---------- 9. Filtros e formulários ---------- */

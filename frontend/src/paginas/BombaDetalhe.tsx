@@ -2,8 +2,19 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import type { ClienteResumo, Conjunto, Ocupacao } from "../api/tipos";
 import { bombas, clientes, conjuntos } from "../api/valtis";
-import { Cabecalho, Carregando, EtiquetaStatus, MensagemErro, MensagemSucesso, Modal } from "../componentes/Basicos";
+import {
+  Cabecalho,
+  Carregando,
+  EtiquetaStatus,
+  MensagemErro,
+  MensagemSucesso,
+  Modal,
+  NotaGerido,
+  SeloOrigem,
+} from "../componentes/Basicos";
 import { FormBomba, FormEncerramento, FormInstalacao } from "../componentes/FormulariosBombas";
+import { HistoricoComercial, HistoricoServicos } from "../componentes/Historico";
+import { useSistema } from "../sessao/useSistema";
 import { formatarData, textoPrazo } from "../util/formato";
 import { useAtrasado } from "../util/useAtrasado";
 import { useCarga } from "../util/useCarga";
@@ -14,9 +25,14 @@ type Janela = { tipo: "editar" } | { tipo: "instalar" } | { tipo: "encerrar"; oc
 const ROTULO_NATUREZA = { instalacao: "Instalação", emprestimo: "Empréstimo" } as const;
 const ROTULO_MOTIVO = { retirada: "retirada", devolucao: "devolução" } as const;
 
-/** Ficha da bomba: situação, onde está, dados técnicos e o histórico de posições (RF-67). */
+/**
+ * Ficha da bomba: situação, onde está, dados técnicos, serviços, histórico comercial
+ * e histórico de posições (RF-67, RF-80). No modo integrado, posição e cadastro vêm do
+ * Jiraya: a movimentação sai daqui (RF-77).
+ */
 export function BombaDetalhe() {
   const { id = "" } = useParams();
+  const { externo } = useSistema();
   const navegar = useNavigate();
   const { dados: d, carregando, erro, recarregar } = useCarga(() => bombas.detalhar(id), [id]);
   const [janela, setJanela] = useState<Janela | null>(null);
@@ -39,8 +55,8 @@ export function BombaDetalhe() {
 
   async function excluir() {
     if (!d) return;
-    if (d.historico.length > 0) {
-      alert(`${d.bomba.codigoReferencia} já tem histórico de posição e não pode ser excluída. Use Inativar.`);
+    if (d.historico.length > 0 || d.servicos.length > 0 || d.oportunidades.length > 0) {
+      alert(`${d.bomba.codigoReferencia} já tem histórico e não pode ser excluída. Use Inativar.`);
       return;
     }
     if (!confirm(`Excluir ${d.bomba.codigoReferencia}? Ela some do sistema de vez.`)) return;
@@ -53,25 +69,41 @@ export function BombaDetalhe() {
 
   const b = d.bomba;
   const abertas = d.historico.filter((o) => o.aberta);
+  // Bomba do patrimônio não recebe serviço pelo lançamento (RF-80).
+  const lancavel = b.ativo && !b.patrimonioManutec && b.clienteId !== null;
 
   return (
     <>
       <Cabecalho titulo={b.codigoReferencia}>
-        {b.ativo && b.posicoes.length === 0 && (
+        {lancavel && (
+          <Link to={`/lancar?cliente=${b.clienteId}&bomba=${b.id}`} className="botao primario">
+            Lançar serviço
+          </Link>
+        )}
+        {!externo && b.ativo && b.posicoes.length === 0 && (
           <button type="button" className="botao primario" onClick={() => setJanela({ tipo: "instalar" })}>
             {b.patrimonioManutec ? "Emprestar" : "Instalar"}
           </button>
         )}
         <button type="button" className="botao" onClick={() => setJanela({ tipo: "editar" })}>
-          Editar
+          {b.espelhada ? "Completar dados" : "Editar"}
         </button>
-        <button type="button" className="botao-texto" disabled={acao.enviando} onClick={alternar}>
-          {b.ativo ? "Inativar" : "Reativar"}
-        </button>
-        <button type="button" className="botao-texto perigo" disabled={acao.enviando} onClick={excluir}>
-          Excluir
-        </button>
+        {!b.espelhada && (
+          <>
+            <button type="button" className="botao-texto" disabled={acao.enviando} onClick={alternar}>
+              {b.ativo ? "Inativar" : "Reativar"}
+            </button>
+            <button type="button" className="botao-texto perigo" disabled={acao.enviando} onClick={excluir}>
+              Excluir
+            </button>
+          </>
+        )}
       </Cabecalho>
+      {b.espelhada && (
+        <p className="secundario">
+          <SeloOrigem fonte="jiraya" /> Fabricante, modelo, posição e situação vêm do Jiraya e só mudam lá.
+        </p>
+      )}
       <MensagemErro erro={acao.erro} />
       <MensagemSucesso texto={aviso} />
       {!b.ativo && <div className="aviso alerta">Bomba inativa. Ela não aparece no painel.</div>}
@@ -115,6 +147,12 @@ export function BombaDetalhe() {
           <dt>Fabricante e modelo</dt>
           <dd>{[b.fabricante, b.modelo].filter(Boolean).join(" ") || "—"}</dd>
         </div>
+        {b.identificacaoExterna && (
+          <div>
+            <dt>Identificação no Jiraya</dt>
+            <dd className="mono">{b.identificacaoExterna}</dd>
+          </div>
+        )}
         <div>
           <dt>Potência · tensão · corrente</dt>
           <dd>
@@ -135,11 +173,32 @@ export function BombaDetalhe() {
         </div>
         <div>
           <dt>Última manutenção</dt>
-          <dd>{formatarData(b.ultimaManutencao)}</dd>
+          <dd>
+            {formatarData(b.ultimaManutencaoConsiderada)}
+            {/* A base do ciclo pode vir do serviço lançado; a do cadastro fica como referência. */}
+            {b.ultimaManutencao && b.ultimaManutencao !== b.ultimaManutencaoConsiderada && (
+              <span className="secundario"> · no cadastro: {formatarData(b.ultimaManutencao)}</span>
+            )}
+          </dd>
         </div>
       </dl>
 
-      <h2>Histórico de posições</h2>
+      <HistoricoServicos
+        servicos={d.servicos}
+        vazio={
+          b.patrimonioManutec
+            ? "Bomba do patrimônio: os serviços dela não são lançados por aqui."
+            : "Nenhum serviço lançado nesta bomba."
+        }
+        aoMudar={recarregar}
+        comPressao={false}
+      />
+      <HistoricoComercial oportunidades={d.oportunidades} />
+
+      <div className="cabecalho-secao">
+        <h2>Histórico de posições</h2>
+        {externo && <NotaGerido oQue="Movimentação" fonte="jiraya" />}
+      </div>
       {d.historico.length === 0 && <p className="aviso">Esta bomba ainda não foi colocada em nenhuma posição.</p>}
       <ol className="linha-do-tempo">
         {d.historico.map((o) => (
@@ -165,7 +224,7 @@ export function BombaDetalhe() {
             </p>
             {o.observacoes && <p className="secundario">{o.observacoes}</p>}
             <p className="secundario pequeno">Registrado por {o.registradoPor}</p>
-            {o.aberta && (
+            {o.aberta && !externo && (
               <button type="button" className="botao" onClick={() => setJanela({ tipo: "encerrar", ocupacao: o })}>
                 {o.natureza === "emprestimo" ? "Registrar devolução" : "Registrar retirada"}
               </button>
@@ -174,7 +233,7 @@ export function BombaDetalhe() {
         ))}
       </ol>
 
-      <Modal titulo="Editar bomba" aberto={janela?.tipo === "editar"} aoFechar={() => setJanela(null)}>
+      <Modal titulo={b.espelhada ? "Completar bomba" : "Editar bomba"} aberto={janela?.tipo === "editar"} aoFechar={() => setJanela(null)}>
         <FormBomba bomba={b} aoSalvar={() => fecharERecarregar()} />
       </Modal>
       <Modal

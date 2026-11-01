@@ -14,6 +14,13 @@ import type {
   TipoBomba,
   ClienteDetalhe,
   ClienteResumo,
+  ComplementoCliente,
+  ComplementoEstacao,
+  ComplementoValvula,
+  EstadoIntegracao,
+  Pendencia,
+  ResumoDaLeitura,
+  Sistema,
   DadosCliente,
   DadosEspecificacao,
   DadosEstacao,
@@ -50,6 +57,10 @@ function consulta(parametros: Record<string, string | boolean | undefined>): str
   return texto ? `?${texto}` : "";
 }
 
+export const sistema = {
+  consultar: () => http.get<Sistema>("/api/sistema"),
+};
+
 export const autenticacao = {
   entrar: (email: string, senha: string) => http.post<RespostaLogin>("/api/auth/login", { email, senha }),
   eu: () => http.get<UsuarioSessao>("/api/auth/eu"),
@@ -74,6 +85,8 @@ export const clientes = {
   detalhar: (id: string) => http.get<ClienteDetalhe>(`/api/clientes/${id}`),
   criar: (dados: DadosCliente) => http.post<ClienteDetalhe>("/api/clientes", dados),
   atualizar: (id: string, dados: DadosCliente) => http.put<ClienteDetalhe>(`/api/clientes/${id}`, dados),
+  completar: (id: string, dados: ComplementoCliente) =>
+    http.put<ClienteDetalhe>(`/api/clientes/${id}/complemento`, dados),
   inativar: (id: string) => http.post<void>(`/api/clientes/${id}/inativar`),
   reativar: (id: string) => http.post<void>(`/api/clientes/${id}/reativar`),
 };
@@ -81,6 +94,7 @@ export const clientes = {
 export const estacoes = {
   criar: (clienteId: string, dados: DadosEstacao) => http.post<Estacao>(`/api/clientes/${clienteId}/estacoes`, dados),
   atualizar: (id: string, dados: DadosEstacao) => http.put<Estacao>(`/api/estacoes/${id}`, dados),
+  completar: (id: string, dados: ComplementoEstacao) => http.put<Estacao>(`/api/estacoes/${id}/complemento`, dados),
   inativar: (id: string) => http.post<void>(`/api/estacoes/${id}/inativar`),
   reativar: (id: string) => http.post<void>(`/api/estacoes/${id}/reativar`),
 };
@@ -89,6 +103,7 @@ export const valvulas = {
   criar: (estacaoId: string, dados: DadosValvula) => http.post<Valvula>(`/api/estacoes/${estacaoId}/valvulas`, dados),
   detalhar: (id: string) => http.get<ValvulaDetalhe>(`/api/valvulas/${id}`),
   atualizar: (id: string, dados: DadosValvula) => http.put<Valvula>(`/api/valvulas/${id}`, dados),
+  completar: (id: string, dados: ComplementoValvula) => http.put<Valvula>(`/api/valvulas/${id}/complemento`, dados),
   inativar: (id: string) => http.post<void>(`/api/valvulas/${id}/inativar`),
   reativar: (id: string) => http.post<void>(`/api/valvulas/${id}/reativar`),
   excluir: (id: string) => http.delete<void>(`/api/valvulas/${id}`),
@@ -113,6 +128,7 @@ export const especificacoes = {
 
 export const servicos = {
   lancar: (itens: ItemLancamento[]) => http.post<ResultadoLancamento[]>("/api/servicos/lancamentos", { itens }),
+  inativar: (id: string, motivo: string) => http.post<void>(`/api/servicos/${id}/inativacao`, { motivo }),
 };
 
 export type Situacao = "ABERTAS" | "ENCERRADAS" | "TODAS";
@@ -171,6 +187,8 @@ export const bombas = {
     http.post<Bomba>(`/api/clientes/${clienteId}/bombas`, dados),
   criarPatrimonial: (dados: DadosBomba) => http.post<Bomba>("/api/patrimonio/bombas", dados),
   atualizar: (id: string, dados: DadosBomba) => http.put<Bomba>(`/api/bombas/${id}`, dados),
+  /** Na espelhada, fabricante e modelo do corpo são ignorados: vêm do Jiraya. */
+  completar: (id: string, dados: DadosBomba) => http.put<Bomba>(`/api/bombas/${id}/complemento`, dados),
   inativar: (id: string) => http.post<void>(`/api/bombas/${id}/inativar`),
   reativar: (id: string) => http.post<void>(`/api/bombas/${id}/reativar`),
   excluir: (id: string) => http.delete<void>(`/api/bombas/${id}`),
@@ -178,4 +196,13 @@ export const bombas = {
     http.post<ResultadoMovimentacao>(`/api/bombas/${id}/instalacao`, dados),
   encerrarOcupacao: (ocupacaoId: string, fim: string, observacoes: string) =>
     http.post<Ocupacao>(`/api/ocupacoes/${ocupacaoId}/encerramento`, { fim, observacoes }),
+};
+
+export const integracao = {
+  pendencias: () => http.get<Pendencia[]>("/api/integracao/pendencias"),
+  reprocessar: (id: string) => http.post<void>(`/api/integracao/eventos/${id}/reprocessamento`),
+  descartar: (id: string, justificativa: string) =>
+    http.post<void>(`/api/integracao/eventos/${id}/descarte`, { justificativa }),
+  estado: () => http.get<EstadoIntegracao>("/api/integracao/estado"),
+  lerAgora: () => http.post<ResumoDaLeitura>("/api/integracao/leitura"),
 };

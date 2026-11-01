@@ -1,12 +1,14 @@
 import { useState, type FormEvent } from "react";
 import type { TipoBomba } from "../api/tipos";
 import { tiposBomba } from "../api/valtis";
-import { Cabecalho, Campo, Carregando, MensagemErro, Modal } from "../componentes/Basicos";
+import { Cabecalho, Campo, Carregando, MensagemErro, Modal, NotaGerido } from "../componentes/Basicos";
+import { useSistema } from "../sessao/useSistema";
 import { useCarga } from "../util/useCarga";
 import { useEnvio } from "../util/useEnvio";
 
-/** Catálogo de tipos de bombeamento (RF-60). Só admin. */
+/** Catálogo de tipos de bombeamento (RF-60). Só admin. No modo integrado, vem do Jiraya e só se lê. */
 export function TiposBomba() {
+  const { externo } = useSistema();
   const [incluirInativos, setIncluirInativos] = useState(false);
   const [editando, setEditando] = useState<TipoBomba | "novo" | null>(null);
   const { dados, carregando, erro, recarregar } = useCarga(() => tiposBomba.listar(incluirInativos), [incluirInativos]);
@@ -20,9 +22,13 @@ export function TiposBomba() {
   return (
     <>
       <Cabecalho titulo="Tipos de bombeamento">
-        <button type="button" className="botao primario" onClick={() => setEditando("novo")}>
-          + Novo tipo
-        </button>
+        {externo ? (
+          <NotaGerido oQue="Catálogo de tipos" fonte="jiraya" />
+        ) : (
+          <button type="button" className="botao primario" onClick={() => setEditando("novo")}>
+            + Novo tipo
+          </button>
+        )}
       </Cabecalho>
       <p className="secundario">
         Cada conjunto de bombeamento tem um tipo. Inativar um tipo tira-o da lista; os conjuntos que já o usam
@@ -52,12 +58,21 @@ export function TiposBomba() {
                   {!t.ativo && <span className="selo">inativo</span>}
                 </td>
                 <td className="acoes-linha">
-                  <button type="button" className="botao-texto" onClick={() => setEditando(t)}>
-                    Renomear
-                  </button>
-                  <button type="button" className="botao-texto" disabled={acao.enviando} onClick={() => alternar(t)}>
-                    {t.ativo ? "Inativar" : "Reativar"}
-                  </button>
+                  {!externo && (
+                    <>
+                      <button type="button" className="botao-texto" onClick={() => setEditando(t)}>
+                        Renomear
+                      </button>
+                      <button
+                        type="button"
+                        className="botao-texto"
+                        disabled={acao.enviando}
+                        onClick={() => alternar(t)}
+                      >
+                        {t.ativo ? "Inativar" : "Reativar"}
+                      </button>
+                    </>
+                  )}
                 </td>
               </tr>
             ))}

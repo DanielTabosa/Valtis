@@ -1,13 +1,17 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { valvulas } from "../api/valtis";
-import { Cabecalho, Carregando, EtiquetaStatus, MensagemErro, Modal } from "../componentes/Basicos";
-import { FormValvula } from "../componentes/Formularios";
-import { formatarData, formatarDataHora, ROTULO_OPORTUNIDADE, textoPrazo } from "../util/formato";
+import { Cabecalho, Carregando, EtiquetaStatus, MensagemErro, Modal, SeloOrigem } from "../componentes/Basicos";
+import { FormComplementoValvula, FormValvula } from "../componentes/Formularios";
+import { HistoricoComercial, HistoricoServicos } from "../componentes/Historico";
+import { formatarData, textoPrazo } from "../util/formato";
 import { useCarga } from "../util/useCarga";
 import { useEnvio } from "../util/useEnvio";
 
-/** Ficha da válvula: situação, histórico de serviços (RF-21) e histórico comercial. */
+/**
+ * Ficha da válvula: situação, histórico de serviços (RF-21) e histórico comercial.
+ * A espelhada do Jiraya só edita os campos do Valtis e não se inativa nem exclui aqui (RN-24).
+ */
 export function ValvulaDetalhe() {
   const { id = "" } = useParams();
   const navegar = useNavigate();
@@ -38,6 +42,11 @@ export function ValvulaDetalhe() {
     if (r.ok) navegar(`/clientes/${d.clienteId}`, { replace: true });
   }
 
+  function aposSalvar() {
+    setEditando(false);
+    recarregar();
+  }
+
   if (carregando && !d) return <Carregando />;
   if (!d) return <MensagemErro erro={erro} />;
 
@@ -53,16 +62,25 @@ export function ValvulaDetalhe() {
           </Link>
         )}
         <button type="button" className="botao" onClick={() => setEditando(true)}>
-          Editar
+          {v.espelhada ? "Completar dados" : "Editar"}
         </button>
-        <button type="button" className="botao-texto" disabled={acao.enviando} onClick={alternar}>
-          {v.ativo ? "Inativar" : "Reativar"}
-        </button>
-        {/* RF-12a: sempre visível; com histórico, o servidor recusa e explica o porquê. */}
-        <button type="button" className="botao-texto perigo" disabled={acao.enviando} onClick={excluir}>
-          Excluir
-        </button>
+        {!v.espelhada && (
+          <>
+            <button type="button" className="botao-texto" disabled={acao.enviando} onClick={alternar}>
+              {v.ativo ? "Inativar" : "Reativar"}
+            </button>
+            {/* RF-12a: sempre visível; com histórico, o servidor recusa e explica o porquê. */}
+            <button type="button" className="botao-texto perigo" disabled={acao.enviando} onClick={excluir}>
+              Excluir
+            </button>
+          </>
+        )}
       </Cabecalho>
+      {v.espelhada && (
+        <p className="secundario">
+          <SeloOrigem fonte="jiraya" /> Número, fabricante, modelo e situação vêm do Jiraya e só mudam lá.
+        </p>
+      )}
       <MensagemErro erro={acao.erro} />
       {!operante && (
         <div className="aviso alerta">
@@ -98,9 +116,24 @@ export function ValvulaDetalhe() {
           <dt>Número na estação</dt>
           <dd>{v.numeroValvula}</dd>
         </div>
+        {v.espelhada && (
+          <div>
+            <dt>Fabricante e modelo</dt>
+            <dd>{[v.fabricante, v.modelo].filter(Boolean).join(" ") || "—"}</dd>
+          </div>
+        )}
+        {v.identificacaoExterna && (
+          <div>
+            <dt>Identificação no Jiraya</dt>
+            <dd className="mono">{v.identificacaoExterna}</dd>
+          </div>
+        )}
         <div>
           <dt>Especificação</dt>
-          <dd>{v.especificacao}</dd>
+          <dd>
+            {v.especificacao}
+            {v.especificacaoId === null && <span className="selo">a completar</span>}
+          </dd>
         </div>
         <div>
           <dt>Número de série</dt>
@@ -116,68 +149,20 @@ export function ValvulaDetalhe() {
         </div>
       </dl>
 
-      <h2>Histórico de serviços</h2>
-      {d.historico.length === 0 && <p className="aviso">Nenhum serviço lançado. Situação: sem registro.</p>}
-      <ol className="linha-do-tempo">
-        {d.historico.map((s) => (
-          <li key={s.id}>
-            <div className="linha-do-tempo-topo">
-              <strong>{formatarData(s.dataRealizada)}</strong>
-              <span className="selo">{s.tipoManutencao}</span>
-              <span className="secundario">por {s.tecnicoResponsavel}</span>
-            </div>
-            {s.pecasSubstituidas && <p>Peças: {s.pecasSubstituidas}</p>}
-            {(s.pressaoEntrada !== null || s.pressaoSaida !== null) && (
-              <p>
-                Pressão: entrada {s.pressaoEntrada ?? "—"} · saída {s.pressaoSaida ?? "—"}
-              </p>
-            )}
-            {s.observacoes && <p>{s.observacoes}</p>}
-            <p className="secundario pequeno">
-              Lançado por {s.lancadoPor} em {formatarDataHora(s.lancadoEm)}
-            </p>
-          </li>
-        ))}
-      </ol>
+      <HistoricoServicos
+        servicos={d.historico}
+        vazio="Nenhum serviço lançado. Situação: sem registro."
+        aoMudar={recarregar}
+        comPressao
+      />
+      <HistoricoComercial oportunidades={d.oportunidades} />
 
-      {d.oportunidades.length > 0 && (
-        <>
-          <h2>Histórico comercial</h2>
-          <table className="tabela tabela-cartoes">
-            <thead>
-              <tr>
-                <th>Previsto</th>
-                <th>Desfecho</th>
-                <th>Responsável</th>
-                <th>Encerrada</th>
-              </tr>
-            </thead>
-            <tbody>
-              {d.oportunidades.map((o) => (
-                <tr key={o.id}>
-                  <td data-rotulo="Previsto">{formatarData(o.dataPrevista)}</td>
-                  <td data-rotulo="Desfecho">
-                    <span className={`etiqueta oportunidade-${o.status}`}>{ROTULO_OPORTUNIDADE[o.status]}</span>
-                    {o.motivoRecusa && <span className="secundario"> · {o.motivoRecusa}</span>}
-                  </td>
-                  <td data-rotulo="Responsável">{o.responsavel ?? "—"}</td>
-                  <td data-rotulo="Encerrada">{formatarDataHora(o.encerradaEm)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </>
-      )}
-
-      <Modal titulo="Editar válvula" aberto={editando} aoFechar={() => setEditando(false)}>
-        <FormValvula
-          estacaoId={d.estacaoId}
-          valvula={v}
-          aoSalvar={() => {
-            setEditando(false);
-            recarregar();
-          }}
-        />
+      <Modal titulo={v.espelhada ? "Completar válvula" : "Editar válvula"} aberto={editando} aoFechar={() => setEditando(false)}>
+        {v.espelhada ? (
+          <FormComplementoValvula valvula={v} aoSalvar={aposSalvar} />
+        ) : (
+          <FormValvula estacaoId={d.estacaoId} valvula={v} aoSalvar={aposSalvar} />
+        )}
       </Modal>
     </>
   );
