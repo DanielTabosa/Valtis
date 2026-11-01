@@ -63,7 +63,6 @@ A **Manutec Válvulas** (Recife/PE) faz manutenção de VRPs — válvulas redut
 | Fotos (RF-19) e PDF (RF-48) | Fase 2 |
 | Auditoria (RNF-17), rascunho (RF-20), exportar CSV (RF-40) | Não priorizados |
 | Atualizar/remover evento já criado no Google (RF-32) | Hoje, mudar a data só reprograma eventos ainda não enviados |
-| Filtro do painel por técnico e período (parte do RF-38) | Não implementado |
 
 ---
 
@@ -136,6 +135,7 @@ O Daniel autorizou seguir sem aprovação durante a codificação (13/10/2026). 
 | S-11 | ✅ D-21, D-23, D-24 aceitas. D-22 aceita **com gatilho**: com domínio único (P-07), reavaliar cookie `HttpOnly` | `docs/decisions.md` |
 | S-12 | ✅ **Validada em 01/11/2026.** Do detalhe do Manutec Clientes para o cliente do Valtis: nome do condomínio = nome fantasia (sem ele, razão social); endereço, bairro e cidade do endereço principal ativo (sem ele, o primeiro ativo); síndico, telefone e e-mail do contato com função "síndico" (sem ele, o primeiro contato) | `integracao/AplicadorDeCliente.dados` |
 | S-13 | ✅ **Validada em 01/11/2026.** Tipo de bomba do Valtis para equipamento do Jiraya: o tipo ativo do catálogo cujo nome aparece no nome do tipo do Jiraya ("Bomba de recalque" → Recalque); sem correspondência, pendência | `integracao/AplicadorDeEquipamento.tipoDeBomba` |
+| S-15 | ⏳ **A validar.** Filtros do painel (RF-38, 01/11/2026): "técnico" é quem fez o **último serviço ativo** da válvula (usuário do Valtis ou técnico do Jiraya); "período" recorta a **próxima manutenção** (de/até, inclusive), e válvula SEM REGISTRO sai quando há período. As listas de bairro e técnico vêm da base inteira | `painel/FiltroPainel`, `ValvulaRepository.buscarDadosDoPainel` |
 | S-14 | ✅ **Validada em 01/11/2026.** VRP que muda de localização no Jiraya vira pendência (a válvula não troca de estação, para não misturar históricos); bomba que muda de localização é movida: encerra a ocupação e abre outra no conjunto novo (D-27) | `integracao/AplicadorDeEquipamento` |
 
 ---

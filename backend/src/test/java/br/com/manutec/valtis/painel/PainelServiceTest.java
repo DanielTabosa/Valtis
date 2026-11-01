@@ -88,7 +88,7 @@ class PainelServiceTest {
                 valvula("VENCIDO", HOJE.minusMonths(14))));
 
         PainelService.Painel resultado = painel.montar(
-                new FiltroPainel(null, StatusPainel.VENCIDO, null, null, null));
+                new FiltroPainel(null, StatusPainel.VENCIDO, null, null, null, null, null, null));
 
         assertThat(resultado.linhas()).extracting(LinhaPainel::codigoReferencia).containsExactly("VENCIDO");
         assertThat(resultado.resumo()).extracting(PainelService.ContagemStatus::total)
@@ -101,7 +101,7 @@ class PainelServiceTest {
                 valvula("A", HOJE.minusMonths(1)),
                 valvula("B", HOJE.minusMonths(14))));
 
-        PainelService.Painel resultado = painel.montar(new FiltroPainel("serie-b", null, null, null, null));
+        PainelService.Painel resultado = painel.montar(new FiltroPainel("serie-b", null, null, null, null, null, null, null));
 
         assertThat(resultado.resumo()).extracting(PainelService.ContagemStatus::total)
                 .containsExactly(1L, 0L, 0L, 0L);
@@ -113,9 +113,66 @@ class PainelServiceTest {
                 valvula("A", HOJE.minusMonths(1)),
                 valvula("B", HOJE.minusMonths(1))));
 
-        PainelService.Painel resultado = painel.montar(new FiltroPainel("serie-b", null, null, null, null));
+        PainelService.Painel resultado = painel.montar(new FiltroPainel("serie-b", null, null, null, null, null, null, null));
 
         assertThat(resultado.linhas()).extracting(LinhaPainel::codigoReferencia).containsExactly("B");
+    }
+
+    @Test
+    void filtraPeloTecnicoDoUltimoServicoSemDiferenciarMaiusculas() {
+        when(repository.buscarDadosDoPainel()).thenReturn(List.of(
+                valvula("A", HOJE.minusMonths(1), "Bairro 1", "Carlos"),
+                valvula("B", HOJE.minusMonths(1), "Bairro 1", "José Externo"),
+                valvula("C", null, "Bairro 1", null)));
+
+        PainelService.Painel resultado = painel.montar(
+                new FiltroPainel(null, null, null, null, null, "carlos", null, null));
+
+        assertThat(resultado.linhas()).extracting(LinhaPainel::codigoReferencia).containsExactly("A");
+        assertThat(resultado.linhas().getFirst().ultimoTecnico()).isEqualTo("Carlos");
+    }
+
+    @Test
+    void periodoRecortaOVencimentoInclusiveNasPontasETiraQuemNaoTemVencimento() {
+        when(repository.buscarDadosDoPainel()).thenReturn(List.of(
+                valvula("VENCE-NO-INICIO", HOJE.minusMonths(12).plusDays(5)),
+                valvula("VENCE-NO-FIM", HOJE.minusMonths(12).plusDays(20)),
+                valvula("VENCE-DEPOIS", HOJE.minusMonths(12).plusDays(21)),
+                valvula("VENCEU-ANTES", HOJE.minusMonths(12).plusDays(4)),
+                valvula("SEM-REGISTRO", null)));
+
+        PainelService.Painel resultado = painel.montar(new FiltroPainel(null, null, null, null, null, null,
+                HOJE.plusDays(5), HOJE.plusDays(20)));
+
+        assertThat(resultado.linhas()).extracting(LinhaPainel::codigoReferencia)
+                .containsExactly("VENCE-NO-INICIO", "VENCE-NO-FIM");
+    }
+
+    @Test
+    void periodoSoComInicioAceitaTudoDaliEmDiante() {
+        when(repository.buscarDadosDoPainel()).thenReturn(List.of(
+                valvula("ANTES", HOJE.minusMonths(13)),
+                valvula("DEPOIS", HOJE.minusMonths(1))));
+
+        PainelService.Painel resultado = painel.montar(new FiltroPainel(null, null, null, null, null, null,
+                HOJE, null));
+
+        assertThat(resultado.linhas()).extracting(LinhaPainel::codigoReferencia).containsExactly("DEPOIS");
+    }
+
+    @Test
+    void opcoesDeBairroETecnicoVemDaBaseInteiraMesmoComFiltro() {
+        when(repository.buscarDadosDoPainel()).thenReturn(List.of(
+                valvula("A", HOJE.minusMonths(1), "Pina", "Carlos"),
+                valvula("B", HOJE.minusMonths(1), "Boa Viagem", "Ana"),
+                valvula("C", null, "Boa Viagem", null)));
+
+        PainelService.Painel resultado = painel.montar(
+                new FiltroPainel(null, null, "Pina", null, null, null, null, null));
+
+        assertThat(resultado.linhas()).extracting(LinhaPainel::codigoReferencia).containsExactly("A");
+        assertThat(resultado.opcoes().bairros()).containsExactly("Boa Viagem", "Pina");
+        assertThat(resultado.opcoes().tecnicos()).containsExactly("Ana", "Carlos");
     }
 
     /**
@@ -139,6 +196,10 @@ class PainelServiceTest {
     }
 
     private static PainelProjecao valvula(String codigo, LocalDate ultimaManutencao) {
+        return valvula(codigo, ultimaManutencao, "Boa Viagem", ultimaManutencao == null ? null : "Técnico");
+    }
+
+    private static PainelProjecao valvula(String codigo, LocalDate ultimaManutencao, String bairro, String tecnico) {
         return new PainelProjecao() {
             private final UUID id = UUID.randomUUID();
             public UUID getValvulaId() { return id; }
@@ -149,7 +210,7 @@ class PainelServiceTest {
             public String getNumeroSerie() { return "serie-" + codigo.toLowerCase(); }
             public Integer getPeriodicidadeMeses() { return 12; }
             public String getNomeCondominio() { return "Edifício " + codigo; }
-            public String getBairro() { return "Boa Viagem"; }
+            public String getBairro() { return bairro; }
             public String getTipoAtendimento() { return "Avulso"; }
             public String getLocalizacaoInstalacao() { return "Barrilete"; }
             public Integer getAndarInicial() { return 0; }
@@ -157,6 +218,7 @@ class PainelServiceTest {
             public Boolean getRequerFechamentoGeral() { return false; }
             public String getEspecificacao() { return "Bermad 720 - 2\" Esfera"; }
             public LocalDate getUltimaManutencao() { return ultimaManutencao; }
+            public String getUltimoTecnico() { return tecnico; }
         };
     }
 }

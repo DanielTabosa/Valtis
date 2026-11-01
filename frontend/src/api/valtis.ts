@@ -73,6 +73,10 @@ export type FiltroPainel = {
   bairro?: string;
   tipoAtendimento?: string;
   clienteId?: string;
+  tecnico?: string;
+  /** Recorte da próxima manutenção, em ISO (aaaa-mm-dd), inclusive nas pontas. */
+  vencimentoDe?: string;
+  vencimentoAte?: string;
 };
 
 export const painel = {

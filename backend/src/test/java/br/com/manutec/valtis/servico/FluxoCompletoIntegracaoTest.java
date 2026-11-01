@@ -102,7 +102,14 @@ class FluxoCompletoIntegracaoTest extends TesteDeIntegracao {
                 .andExpect(jsonPath("$[0].proximaManutencao").value("2026-11-01"));
 
         obter("/api/painel?clienteId=" + clienteId + "&status=PROXIMO_DO_VENCIMENTO", token)
-                .andExpect(jsonPath("$.linhas[0].diasRestantes").value(19));
+                .andExpect(jsonPath("$.linhas[0].diasRestantes").value(19))
+                .andExpect(jsonPath("$.linhas[0].ultimoTecnico").isNotEmpty());
+
+        // RF-38: período de vencimento, pelas pontas.
+        obter("/api/painel?clienteId=" + clienteId + "&vencimentoDe=2026-11-01&vencimentoAte=2026-11-01", token)
+                .andExpect(jsonPath("$.linhas.length()").value(1));
+        obter("/api/painel?clienteId=" + clienteId + "&vencimentoDe=2026-11-02", token)
+                .andExpect(jsonPath("$.linhas.length()").value(0));
 
         // RF-43: já passou da data do alerta comercial e ninguém assumiu.
         var fila = obter("/api/oportunidades", token);

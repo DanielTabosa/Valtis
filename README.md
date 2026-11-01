@@ -189,7 +189,7 @@ Todos exigem o cabeçalho `Authorization: Bearer <token>`, exceto login e health
 |---|---|
 | `POST /api/auth/login` | Devolve o token. Público |
 | `GET /api/auth/eu` · `POST /api/auth/senha` | Quem sou eu · trocar a própria senha |
-| `GET /api/painel` | Linhas e resumo por situação. Filtros: `busca`, `status`, `bairro`, `tipoAtendimento`, `clienteId` |
+| `GET /api/painel` | Linhas, resumo por situação e opções de bairro e técnico. Filtros: `busca`, `status`, `bairro`, `tipoAtendimento`, `clienteId`, `tecnico` (do último serviço), `vencimentoDe` e `vencimentoAte` (próxima manutenção, aaaa-mm-dd, inclusive) |
 | `GET/POST /api/clientes` · `GET/PUT /api/clientes/{id}` | Cadastro de clientes |
 | `POST /api/clientes/{id}/estacoes` · `PUT /api/estacoes/{id}` | Estações |
 | `POST /api/estacoes/{id}/valvulas` · `GET/PUT/DELETE /api/valvulas/{id}` | Válvulas e ficha com histórico (DELETE só sem histórico) |

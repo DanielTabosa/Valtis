@@ -25,4 +25,5 @@ public interface PainelProjecao {
     Boolean getRequerFechamentoGeral();
     String getEspecificacao();
     LocalDate getUltimaManutencao();
+    String getUltimoTecnico();
 }

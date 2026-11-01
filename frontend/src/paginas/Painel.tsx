@@ -15,6 +15,10 @@ export function Painel() {
   const [busca, setBusca] = useState(() => parametros.get("busca") ?? "");
   const [status, setStatus] = useState<StatusPainel | "">("");
   const [tipoAtendimento, setTipoAtendimento] = useState("");
+  const [bairro, setBairro] = useState("");
+  const [tecnico, setTecnico] = useState("");
+  const [vencimentoDe, setVencimentoDe] = useState("");
+  const [vencimentoAte, setVencimentoAte] = useState("");
   const buscaAtrasada = useAtrasado(busca);
 
   const { dados, carregando, erro } = useCarga(
@@ -23,9 +27,15 @@ export function Painel() {
         busca: buscaAtrasada,
         status: status || undefined,
         tipoAtendimento,
+        bairro,
+        tecnico,
+        vencimentoDe: vencimentoDe || undefined,
+        vencimentoAte: vencimentoAte || undefined,
       }),
-    [buscaAtrasada, status, tipoAtendimento],
+    [buscaAtrasada, status, tipoAtendimento, bairro, tecnico, vencimentoDe, vencimentoAte],
   );
+
+  const temPeriodo = vencimentoDe !== "" || vencimentoAte !== "";
 
   const totalResumo = dados?.resumo.reduce((soma, r) => soma + r.total, 0) ?? 0;
 
@@ -70,6 +80,52 @@ export function Painel() {
           <option value="Contrato">Só contrato</option>
           <option value="Avulso">Só avulso</option>
         </select>
+        <select value={bairro} onChange={(e) => setBairro(e.target.value)} aria-label="Bairro">
+          <option value="">Todos os bairros</option>
+          {dados?.opcoes.bairros.map((b) => (
+            <option key={b} value={b}>
+              {b}
+            </option>
+          ))}
+        </select>
+        <select value={tecnico} onChange={(e) => setTecnico(e.target.value)} aria-label="Técnico do último serviço">
+          <option value="">Todos os técnicos</option>
+          {dados?.opcoes.tecnicos.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+        </select>
+        <label className="filtro-periodo">
+          Vence de
+          <input
+            type="date"
+            value={vencimentoDe}
+            max={vencimentoAte || undefined}
+            onChange={(e) => setVencimentoDe(e.target.value)}
+          />
+        </label>
+        <label className="filtro-periodo">
+          até
+          <input
+            type="date"
+            value={vencimentoAte}
+            min={vencimentoDe || undefined}
+            onChange={(e) => setVencimentoAte(e.target.value)}
+          />
+        </label>
+        {temPeriodo && (
+          <button
+            type="button"
+            className="botao-texto"
+            onClick={() => {
+              setVencimentoDe("");
+              setVencimentoAte("");
+            }}
+          >
+            Limpar período
+          </button>
+        )}
         {status && (
           <button type="button" className="botao-texto" onClick={() => setStatus("")}>
             Limpar situação
@@ -80,7 +136,12 @@ export function Painel() {
       <MensagemErro erro={erro} />
       {carregando && !dados && <Carregando />}
 
-      {dados && dados.linhas.length === 0 && <p className="aviso">Nenhuma válvula encontrada com esses filtros.</p>}
+      {dados && dados.linhas.length === 0 && (
+        <p className="aviso">
+          Nenhuma válvula encontrada com esses filtros.
+          {temPeriodo && " Com período, válvulas sem registro ficam de fora: não têm vencimento."}
+        </p>
+      )}
 
       {dados && dados.linhas.length > 0 && (
         <table className="tabela tabela-cartoes">
@@ -113,7 +174,10 @@ export function Painel() {
                   <span className="secundario"> · {l.andaresAtendidos}</span>
                   {l.requerFechamentoGeral && <span className="selo-alerta">fechamento geral</span>}
                 </td>
-                <td data-rotulo="Última" className="sem-quebra">{formatarData(l.ultimaManutencao)}</td>
+                <td data-rotulo="Última" className="sem-quebra">
+                  {formatarData(l.ultimaManutencao)}
+                  {l.ultimoTecnico && <span className="secundario"> · {l.ultimoTecnico}</span>}
+                </td>
                 <td data-rotulo="Próxima" className="sem-quebra">{formatarData(l.proximaManutencao)}</td>
                 <td data-rotulo="Prazo" className="sem-quebra">{textoPrazo(l.diasRestantes)}</td>
               </tr>

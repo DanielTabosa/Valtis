@@ -85,7 +85,7 @@ Perfis: **técnico** (lança e edita serviços, anexa fotos, consulta histórico
 | RF-35 | Classificar em **VENCIDO · PRÓXIMO DO VENCIMENTO · EM DIA · SEM REGISTRO** | P0 | `[PLANILHA]` |
 | RF-36 | Exibir dias restantes (negativo quando vencido) | P0 | `[PLANILHA]` |
 | RF-37 | Destacar **SEM REGISTRO**: válvula cadastrada sem nenhuma manutenção lançada, sem data-base para calcular vencimento | P0 | `[PLANILHA]` |
-| RF-38 | Filtrar por cliente, bairro, status, técnico, período e tipo de atendimento | P0 | `[DECIDIDO]` |
+| RF-38 | Filtrar por cliente, bairro, status, técnico, período e tipo de atendimento. Técnico = quem fez o último serviço ativo; período = intervalo da próxima manutenção (S-15) | P0 | `[DECIDIDO]` |
 | RF-39 | Resumo com a contagem por situação | P0 | `[PLANILHA]` |
 | RF-40 | Exportar a listagem filtrada para Excel/CSV | P2 | `[SUGESTÃO]` |
 

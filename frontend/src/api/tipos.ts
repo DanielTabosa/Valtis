@@ -42,6 +42,8 @@ export type LinhaPainel = {
   numeroSerie: string | null;
   requerFechamentoGeral: boolean;
   ultimaManutencao: string | null;
+  /** Quem fez o último serviço ativo: usuário do Valtis ou técnico do Jiraya. */
+  ultimoTecnico: string | null;
   proximaManutencao: string | null;
   diasRestantes: number | null;
   status: StatusPainel;
@@ -50,7 +52,9 @@ export type LinhaPainel = {
 
 export type ContagemStatus = { status: StatusPainel; rotulo: string; total: number };
 
-export type Painel = { resumo: ContagemStatus[]; linhas: LinhaPainel[] };
+export type OpcoesDeFiltroPainel = { bairros: string[]; tecnicos: string[] };
+
+export type Painel = { resumo: ContagemStatus[]; linhas: LinhaPainel[]; opcoes: OpcoesDeFiltroPainel };
 
 export type ClienteResumo = {
   id: string;

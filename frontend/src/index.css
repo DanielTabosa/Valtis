@@ -1308,6 +1308,19 @@ select {
   width: auto;
 }
 
+/* Período do vencimento (RF-38): rótulo curto ao lado do campo, sem quebrar a linha de filtros. */
+.filtro-periodo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--texto-fraco);
+  font-size: 0.875rem;
+}
+
+.filtros .filtro-periodo input {
+  width: auto;
+}
+
 input[type="checkbox"],
 input[type="radio"] {
   width: 20px;

@@ -24,6 +24,7 @@ public record LinhaPainel(
         String numeroSerie,
         boolean requerFechamentoGeral,
         LocalDate ultimaManutencao,
+        String ultimoTecnico,
         LocalDate proximaManutencao,
         Long diasRestantes,
         StatusPainel status,

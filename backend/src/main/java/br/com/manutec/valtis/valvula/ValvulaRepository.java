@@ -79,7 +79,16 @@ public interface ValvulaRepository extends JpaRepository<Valvula, UUID> {
                     COALESCE(esp.descricao_completa,
                              NULLIF(CONCAT_WS(' ', v.fabricante, v.modelo), ''),
                              'especificação a completar') AS "especificacao",
-                    MAX(s.data_realizada)     AS "ultimaManutencao"
+                    MAX(s.data_realizada)     AS "ultimaManutencao",
+                    -- Quem fez o último serviço ativo (RF-38): usuário do Valtis ou técnico do Jiraya.
+                    (SELECT COALESCE(u.nome, ult.tecnico_externo)
+                     FROM servico ult
+                              LEFT JOIN usuario u ON u.id = ult.tecnico_responsavel_id
+                     WHERE ult.valvula_id = v.id
+                       AND ult.status = 'concluido'
+                       AND ult.ativo = TRUE
+                     ORDER BY ult.data_realizada DESC, ult.criado_em DESC
+                     LIMIT 1)                 AS "ultimoTecnico"
             FROM valvula v
                      JOIN estacao e         ON e.id = v.estacao_id
                      JOIN cliente c         ON c.id = e.cliente_id

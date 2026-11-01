@@ -15,6 +15,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -28,7 +29,10 @@ public class PainelService {
 
     public record ContagemStatus(StatusPainel status, String rotulo, long total) {}
 
-    public record Painel(List<ContagemStatus> resumo, List<LinhaPainel> linhas) {}
+    /** Valores que existem na base, para a tela montar as listas de bairro e técnico. */
+    public record OpcoesDeFiltro(List<String> bairros, List<String> tecnicos) {}
+
+    public record Painel(List<ContagemStatus> resumo, List<LinhaPainel> linhas, OpcoesDeFiltro opcoes) {}
 
     private final ValvulaRepository valvulaRepository;
     private final RegrasRecorrencia regras;
@@ -44,9 +48,12 @@ public class PainelService {
     public Painel montar(FiltroPainel filtro) {
         LocalDate hoje = LocalDate.now(relogio);
 
-        List<LinhaPainel> semFiltroDeSituacao = valvulaRepository.buscarDadosDoPainel()
+        List<LinhaPainel> todas = valvulaRepository.buscarDadosDoPainel()
                 .stream()
                 .map(p -> montarLinha(p, hoje))
+                .toList();
+
+        List<LinhaPainel> semFiltroDeSituacao = todas.stream()
                 .filter(filtro::aceitaIgnorandoSituacao)
                 .sorted(ordemDePrioridade())
                 .toList();
@@ -57,7 +64,22 @@ public class PainelService {
 
         // Os cartões do resumo são o próprio filtro de situação: contam sem ele,
         // senão escolher um zeraria os outros três.
-        return new Painel(contar(semFiltroDeSituacao), linhas);
+        return new Painel(contar(semFiltroDeSituacao), linhas, opcoes(todas));
+    }
+
+    // As opções vêm da base inteira, não do recorte: senão escolher um bairro
+    // esvaziaria a lista de técnicos de outros bairros.
+    private OpcoesDeFiltro opcoes(List<LinhaPainel> linhas) {
+        return new OpcoesDeFiltro(distintos(linhas, LinhaPainel::bairro), distintos(linhas, LinhaPainel::ultimoTecnico));
+    }
+
+    private static List<String> distintos(List<LinhaPainel> linhas, Function<LinhaPainel, String> campo) {
+        return linhas.stream()
+                .map(campo)
+                .filter(v -> v != null && !v.isBlank())
+                .distinct()
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
     }
 
     /** RF-39: contagem por situação, sempre com as quatro situações, mesmo as zeradas. */
@@ -97,6 +119,6 @@ public class PainelService {
                 p.getNomeCondominio(), p.getBairro(), p.getTipoAtendimento(), p.getLocalizacaoInstalacao(),
                 Andares.descrever(p.getAndarInicial(), p.getAndarFinal()), p.getEspecificacao(), p.getNumeroSerie(),
                 Boolean.TRUE.equals(p.getRequerFechamentoGeral()),
-                ultima, proxima, dias, status, status.getRotulo());
+                ultima, p.getUltimoTecnico(), proxima, dias, status, status.getRotulo());
     }
 }
