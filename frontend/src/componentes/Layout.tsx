@@ -32,7 +32,8 @@ const GRUPOS: Grupo[] = [
     itens: [
       { para: "/clientes", rotulo: "Clientes", icone: "clientes" },
       { para: "/especificacoes", rotulo: "Especificações", icone: "especificacoes" },
-      { para: "/patrimonio", rotulo: "Patrimônio", icone: "bomba" },
+      // RF-77: em externa o patrimônio emprestado é do Jiraya (P-24); a tela fica só para propria.
+      { para: "/patrimonio", rotulo: "Patrimônio", icone: "bomba", soExterno: false },
     ],
   },
   {
