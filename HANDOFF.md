@@ -1,7 +1,7 @@
 # HANDOFF — Valtis
 
 **Para:** qualquer agente que vá trabalhar neste repositório
-**Atualizado em:** 01/11/2026, fim da sessão (modo integrado implementado e testado, §12c; respostas de P-31 a P-33 registradas; próximo passo é o item 0e da §13)
+**Atualizado em:** 01/11/2026, segunda sessão do dia, feita sem o Daniel (§12d: filtros do painel RF-38, verificação do modo integrado na tela, três correções de interface, propostas da V7 e do pedido ao Jiraya; próximo passo é o item 0e da §13)
 **Branches de trabalho:** `feat/fase-1-mvp` (Fase 1, publicada, não mesclada na `main`) · `feat/modulo-bombas` (criada a partir dela em 20/10, publicada no GitHub, sem PR) · **`feat/modo-integrado`** (criada a partir de `feat/modulo-bombas` em 01/11, **só local, não publicada**: V6, serviço por bomba, modo `propria`/`externa`, módulo de integração)
 
 Este arquivo é o resumo de situação. Ele **não substitui** `AGENTS.md`, `docs/requirements.md`, `docs/architecture.md`, `docs/database.md` e `docs/decisions.md` — leia-os conforme a ordem do `CLAUDE.md`. O que este arquivo faz é te dizer, rápido: onde o projeto está, o que já foi decidido, o que falta e o que você **não** pode fazer sozinho.
@@ -353,6 +353,25 @@ O Daniel aprovou o V6 e pediu para avançar sozinho. Na branch **`feat/modo-inte
 
 **Respostas do Daniel (01/11/2026):** P-31 recusar, como está; P-33 pendência, como está; S-12 a S-14 validadas. **P-32: encerrar a oportunidade com status novo `cancelado`** (não conta como receita perdida) — exige a migração `V7` (CHECK de `oportunidade.status`) e o ajuste da RN-26; **aguarda o OK do schema** antes de gerar.
 
+## 12d. Sessão sem o Daniel (01/11/2026, tarde)
+
+Ele pediu para avançar no que não exigisse decisão dele. Na `feat/modo-integrado`, ainda só local:
+
+| Commit | O quê |
+|---|---|
+| `0318fe5` feat | **RF-38 completo:** painel filtra por técnico (quem fez o último serviço ativo, usuário ou técnico do Jiraya) e por período da próxima manutenção; listas de bairro e técnico vêm na resposta. Suposição **S-15** (§5) a validar |
+| `7eaa17a` refactor | `textoPosicao` saiu de `PainelBombas.tsx` para `util/bomba.ts`: o lint ficou sem nenhum aviso |
+| `d4c1e53` docs | Proposta da **V7** em `docs/integracao/schema-v7.md` (não gerada) e pedido pronto para o Jiraya em `docs/integracao/pedido-jiraya.md` |
+| `ee636f9` fix | **Tabela → cartões pela largura do conteúdo** (container query), não da janela. Com a lateral aberta, numa janela de 1024px o painel e as pendências estouravam e a página rolava para o lado, escondendo "Reprocessar/Descartar" |
+| `8ead106` fix | Detalhe do cliente avulso mostrava "Avulso · contrato ativo"; agora o status do contrato só aparece para contrato |
+| `6f13a06` fix | Menu "Patrimônio" escondido em `externa` (RF-77), como Importar e Tipos de bomba |
+
+**Testes:** 130, todos verdes (126 + 4 do painel). `npm run lint` sem avisos, `npm run build` limpo.
+
+**Verificado no navegador**, com Postgres descartável (porta 5440, já parado e removido; o banco do Daniel **não** foi tocado) e um Manutec Clientes + Jiraya falsos (servidor Python com dados fictícios no formato do contrato): leitura automática aplicou 2 clientes, VRP, bomba e OS; pendências de "tipo não acompanhado" e "OS sem tipo (J-1)"; OS reaberta depois de aplicada virou pendência com os dois serviços ligados (P-27); descarte com justificativa; completar estação (andares), válvula e cliente; filtro por técnico com o técnico do Jiraya; celular (375px) sem rolagem lateral. **Ainda não verificado:** o fluxo com o Jiraya de verdade (depende de J-1 a J-3).
+
+**Visto e deixado para a revisão visual dele:** numa janela de ~1366px o painel ainda passa ~20px da caixa, porque a etiqueta "PRÓXIMO DO VENCIMENTO" não quebra linha. Não mexi: é escolha de visual.
+
 **Variáveis novas** (só para rodar `externa`): `VALTIS_CADASTROS_ORIGEM=externa`, `VALTIS_MANUTEC_CLIENTES_URL`, `VALTIS_MANUTEC_CLIENTES_TOKEN`, `VALTIS_JIRAYA_URL`, `VALTIS_JIRAYA_TOKEN`. Sem elas, o padrão é `propria` e nada muda para quem usa hoje.
 
 ## 13. Próxima tarefa sugerida
@@ -366,6 +385,7 @@ O Daniel aprovou o V6 e pediu para avançar sozinho. Na branch **`feat/modo-inte
    2. **P-32 / migração `V7`:** status `cancelado` na oportunidade (não conta como receita perdida) e ajuste da RN-26. O Daniel escolheu a opção, mas **adiou a geração da V7** ("depois", 01/11). **O SQL e o plano estão prontos em [`docs/integracao/schema-v7.md`](docs/integracao/schema-v7.md)** (inclui um caso a decidir junto: bomba com data de cadastro pode recontar em vez de cancelar). Pedir o OK antes de gerar (AGENTS.md §10).
    3. **Levar o contrato ao Jiraya:** o texto para colar está em [`docs/integracao/pedido-jiraya.md`](docs/integracao/pedido-jiraya.md). O Daniel abre uma sessão em `C:\dev\Jiraya` com o pedido pronto (CV-v1 = `docs/integracao/jiraya.md`; etapa antes da E8; spec + `docs/architecture/valtis-integration.md` + D-xx; J-1 a J-3; schema aprovado antes da migração). Mudança no contrato volta para cá como nova versão.
    4. Decidir se publica a branch `feat/modo-integrado` no GitHub (ainda só local).
+   5. Validar a **S-15** (filtros do painel, §5) e olhar as correções da §12d.
 
 1. ~~Teste manual do Daniel na branch~~ — refeito em 16/10/2026: tudo funcionou. Ajustes pedidos e já feitos: editar/inativar/excluir válvula pelo técnico, data de hoje no lançamento, cartões do painel que não zeram ao filtrar, atrasados sem lembrete marcados na fila, tela Agenda com cartões que filtram a lista (como o painel). Testado e aprovado pelo Daniel.
 2. ~~Validar S-01 a S-11 e D-21 a D-24~~ — feito em 16/10/2026.
