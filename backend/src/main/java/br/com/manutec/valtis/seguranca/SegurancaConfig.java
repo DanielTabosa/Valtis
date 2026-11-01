@@ -12,9 +12,11 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.security.oauth2.jwt.JwtIssuerValidator;
+import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -22,6 +24,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
 
 /**
  * Regras de acesso (RF-01, RNF-23, AGENTS.md §8: nenhuma rota sem autenticação,
@@ -70,12 +73,17 @@ public class SegurancaConfig {
     }
 
     @Bean
-    public JwtDecoder jwtDecoder(ValtisPropriedades propriedades) {
+    public JwtDecoder jwtDecoder(ValtisPropriedades propriedades, Clock relogio) {
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(chave(propriedades))
                 .macAlgorithm(MacAlgorithm.HS256)
                 .build();
         // Confere validade (exp) e se o token foi emitido por este sistema.
-        decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(EMISSOR));
+        // A validade é conferida com o MESMO relógio que emitiu o token (EmissorDeToken):
+        // com o relógio do sistema aqui, um "hoje" fixo nos testes fazia todo token
+        // nascer vencido depois de 14 dias de calendário real.
+        JwtTimestampValidator validade = new JwtTimestampValidator();
+        validade.setClock(relogio);
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(validade, new JwtIssuerValidator(EMISSOR)));
         return decoder;
     }
 
