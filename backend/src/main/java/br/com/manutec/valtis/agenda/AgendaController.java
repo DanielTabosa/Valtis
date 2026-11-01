@@ -79,9 +79,7 @@ public class AgendaController {
                 .map(e -> new EventoDaAgenda(e.getId(), e.getTipo(), e.getDataEvento(), e.getStatus(),
                         e.getTentativas(), e.getProximaTentativaEm(), e.getUltimoErro(),
                         e.getOportunidade().getCliente().getNomeCondominio(),
-                        e.getOportunidade().getValvula() == null
-                                ? e.getOportunidade().getCliente().getCodigoReferencia()
-                                : e.getOportunidade().getValvula().getCodigoReferencia()))
+                        e.getOportunidade().codigoDoAlvo()))
                 .toList();
     }
 

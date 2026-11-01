@@ -113,9 +113,9 @@ public class SincronizadorDaAgenda {
             evento.descartar("Oportunidade encerrada antes do envio");
             return null;
         }
-        // RN-12: cliente ou válvula inativos não geram aviso.
-        if (!o.getCliente().isAtivo() || (o.getValvula() != null && !o.getValvula().isOperante())) {
-            evento.descartar("Cliente ou válvula inativos");
+        // RN-12: cliente ou equipamento inativos não geram aviso.
+        if (!o.isDeEquipamentoOperante()) {
+            evento.descartar("Cliente ou equipamento inativos");
             return null;
         }
         // Não cria evento no passado (RN-13): só polui a agenda.

@@ -7,7 +7,9 @@ import com.fasterxml.jackson.annotation.JsonValue;
 public enum TipoManutencao implements ValorDeBanco {
 
     PREVENTIVA("Preventiva"),
-    CORRETIVA("Corretiva");
+    CORRETIVA("Corretiva"),
+    /** RN-22: a instalação também inicia o ciclo. */
+    INSTALACAO("Instalacao");
 
     private final String valor;
 

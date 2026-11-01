@@ -8,7 +8,9 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 /**
  * O equipamento físico. É quem tem ciclo de manutenção.
@@ -28,9 +30,28 @@ public class Valvula {
     @JoinColumn(name = "estacao_id", nullable = false, updatable = false)
     private Estacao estacao;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "especificacao_id", nullable = false)
+    /** Opcional só na válvula espelhada do Jiraya (Q-1, ck_valvula_especificacao). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "especificacao_id")
     private Especificacao especificacao;
+
+    /** Equipamento do Jiraya que esta válvula espelha (RF-72). Nulo no cadastro próprio. */
+    @Column(name = "jiraya_equipamento_id", updatable = false)
+    private Long jirayaEquipamentoId;
+
+    /** atualizado_em do Jiraya, texto exato como recebido. */
+    @Column(name = "fonte_atualizado_em")
+    private String fonteAtualizadoEm;
+
+    @Column(name = "sincronizado_em")
+    private OffsetDateTime sincronizadoEm;
+
+    /** Vêm do Jiraya, em texto livre (Q-1). Só leitura no Valtis (RN-24). */
+    private String fabricante;
+    private String modelo;
+
+    @Column(name = "identificacao_externa")
+    private String identificacaoExterna;
 
     /** COND-001-VRP-01 (RN-14). Gerado pelo sistema, nunca muda. */
     @Column(name = "codigo_referencia", nullable = false, unique = true, updatable = false)
@@ -71,6 +92,55 @@ public class Valvula {
         atualizar(numeroValvula, especificacao, numeroSerie, dataInstalacao, periodicidadeMeses);
     }
 
+    /** Dados que o Jiraya manda para a válvula. Só leitura no Valtis (RN-24). */
+    public record DadosDoJiraya(String fabricante, String modelo, String numeroSerie, String identificacao,
+                                String versao) {}
+
+    /** RF-72: a VRP que nasce do equipamento do Jiraya. Especificação fica a completar (Q-1). */
+    public static Valvula espelhoDoJiraya(Estacao estacao, String codigoReferencia, String numeroValvula,
+                                          long jirayaEquipamentoId, DadosDoJiraya dados, OffsetDateTime agora) {
+        Valvula v = new Valvula();
+        v.estacao = estacao;
+        v.codigoReferencia = codigoReferencia;
+        v.numeroValvula = numeroValvula;
+        v.jirayaEquipamentoId = jirayaEquipamentoId;
+        v.atualizarDoJiraya(dados, agora);
+        return v;
+    }
+
+    /**
+     * Sobrescreve só o que vem da fonte. Especificação, periodicidade e data de
+     * instalação são do Valtis e nunca são tocadas aqui (RN-24 por campo).
+     */
+    public void atualizarDoJiraya(DadosDoJiraya dados, OffsetDateTime agora) {
+        this.fabricante = dados.fabricante();
+        this.modelo = dados.modelo();
+        this.numeroSerie = dados.numeroSerie();
+        this.identificacaoExterna = dados.identificacao();
+        this.fonteAtualizadoEm = dados.versao();
+        this.sincronizadoEm = agora;
+    }
+
+    /** Campos do Valtis na válvula espelhada (RN-24 por campo). */
+    public void completar(Especificacao especificacao, LocalDate dataInstalacao, Integer periodicidadeMeses) {
+        this.especificacao = especificacao;
+        this.dataInstalacao = dataInstalacao;
+        this.periodicidadeMeses = periodicidadeMeses != null ? periodicidadeMeses : PERIODICIDADE_PADRAO_MESES;
+    }
+
+    public boolean isEspelhada() {
+        return jirayaEquipamentoId != null;
+    }
+
+    /** O que a lista mostra: a especificação do catálogo ou, na espelhada, o que o Jiraya sabe (Q-1). */
+    public String descricaoTecnica() {
+        if (especificacao != null) {
+            return especificacao.getDescricaoCompleta();
+        }
+        String texto = String.join(" ", Stream.of(fabricante, modelo).filter(Objects::nonNull).toList());
+        return texto.isBlank() ? "especificação a completar" : texto;
+    }
+
     public void atualizar(String numeroValvula, Especificacao especificacao, String numeroSerie,
                           LocalDate dataInstalacao, Integer periodicidadeMeses) {
         this.numeroValvula = numeroValvula;
@@ -91,6 +161,11 @@ public class Valvula {
     public UUID getId() { return id; }
     public Estacao getEstacao() { return estacao; }
     public Especificacao getEspecificacao() { return especificacao; }
+    public Long getJirayaEquipamentoId() { return jirayaEquipamentoId; }
+    public String getFonteAtualizadoEm() { return fonteAtualizadoEm; }
+    public String getFabricante() { return fabricante; }
+    public String getModelo() { return modelo; }
+    public String getIdentificacaoExterna() { return identificacaoExterna; }
     public String getCodigoReferencia() { return codigoReferencia; }
     public String getNumeroValvula() { return numeroValvula; }
     public String getNumeroSerie() { return numeroSerie; }

@@ -13,7 +13,8 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Lançamento de uma visita: um item por válvula atendida (RF-14, RF-15, D-18).
+ * Lançamento de uma visita: um item por equipamento atendido, válvula ou bomba
+ * (RF-14, RF-15, RF-80, D-18). Cada item informa `valvulaId` OU `bombaId`.
  *
  * A "replicação" do RF-15b acontece na TELA: o técnico preenche uma vez e a
  * tela copia para as outras válvulas. Aqui cada item chega completo e vira um
@@ -26,7 +27,7 @@ public record LancamentoRequisicao(
 ) {
 
     public record Item(
-            @NotNull(message = "Válvula não informada.") UUID valvulaId,
+            UUID valvulaId,
             /* RF-17: sempre informada, nunca assumida como hoje. */
             @NotNull(message = "Informe a data em que o serviço foi realizado.") LocalDate dataRealizada,
             @NotNull(message = "Escolha o tipo de manutenção.") TipoManutencao tipoManutencao,
@@ -38,7 +39,8 @@ public record LancamentoRequisicao(
             @DecimalMin(value = "0.0", message = "Pressão não pode ser negativa.")
             @DecimalMax(value = "9999.99", message = "Pressão fora da faixa.")
             BigDecimal pressaoSaida,
-            @Size(max = 2000) String observacoes
+            @Size(max = 2000) String observacoes,
+            UUID bombaId
     ) {
     }
 }

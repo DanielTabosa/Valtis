@@ -17,6 +17,7 @@ import java.util.UUID;
  * e o "hoje". Por isso é testável com um simples `new`.
  */
 public record SituacaoBomba(
+        LocalDate ultimaManutencao,
         LocalDate proximaManutencao,
         Long diasRestantes,
         StatusPainel status,
@@ -38,8 +39,18 @@ public record SituacaoBomba(
 
     public static SituacaoBomba calcular(Bomba bomba, List<OcupacaoBomba> ocupacoesAbertas, LocalDate hoje,
                                          RegrasRecorrencia regras) {
+        return calcular(bomba, ocupacoesAbertas, null, hoje, regras);
+    }
+
+    /**
+     * `ultimoServico` é o último serviço ATIVO lançado na bomba (RF-80, RN-26). A data-base
+     * do ciclo é a mais recente entre ele e a última manutenção informada no cadastro (P-16):
+     * o cadastro guarda o que veio antes de existir serviço por bomba.
+     */
+    public static SituacaoBomba calcular(Bomba bomba, List<OcupacaoBomba> ocupacoesAbertas, LocalDate ultimoServico,
+                                         LocalDate hoje, RegrasRecorrencia regras) {
         // RN-16: mesma conta da válvula (RN-01). Sem última manutenção, não há data-base.
-        LocalDate ultima = bomba.getUltimaManutencao();
+        LocalDate ultima = maisRecente(bomba.getUltimaManutencao(), ultimoServico);
         LocalDate proxima = ultima == null ? null : regras.proximaManutencao(ultima, bomba.getPeriodicidadeMeses());
         Long dias = proxima == null ? null : ChronoUnit.DAYS.between(hoje, proxima);
         StatusPainel status = dias == null ? StatusPainel.SEM_REGISTRO : regras.classificar(dias);
@@ -50,6 +61,13 @@ public record SituacaoBomba(
         // Bomba de condomínio nunca é "disponível": ou está instalada, ou está fora (em conserto, por exemplo).
         boolean disponivel = bomba.isPatrimonioManutec() && posicoes.isEmpty();
 
-        return new SituacaoBomba(proxima, dias, status, bomba.dadosTecnicos().incompletos(), posicoes, disponivel);
+        return new SituacaoBomba(ultima, proxima, dias, status, bomba.dadosTecnicos().incompletos(), posicoes,
+                disponivel);
+    }
+
+    private static LocalDate maisRecente(LocalDate a, LocalDate b) {
+        if (a == null) return b;
+        if (b == null) return a;
+        return a.isAfter(b) ? a : b;
     }
 }

@@ -17,7 +17,7 @@ public interface ValvulaRepository extends JpaRepository<Valvula, UUID> {
 
     /** Válvulas de várias estações de uma vez, já com a especificação, para a tela do cliente. */
     @Query("""
-            SELECT v FROM Valvula v JOIN FETCH v.especificacao
+            SELECT v FROM Valvula v LEFT JOIN FETCH v.especificacao
             WHERE v.estacao.id IN :estacoes
             ORDER BY v.numeroValvula
             """)
@@ -26,7 +26,7 @@ public interface ValvulaRepository extends JpaRepository<Valvula, UUID> {
     /** Válvula com estação, cliente e especificação carregados numa consulta só. */
     @Query("""
             SELECT v FROM Valvula v
-            JOIN FETCH v.estacao e JOIN FETCH e.cliente JOIN FETCH v.especificacao
+            JOIN FETCH v.estacao e JOIN FETCH e.cliente LEFT JOIN FETCH v.especificacao
             WHERE v.id = :id
             """)
     Optional<Valvula> buscarCompleta(@Param("id") UUID id);
@@ -76,18 +76,23 @@ public interface ValvulaRepository extends JpaRepository<Valvula, UUID> {
                     e.andar_inicial           AS "andarInicial",
                     e.andar_final             AS "andarFinal",
                     e.requer_fechamento_geral AS "requerFechamentoGeral",
-                    esp.descricao_completa    AS "especificacao",
+                    COALESCE(esp.descricao_completa,
+                             NULLIF(CONCAT_WS(' ', v.fabricante, v.modelo), ''),
+                             'especificação a completar') AS "especificacao",
                     MAX(s.data_realizada)     AS "ultimaManutencao"
             FROM valvula v
                      JOIN estacao e         ON e.id = v.estacao_id
                      JOIN cliente c         ON c.id = e.cliente_id
-                     JOIN especificacao esp ON esp.id = v.especificacao_id
+                     LEFT JOIN especificacao esp ON esp.id = v.especificacao_id
                      LEFT JOIN servico s    ON s.valvula_id = v.id
                                            AND s.status = 'concluido'
+                                           AND s.ativo = TRUE
             WHERE v.ativo = TRUE
               AND e.ativo = TRUE
               AND c.ativo = TRUE
             GROUP BY v.id, e.id, c.id, esp.id
             """, nativeQuery = true)
     List<PainelProjecao> buscarDadosDoPainel();
+
+    Optional<Valvula> findByJirayaEquipamentoId(Long jirayaEquipamentoId);
 }

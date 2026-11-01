@@ -352,3 +352,12 @@ Detalhe em [`docs/integracao/jiraya.md`](integracao/jiraya.md), seção "Pontos 
 | ~~P-28~~ | Data do serviço vindo do Jiraya | Campo novo **data de execução** na OS do Jiraya, informado na conclusão. Não usar o instante do clique em "concluir" |
 | ~~P-29~~ | Técnico do serviço vindo do Jiraya | **Primeiro executor** das etapas; sem executor, quem concluiu. Gravado como texto (não é usuário do Valtis). Ajusta RF-74 |
 | ~~P-30~~ | OS com serviços diferentes por equipamento | Tipo de serviço **por OS**; a equipe abre OS separadas |
+
+### Pendências abertas na implementação do modo integrado (01/11/2026) — aguardam o Daniel
+
+Cada uma isola só a parte bloqueada; o resto foi implementado.
+
+| # | Pendência | O que o código faz enquanto isso |
+|---|---|---|
+| P-31 | Serviço em **bomba do patrimônio** da Manutec: entra no ciclo comercial? A oportunidade exige cliente (RN-07), e o patrimônio não tem dono | O lançamento é **recusado** com a mensagem "registre a manutenção no cadastro dela" (a última manutenção do cadastro continua valendo, RN-16). Só existe no modo `propria` |
+| P-32 | Inativar (RN-26) o **único** serviço ativo de um equipamento, quando é ele que abre o ciclo atual. O equipamento ficaria sem ciclo, e não há desfecho previsto para a oportunidade que perde a origem (encerrar como `perdido` contaria como receita perdida) | A inativação é **recusada** com mensagem citando P-32. Inativar serviço antigo, ou o mais recente quando há anterior, funciona |

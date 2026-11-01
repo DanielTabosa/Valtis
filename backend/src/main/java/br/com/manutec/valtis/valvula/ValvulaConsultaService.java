@@ -43,7 +43,7 @@ public class ValvulaConsultaService {
         List<Servico> historico = servicoRepository.historicoDaValvula(id);
 
         LocalDate ultima = historico.stream()
-                .filter(s -> s.getStatus() == StatusServico.CONCLUIDO)
+                .filter(s -> s.isAtivo() && s.getStatus() == StatusServico.CONCLUIDO)
                 .map(Servico::getDataRealizada)
                 .max(LocalDate::compareTo)
                 .orElse(null);
@@ -62,15 +62,11 @@ public class ValvulaConsultaService {
                 ultima, proxima, dias, status, status.getRotulo(),
                 historico.stream().map(ValvulaConsultaService::doHistorico).toList(),
                 oportunidadeRepository.daValvula(id).stream()
-                        .map(o -> new ValvulaDetalhe.OportunidadeDoHistorico(o.getId(), o.getStatus(),
-                                o.getDataPrevista(), o.getResponsavel() == null ? null : o.getResponsavel().getNome(),
-                                o.getMotivoRecusa(), o.getEncerradaEm()))
+                        .map(ValvulaDetalhe.OportunidadeDoHistorico::de)
                         .toList());
     }
 
     private static ValvulaDetalhe.ServicoDoHistorico doHistorico(Servico s) {
-        return new ValvulaDetalhe.ServicoDoHistorico(s.getId(), s.getDataRealizada(), s.getTipoManutencao(),
-                s.getTecnicoResponsavel().getNome(), s.getPecasSubstituidas(), s.getPressaoEntrada(),
-                s.getPressaoSaida(), s.getObservacoes(), s.getCriadoPor().getNome(), s.getCriadoEm());
+        return ValvulaDetalhe.ServicoDoHistorico.de(s);
     }
 }

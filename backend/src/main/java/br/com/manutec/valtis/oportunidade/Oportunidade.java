@@ -1,5 +1,6 @@
 package br.com.manutec.valtis.oportunidade;
 
+import br.com.manutec.valtis.bomba.Bomba;
 import br.com.manutec.valtis.cliente.Cliente;
 import br.com.manutec.valtis.comum.ConflitoException;
 import br.com.manutec.valtis.comum.OrigemRegistro;
@@ -41,6 +42,11 @@ public class Oportunidade {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "valvula_id", updatable = false)
     private Valvula valvula;
+
+    /** Nula salvo no escopo BOMBA (D-31). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "bomba_id", updatable = false)
+    private Bomba bomba;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "servico_origem_id", updatable = false)
@@ -95,12 +101,13 @@ public class Oportunidade {
     protected Oportunidade() {
     }
 
-    /** RN-07: nasce de um serviço concluído, sem responsável. */
+    /** RN-07: nasce de um serviço concluído, sem responsável. De válvula ou de bomba (D-31). */
     public static Oportunidade doServico(Servico servico, LocalDate dataPrevista) {
         Oportunidade o = new Oportunidade();
-        o.escopo = EscopoOportunidade.VALVULA;
+        o.escopo = servico.isDaBomba() ? EscopoOportunidade.BOMBA : EscopoOportunidade.VALVULA;
         o.valvula = servico.getValvula();
-        o.cliente = servico.getValvula().getEstacao().getCliente();
+        o.bomba = servico.getBomba();
+        o.cliente = servico.getCliente();
         o.servicoOrigem = servico;
         o.dataPrevista = dataPrevista;
         return o;
@@ -121,6 +128,7 @@ public class Oportunidade {
         Oportunidade o = new Oportunidade();
         o.escopo = recusada.escopo;
         o.valvula = recusada.valvula;
+        o.bomba = recusada.bomba;
         o.cliente = recusada.cliente;
         o.dataPrevista = lembrarEm;
         o.oportunidadeAnterior = recusada;
@@ -169,14 +177,14 @@ public class Oportunidade {
         }
     }
 
-    /** RN-10: um novo serviço na válvula fecha o ciclo anterior como executado. */
+    /** RN-10: um novo serviço no equipamento fecha o ciclo anterior como executado. */
     public void fecharComServico(Servico servico, OffsetDateTime agora) {
         this.status = StatusOportunidade.EXECUTADO;
         this.servicoResultante = servico;
         this.encerradaEm = agora;
     }
 
-    /** A periodicidade da válvula mudou: a data prevista acompanha (RN-01). */
+    /** A periodicidade mudou, ou o serviço de origem foi inativado (RN-26): a data prevista acompanha (RN-01). */
     public void reprogramar(LocalDate novaDataPrevista) {
         exigirAberta();
         this.dataPrevista = novaDataPrevista;
@@ -196,6 +204,25 @@ public class Oportunidade {
     public EscopoOportunidade getEscopo() { return escopo; }
     public Cliente getCliente() { return cliente; }
     public Valvula getValvula() { return valvula; }
+    public Bomba getBomba() { return bomba; }
+
+    /** O código do que vai ser atendido: a válvula, a bomba ou, na base antiga, o cliente. */
+    public String codigoDoAlvo() {
+        if (valvula != null) return valvula.getCodigoReferencia();
+        if (bomba != null) return bomba.getCodigoReferencia();
+        return cliente.getCodigoReferencia();
+    }
+
+    /** RN-12: equipamento inativo (ou de cliente inativo) não aparece para contato. */
+    public boolean isDeEquipamentoOperante() {
+        if (!cliente.isAtivo()) {
+            return false;
+        }
+        if (valvula != null) {
+            return valvula.isOperante();
+        }
+        return bomba == null || bomba.isAtivo();
+    }
     public Servico getServicoOrigem() { return servicoOrigem; }
     public LocalDate getDataPrevista() { return dataPrevista; }
     public StatusOportunidade getStatus() { return status; }

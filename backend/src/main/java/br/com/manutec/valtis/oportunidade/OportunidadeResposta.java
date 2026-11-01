@@ -41,6 +41,9 @@ public record OportunidadeResposta(
         OffsetDateTime assumidaEm,
         String notas,
         String motivoRecusa,
-        OffsetDateTime encerradaEm
+        OffsetDateTime encerradaEm,
+        UUID bombaId,
+        String codigoBomba,
+        String descricaoBomba
 ) {
 }

@@ -150,24 +150,30 @@ O equipamento físico.
 Único: (`estacao_id`, `numero_valvula`) — base do alerta de duplicidade (RF-13).
 
 ### servico
-A intervenção realizada. **Uma linha por válvula atendida** (D-18), mesmo quando a visita cobre a estação inteira.
+A intervenção realizada. **Uma linha por equipamento atendido** (D-18): válvula **ou** bomba, nunca os dois (RF-80, V6), mesmo quando a visita cobre a estação inteira.
 
 | Coluna | Tipo | Notas |
 |---|---|---|
 | `id` | uuid PK | |
-| `valvula_id` | uuid FK → valvula | A estação é alcançada por `valvula → estacao` |
-| `data_realizada` | date | **Informada pelo técnico**, nunca assumida como a data de preenchimento (RF-17) |
-| `tipo_manutencao` | enum | `Preventiva` \| `Corretiva` |
-| `tecnico_responsavel_id` | uuid FK → usuario | |
+| `valvula_id` | uuid FK → valvula, nulo | A estação é alcançada por `valvula → estacao`. Nulo no serviço de bomba |
+| `bomba_id` | uuid FK → bomba, nulo | RF-80. `ck_servico_equipamento`: exatamente um dos dois |
+| `data_realizada` | date | **Informada pelo técnico**, nunca assumida como a data de preenchimento (RF-17). No serviço do Jiraya, a data de execução da OS (P-28) |
+| `tipo_manutencao` | enum | `Preventiva` \| `Corretiva` \| `Instalacao` (RN-22) |
+| `tecnico_responsavel_id` | uuid FK → usuario, nulo | Nulo no serviço do Jiraya |
+| `tecnico_externo` | text, nulo | Técnico vindo do Jiraya, em texto (P-29). `ck_servico_tecnico`: um dos dois preenchido |
 | `pecas_substituidas` | text, nulo | |
 | `pressao_entrada` | numeric, nulo | **Opcional** (D-10) |
 | `pressao_saida` | numeric, nulo | **Opcional** (D-10) |
 | `observacoes` | text, nulo | |
 | `status` | enum `status_servico` | `rascunho` \| `concluido` |
-| `criado_por_id` | uuid FK → usuario | Pode diferir do técnico responsável |
+| `criado_por_id` | uuid FK → usuario, nulo | Pode diferir do técnico responsável. Obrigatório quando `origem = 'manual'` |
+| `origem` | `manual` \| `jiraya` | RF-76: o manual aparece como "lançado no Valtis" |
+| `jiraya_os_id` | bigint, nulo | OS de origem (RF-74). `ck_servico_os`: preenchido se e só se `origem = 'jiraya'`. Índice único por (OS, válvula) e (OS, bomba): reaplicar a OS não duplica (RN-23) |
+| `ativo` | boolean | RN-26. Serviço inativo sai do cálculo do ciclo |
+| `motivo_inativacao`, `inativado_por_id`, `inativado_em` | | Obrigatórios ao inativar (`ck_servico_inativacao`) |
 | `criado_em` / `atualizado_em` | timestamptz | `criado_em` ≠ `data_realizada` — ver D-02 |
 
-**Nunca sobrescrever** um serviço anterior. Toda intervenção é uma linha nova (RF-18).
+**Nunca sobrescrever** um serviço anterior. Toda intervenção é uma linha nova (RF-18). A única mudança é a inativação, com motivo (RN-26).
 
 > **Sobre atendimentos simultâneos:** quando três válvulas da mesma estação são atendidas na mesma visita, o resultado são **três linhas** de `servico` com a mesma `data_realizada` e o mesmo técnico. Isso é intencional — o histórico técnico pertence ao equipamento, e válvulas do mesmo barrilete podem ter idades, marcas e desgastes diferentes. Não introduza uma entidade "visita" para agrupá-las sem aprovação (AGENTS.md §10).
 
@@ -255,11 +261,13 @@ Valores fixos vindos da planilha da Manutec. **A interface usa lista suspensa; n
 | `tipo_atendimento` | `Contrato` · `Avulso` |
 | `status_contrato` | `Ativo` · `Suspenso` · `Inativo` |
 | `tipo_registro` | `Esfera` · `Gaveta` |
-| `tipo_manutencao` | `Preventiva` · `Corretiva` |
+| `tipo_manutencao` | `Preventiva` · `Corretiva` · `Instalacao` (V6) |
+| `origem_servico` | `manual` · `jiraya` (V6) |
 | `status_servico` | `rascunho` · `concluido` |
 | `status_oportunidade` | `agendado` · `contatado` · `aceito` · `recusado` · `executado` · `perdido` |
-| `escopo_oportunidade` | `valvula` · `cliente` |
-| `origem_registro` | `sistema` · `importacao` |
+| `escopo_oportunidade` | `valvula` · `bomba` (V6) · `cliente` |
+| `origem_registro` | `sistema` · `importacao` · `integracao` (V6, só em `cliente`) |
+| `estado_evento_recebido` | `pendente` · `aplicado` · `pendencia` · `falhou` · `descartado` · `superado` (§8a) |
 | `tipo_evento` | `alerta_comercial` · `lembrete_final` |
 | `status_evento` | `pendente` · `criado` · `falhou` · `descartado` |
 | `natureza_ocupacao` | `instalacao` · `emprestimo` (§8) |
@@ -513,6 +521,29 @@ CREATE TABLE ocupacao_bomba (
 CREATE INDEX idx_ocupacao_bomba_aberta    ON ocupacao_bomba (bomba_id) WHERE fim IS NULL;
 CREATE INDEX idx_ocupacao_posicao_aberta  ON ocupacao_bomba (conjunto_id, numero_posicao) WHERE fim IS NULL;
 ```
+
+## 8a. Modo integrado: migração `V6__modo_integrado.sql` {#modo-integrado}
+
+Aprovada pelo Daniel em 01/11/2026. A proposta com o porquê de cada coluna e as decisões Q-1 a Q-4 está em [`docs/integracao/schema-v6.md`](integracao/schema-v6.md); o SQL vigente é o da migração. Aditiva e não destrutiva.
+
+**As tabelas são as mesmas nos dois modos; só muda quem escreve nelas (D-29).** Resumo:
+
+| Tabela | O que o V6 acrescenta |
+|---|---|
+| `cliente` | `manutec_id` (único), `fonte_atualizado_em` (texto exato da fonte), `sincronizado_em`; `origem` aceita `integracao` |
+| `estacao` | Andares opcionais, os dois juntos (`ck_estacao_andares_juntos`): a estação derivada fica "a completar" (Q-2). `chave_integracao`, única por cliente: a localização interna normalizada (RF-73) |
+| `valvula` | `jiraya_equipamento_id` (único), `fonte_atualizado_em`, `sincronizado_em`, `fabricante`, `modelo`, `identificacao_externa`. Especificação opcional só na espelhada (`ck_valvula_especificacao`, Q-1) |
+| `bomba` | `jiraya_equipamento_id` (único), `fonte_atualizado_em`, `sincronizado_em`, `identificacao_externa`; periodicidade com padrão 12 (P-22) |
+| `conjunto_bombeamento` | `chave_integracao`, única por (cliente, tipo, chave) (Q-4) |
+| `ocupacao_bomba` | `origem` (`manual` \| `integracao`); `registrado_por_id` obrigatório só na manual |
+| `servico` | Ver §3: válvula ou bomba, origem, OS, técnico externo, inativação |
+| `oportunidade` | `bomba_id` e escopo `bomba`; índice "um ciclo aberto por bomba" |
+| `evento_recebido` | **Nova.** Fila de entrada, o Outbox invertido (D-30): origem, tipo, id externo, versão, corpo (jsonb), estado, motivo, retentativa, resolução. Único em (origem, tipo, id externo, versão) (RN-23); descartar exige justificativa |
+| `cursor_integracao` | **Nova.** Uma linha por (origem, recurso): `desde` (texto exato), `apos_id`, última leitura, última leitura bem-sucedida, último erro (RF-78) |
+
+**RN-24 por campo** (Q-2): na entidade espelhada, o campo que vem da fonte é só leitura e é sobrescrito a cada sincronização; o campo que a fonte não tem (andares, fechamento geral, especificação, periodicidade, data de instalação, tipo de atendimento) é do Valtis e nunca é sobrescrito.
+
+**Última manutenção da bomba:** a data-base do ciclo é a mais recente entre `bomba.ultima_manutencao` (informada no cadastro, P-16) e o último serviço ativo da bomba. É calculada, nunca gravada (D-15).
 
 ## 9. Glossário do domínio {#glossário-do-domínio}
 

@@ -28,12 +28,19 @@ public class Estacao {
     @Column(name = "localizacao_instalacao", nullable = false)
     private String localizacaoInstalacao;
 
-    /** Térreo = 0. Subsolo = negativo. */
-    @Column(name = "andar_inicial", nullable = false)
+    /** Térreo = 0. Subsolo = negativo. Nulos só na estação derivada do Jiraya, até alguém completar (Q-2). */
+    @Column(name = "andar_inicial")
     private Integer andarInicial;
 
-    @Column(name = "andar_final", nullable = false)
+    @Column(name = "andar_final")
     private Integer andarFinal;
+
+    /**
+     * Estação derivada do Jiraya (RF-73): a localização interna normalizada. Uma
+     * estação por (cliente, chave). Nula na estação cadastrada à mão.
+     */
+    @Column(name = "chave_integracao", updatable = false)
+    private String chaveIntegracao;
 
     /** Se o serviço exige cortar a água do prédio inteiro. Vai no evento da agenda (RF-29). */
     @Column(name = "requer_fechamento_geral", nullable = false)
@@ -57,6 +64,33 @@ public class Estacao {
                    Integer andarFinal, boolean requerFechamentoGeral) {
         this.cliente = cliente;
         atualizar(localizacaoInstalacao, andarInicial, andarFinal, requerFechamentoGeral);
+    }
+
+    /** RF-73: a estação que agrupa as VRPs de uma localização interna do Jiraya. Sem andares (Q-2). */
+    public static Estacao derivadaDoJiraya(Cliente cliente, String localizacao, String chaveIntegracao) {
+        Estacao e = new Estacao();
+        e.cliente = cliente;
+        e.localizacaoInstalacao = localizacao;
+        e.chaveIntegracao = chaveIntegracao;
+        return e;
+    }
+
+    /**
+     * RN-24 por campo: na estação derivada a localização vem do Jiraya; andares e
+     * fechamento geral são do Valtis e se completam aqui.
+     */
+    public void completar(Integer andarInicial, Integer andarFinal, boolean requerFechamentoGeral) {
+        this.andarInicial = andarInicial;
+        this.andarFinal = andarFinal;
+        this.requerFechamentoGeral = requerFechamentoGeral;
+    }
+
+    public boolean isDerivada() {
+        return chaveIntegracao != null;
+    }
+
+    public boolean isACompletar() {
+        return andarInicial == null || andarFinal == null;
     }
 
     public void atualizar(String localizacaoInstalacao, Integer andarInicial, Integer andarFinal,

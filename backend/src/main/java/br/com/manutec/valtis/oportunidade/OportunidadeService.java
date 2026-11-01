@@ -1,6 +1,7 @@
 package br.com.manutec.valtis.oportunidade;
 
 import br.com.manutec.valtis.agenda.FilaDaAgenda;
+import br.com.manutec.valtis.bomba.Bomba;
 import br.com.manutec.valtis.cliente.Cliente;
 import br.com.manutec.valtis.comum.RecursoNaoEncontradoException;
 import br.com.manutec.valtis.comum.RegraDeNegocioException;
@@ -57,26 +58,25 @@ public class OportunidadeService {
     }
 
     /**
-     * Chamado pelo lançamento de serviço, dentro da transação dele.
-     * RN-10: fecha o ciclo aberto da válvula. RN-07: abre o próximo, sem responsável.
+     * Chamado pelo lançamento de serviço, dentro da transação dele. Vale para válvula
+     * e para bomba (D-31, RF-80).
+     * RN-10: fecha o ciclo aberto do equipamento. RN-07: abre o próximo, sem responsável.
      * RF-59: o primeiro serviço real de um cliente importado fecha a oportunidade de escopo cliente.
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public Oportunidade abrirNovoCiclo(Servico servico) {
         OffsetDateTime agora = OffsetDateTime.now(relogio);
-        Valvula valvula = servico.getValvula();
-        Cliente cliente = valvula.getEstacao().getCliente();
+        Cliente cliente = servico.getCliente();
 
-        repository.abertasDaValvula(valvula.getId(), StatusOportunidade.ABERTOS)
-                .forEach(o -> fechar(o, servico, agora));
+        abertasDoEquipamento(servico).forEach(o -> fechar(o, servico, agora));
         repository.abertasDeEscopoCliente(cliente.getId(), StatusOportunidade.ABERTOS)
                 .forEach(o -> fechar(o, servico, agora));
         // O Hibernate grava INSERTs antes de UPDATEs. Sem este flush, a nova
         // oportunidade chegaria ao banco antes de a antiga ser fechada, e o
-        // índice "um ciclo aberto por válvula" recusaria a gravação.
+        // índice "um ciclo aberto por equipamento" recusaria a gravação.
         repository.flush();
 
-        LocalDate prevista = regras.proximaManutencao(servico.getDataRealizada(), valvula.getPeriodicidadeMeses());
+        LocalDate prevista = regras.proximaManutencao(servico.getDataRealizada(), servico.getPeriodicidadeMeses());
         Oportunidade nova = repository.save(Oportunidade.doServico(servico, prevista));
         filaDaAgenda.enfileirarAlertas(nova);
         return nova;
@@ -106,10 +106,58 @@ public class OportunidadeService {
         }
     }
 
+    /** A periodicidade da bomba mudou (P-22): o ciclo aberto acompanha, como na válvula. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void reprogramarCicloDaBomba(Bomba bomba, LocalDate ultimaManutencao) {
+        LocalDate prevista = regras.proximaManutencao(ultimaManutencao, bomba.getPeriodicidadeMeses());
+        for (Oportunidade aberta : repository.abertasDaBomba(bomba.getId(), StatusOportunidade.ABERTOS)) {
+            if (!aberta.getDataPrevista().equals(prevista) && aberta.getOportunidadeAnterior() == null) {
+                aberta.reprogramar(prevista);
+                filaDaAgenda.reprogramar(aberta);
+            }
+        }
+    }
+
+    /**
+     * RN-26: o serviço que abriu o ciclo atual foi inativado. O ciclo volta a contar
+     * do último serviço ATIVO do equipamento. O retorno pedido numa recusa (RN-09)
+     * fica como está: a data foi escolhida por uma pessoa, como em S-07.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void recontarCicloSemServico(Servico inativado, LocalDate ultimoServicoAtivo) {
+        LocalDate prevista = regras.proximaManutencao(ultimoServicoAtivo, inativado.getPeriodicidadeMeses());
+        for (Oportunidade aberta : abertasDoEquipamento(inativado)) {
+            boolean nasceuDoInativado = aberta.getServicoOrigem() != null
+                    && aberta.getServicoOrigem().getId().equals(inativado.getId());
+            if (nasceuDoInativado && !aberta.getDataPrevista().equals(prevista)) {
+                aberta.reprogramar(prevista);
+                filaDaAgenda.reprogramar(aberta);
+            }
+        }
+    }
+
+    /** O ciclo aberto do equipamento nasceu deste serviço? */
+    @Transactional(readOnly = true)
+    public boolean cicloAbertoNasceuDe(Servico servico) {
+        return abertasDoEquipamento(servico).stream()
+                .anyMatch(o -> o.getServicoOrigem() != null && o.getServicoOrigem().getId().equals(servico.getId()));
+    }
+
+    private List<Oportunidade> abertasDoEquipamento(Servico servico) {
+        return servico.isDaBomba()
+                ? repository.abertasDaBomba(servico.getBomba().getId(), StatusOportunidade.ABERTOS)
+                : repository.abertasDaValvula(servico.getValvula().getId(), StatusOportunidade.ABERTOS);
+    }
+
     /** A válvula já entrou em algum ciclo? Se sim, tem histórico e não pode ser excluída. */
     @Transactional(readOnly = true)
     public boolean existeParaValvula(UUID valvulaId) {
         return repository.existsByValvulaId(valvulaId);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean existeParaBomba(UUID bombaId) {
+        return repository.existsByBombaId(bombaId);
     }
 
     @Transactional(readOnly = true)
@@ -119,7 +167,7 @@ public class OportunidadeService {
         return repository.fila(statusDa(situacao))
                 .stream()
                 // RN-12: válvula ou cliente inativo não aparece para contato.
-                .filter(o -> o.getCliente().isAtivo() && (o.getValvula() == null || o.getValvula().isOperante()))
+                .filter(Oportunidade::isDeEquipamentoOperante)
                 .filter(o -> aceitaResponsavel(o, responsavel, usuarioId))
                 .map(o -> resposta(o, hoje, comLembrete.contains(o.getId())))
                 .toList();
@@ -232,6 +280,7 @@ public class OportunidadeService {
 
         Cliente c = o.getCliente();
         Valvula v = o.getValvula();
+        Bomba b = o.getBomba();
         Usuario r = o.getResponsavel();
         return new OportunidadeResposta(
                 o.getId(), o.getEscopo(), o.getStatus(), o.isAberta(), o.getOrigem(),
@@ -248,6 +297,9 @@ public class OportunidadeService {
                 v == null ? null : v.getEstacao().isRequerFechamentoGeral(),
                 r == null ? null : r.getId(),
                 r == null ? null : r.getNome(),
-                o.getAssumidaEm(), o.getNotas(), o.getMotivoRecusa(), o.getEncerradaEm());
+                o.getAssumidaEm(), o.getNotas(), o.getMotivoRecusa(), o.getEncerradaEm(),
+                b == null ? null : b.getId(),
+                b == null ? null : b.getCodigoReferencia(),
+                b == null ? null : b.descricao());
     }
 }

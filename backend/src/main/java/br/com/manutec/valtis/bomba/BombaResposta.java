@@ -25,6 +25,8 @@ public record BombaResposta(
         LocalDate ultimaManutencao,
         String descricao,
         boolean ativo,
+        /** A data-base do ciclo: a mais recente entre o cadastro e o último serviço ativo (RF-80). */
+        LocalDate ultimaManutencaoConsiderada,
         LocalDate proximaManutencao,
         Long diasRestantes,
         StatusPainel status,
@@ -41,7 +43,7 @@ public record BombaResposta(
                 b.getFabricante(), b.getModelo(), b.getPotenciaCv(), b.getTensaoVolts(), b.getCorrenteAmperes(),
                 b.getFuncao(), b.getDataInstalacao(), b.getPeriodicidadeMeses(), b.getUltimaManutencao(),
                 b.descricao(), b.isAtivo(),
-                s.proximaManutencao(), s.diasRestantes(), s.status(), s.status().getRotulo(),
+                s.ultimaManutencao(), s.proximaManutencao(), s.diasRestantes(), s.status(), s.status().getRotulo(),
                 s.dadosTecnicosIncompletos(), s.posicoes(), s.disponivel());
     }
 }

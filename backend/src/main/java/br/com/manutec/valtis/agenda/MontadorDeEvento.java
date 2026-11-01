@@ -1,5 +1,6 @@
 package br.com.manutec.valtis.agenda;
 
+import br.com.manutec.valtis.bomba.Bomba;
 import br.com.manutec.valtis.cliente.Cliente;
 import br.com.manutec.valtis.comum.ValtisPropriedades;
 import br.com.manutec.valtis.estacao.Estacao;
@@ -37,13 +38,16 @@ public class MontadorDeEvento {
         Cliente cliente = o.getCliente();
         Valvula valvula = o.getValvula();
 
-        String alvo = valvula == null ? cliente.getCodigoReferencia() : valvula.getCodigoReferencia();
-        String titulo = "[Valtis] %s: %s (%s)".formatted(evento.getTipo().titulo(), cliente.getNomeCondominio(), alvo);
+        Bomba bomba = o.getBomba();
+        String titulo = "[Valtis] %s: %s (%s)".formatted(evento.getTipo().titulo(), cliente.getNomeCondominio(),
+                o.codigoDoAlvo());
 
         List<String> linhas = new ArrayList<>();
         linhas.add("Condomínio: %s (%s)%s".formatted(cliente.getNomeCondominio(), cliente.getCodigoReferencia(),
                 cliente.getBairro() == null ? "" : " - " + cliente.getBairro()));
-        if (valvula == null) {
+        if (bomba != null) {
+            linhas.add("Bomba: %s - %s".formatted(bomba.getCodigoReferencia(), bomba.descricao()));
+        } else if (valvula == null) {
             linhas.add("Válvulas ainda não cadastradas: cliente vindo da base antiga.");
         } else {
             Estacao estacao = valvula.getEstacao();
@@ -68,6 +72,9 @@ public class MontadorDeEvento {
     }
 
     private String link(Oportunidade o) {
+        if (o.getBomba() != null) {
+            return "%s/bombas/%s".formatted(urlFrontend, o.getBomba().getId());
+        }
         return o.getValvula() == null
                 ? "%s/clientes/%s".formatted(urlFrontend, o.getCliente().getId())
                 : "%s/valvulas/%s".formatted(urlFrontend, o.getValvula().getId());

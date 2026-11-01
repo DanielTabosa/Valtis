@@ -19,6 +19,13 @@ public interface OportunidadeRepository extends JpaRepository<Oportunidade, UUID
     List<Oportunidade> abertasDaValvula(@Param("valvulaId") UUID valvulaId,
                                         @Param("abertos") Collection<StatusOportunidade> abertos);
 
+    @Query("""
+            SELECT o FROM Oportunidade o
+            WHERE o.bomba.id = :bombaId AND o.status IN :abertos
+            """)
+    List<Oportunidade> abertasDaBomba(@Param("bombaId") UUID bombaId,
+                                      @Param("abertos") Collection<StatusOportunidade> abertos);
+
     /** Oportunidades abertas de escopo cliente (importados): o primeiro serviço real as fecha (RF-59). */
     @Query("""
             SELECT o FROM Oportunidade o
@@ -38,6 +45,7 @@ public interface OportunidadeRepository extends JpaRepository<Oportunidade, UUID
             JOIN FETCH o.cliente c
             LEFT JOIN FETCH o.valvula v
             LEFT JOIN FETCH v.estacao
+            LEFT JOIN FETCH o.bomba
             LEFT JOIN FETCH o.responsavel
             WHERE o.status IN :status
             ORDER BY o.dataPrevista, c.nomeCondominio
@@ -49,6 +57,7 @@ public interface OportunidadeRepository extends JpaRepository<Oportunidade, UUID
             JOIN FETCH o.cliente c
             LEFT JOIN FETCH o.valvula v
             LEFT JOIN FETCH v.estacao
+            LEFT JOIN FETCH o.bomba
             LEFT JOIN FETCH o.responsavel
             WHERE o.id = :id
             """)
@@ -62,5 +71,15 @@ public interface OportunidadeRepository extends JpaRepository<Oportunidade, UUID
             """)
     List<Oportunidade> daValvula(@Param("valvulaId") UUID valvulaId);
 
+    @Query("""
+            SELECT o FROM Oportunidade o
+            LEFT JOIN FETCH o.responsavel
+            WHERE o.bomba.id = :bombaId
+            ORDER BY o.dataPrevista DESC
+            """)
+    List<Oportunidade> daBomba(@Param("bombaId") UUID bombaId);
+
     boolean existsByValvulaId(UUID valvulaId);
+
+    boolean existsByBombaId(UUID bombaId);
 }

@@ -6,14 +6,18 @@ import br.com.manutec.valtis.comum.ConflitoException;
 import br.com.manutec.valtis.comum.RecursoNaoEncontradoException;
 import br.com.manutec.valtis.comum.RegraDeNegocioException;
 import br.com.manutec.valtis.comum.Textos;
+import br.com.manutec.valtis.oportunidade.OportunidadeService;
 import br.com.manutec.valtis.recorrencia.RegrasRecorrencia;
+import br.com.manutec.valtis.servico.ServicoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /** Cadastro de bombas (RF-62 a RF-65). Movimentação fica em MovimentacaoService. */
 @Service
@@ -22,14 +26,19 @@ public class BombaService {
     private final BombaRepository bombaRepository;
     private final OcupacaoRepository ocupacaoRepository;
     private final ClienteService clienteService;
+    private final ServicoRepository servicoRepository;
+    private final OportunidadeService oportunidades;
     private final RegrasRecorrencia regras;
     private final Clock relogio;
 
     public BombaService(BombaRepository bombaRepository, OcupacaoRepository ocupacaoRepository,
-                        ClienteService clienteService, RegrasRecorrencia regras, Clock relogio) {
+                        ClienteService clienteService, ServicoRepository servicoRepository,
+                        OportunidadeService oportunidades, RegrasRecorrencia regras, Clock relogio) {
         this.bombaRepository = bombaRepository;
         this.ocupacaoRepository = ocupacaoRepository;
         this.clienteService = clienteService;
+        this.servicoRepository = servicoRepository;
+        this.oportunidades = oportunidades;
         this.regras = regras;
         this.relogio = relogio;
     }
@@ -53,7 +62,9 @@ public class BombaService {
     @Transactional
     public BombaResposta atualizar(UUID id, DadosBomba dados) {
         Bomba bomba = buscar(id);
+        Integer periodicidadeAnterior = bomba.getPeriodicidadeMeses();
         bomba.atualizar(tecnicos(dados), dados.periodicidadeMeses(), dados.ultimaManutencao());
+        reprogramarSeMudouAPeriodicidade(bomba, periodicidadeAnterior);
         return resposta(bomba);
     }
 
@@ -71,7 +82,8 @@ public class BombaService {
     @Transactional
     public void excluir(UUID id) {
         Bomba bomba = buscar(id);
-        if (ocupacaoRepository.existsByBombaId(id)) {
+        if (ocupacaoRepository.existsByBombaId(id) || servicoRepository.existsByBombaId(id)
+                || oportunidades.existeParaBomba(id)) {
             throw new ConflitoException("A bomba %s já tem histórico de posição. Para tirá-la das listas, inative-a."
                     .formatted(bomba.getCodigoReferencia()));
         }
@@ -86,7 +98,9 @@ public class BombaService {
     /** Cadastro + situação calculada de uma bomba. */
     public BombaResposta resposta(Bomba bomba) {
         return BombaResposta.de(bomba, SituacaoBomba.calcular(bomba,
-                ocupacaoRepository.abertasDaBomba(bomba.getId()), LocalDate.now(relogio), regras));
+                ocupacaoRepository.abertasDaBomba(bomba.getId()),
+                servicoRepository.ultimaDataConcluidaDaBomba(bomba.getId()).orElse(null),
+                LocalDate.now(relogio), regras));
     }
 
     /** Situação de várias bombas com uma consulta só de ocupações. */
@@ -95,11 +109,29 @@ public class BombaService {
             return List.of();
         }
         LocalDate hoje = LocalDate.now(relogio);
-        List<OcupacaoBomba> abertas = ocupacaoRepository.abertasDasBombas(bombas.stream().map(Bomba::getId).toList());
+        List<UUID> ids = bombas.stream().map(Bomba::getId).toList();
+        List<OcupacaoBomba> abertas = ocupacaoRepository.abertasDasBombas(ids);
+        Map<UUID, LocalDate> ultimosServicos = servicoRepository.ultimosDasBombas(ids).stream()
+                .collect(Collectors.toMap(ServicoRepository.UltimoServicoDaBomba::getBombaId,
+                        ServicoRepository.UltimoServicoDaBomba::getUltima));
         return bombas.stream()
                 .map(b -> BombaResposta.de(b, SituacaoBomba.calcular(b,
-                        abertas.stream().filter(o -> o.getBomba().getId().equals(b.getId())).toList(), hoje, regras)))
+                        abertas.stream().filter(o -> o.getBomba().getId().equals(b.getId())).toList(),
+                        ultimosServicos.get(b.getId()), hoje, regras)))
                 .toList();
+    }
+
+    /** P-22: mudou a periodicidade, o ciclo aberto acompanha (como RN-02 na válvula). */
+    private void reprogramarSeMudouAPeriodicidade(Bomba bomba, Integer anterior) {
+        if (bomba.getPeriodicidadeMeses().equals(anterior)) {
+            return;
+        }
+        LocalDate ultima = SituacaoBomba.calcular(bomba, List.of(),
+                servicoRepository.ultimaDataConcluidaDaBomba(bomba.getId()).orElse(null),
+                LocalDate.now(relogio), regras).ultimaManutencao();
+        if (ultima != null) {
+            oportunidades.reprogramarCicloDaBomba(bomba, ultima);
+        }
     }
 
     private static Bomba.DadosTecnicos tecnicos(DadosBomba d) {

@@ -59,7 +59,8 @@ public class ValvulaService {
     @Transactional
     public ValvulaResposta atualizar(UUID id, DadosValvula dados) {
         Valvula valvula = buscar(id);
-        Especificacao especificacao = Objects.equals(valvula.getEspecificacao().getId(), dados.especificacaoId())
+        Especificacao especificacao = valvula.getEspecificacao() != null
+                && Objects.equals(valvula.getEspecificacao().getId(), dados.especificacaoId())
                 ? valvula.getEspecificacao()
                 : especificacaoAtiva(dados.especificacaoId());
 
