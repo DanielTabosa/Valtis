@@ -1,5 +1,6 @@
 package br.com.manutec.valtis.cliente;
 
+import br.com.manutec.valtis.comum.ModoDeOperacao;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -12,10 +13,15 @@ import java.util.UUID;
 @RequestMapping("/api/clientes")
 public class ClienteController {
 
-    private final ClienteService service;
+    /** RN-24 por campo: no cliente espelhado, só o que o Manutec Clientes não tem. */
+    public record ComplementoCliente(TipoAtendimento tipoAtendimento, StatusContrato statusContrato) {}
 
-    public ClienteController(ClienteService service) {
+    private final ClienteService service;
+    private final ModoDeOperacao modo;
+
+    public ClienteController(ClienteService service, ModoDeOperacao modo) {
         this.service = service;
+        this.modo = modo;
     }
 
     @GetMapping
@@ -32,7 +38,13 @@ public class ClienteController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ClienteResposta.Detalhe criar(@Valid @RequestBody DadosCliente dados) {
+        modo.exigirCadastroProprio("o cliente", ModoDeOperacao.MANUTEC_CLIENTES); // RF-71
         return service.criar(dados);
+    }
+
+    @PutMapping("/{id}/complemento")
+    public ClienteResposta.Detalhe completar(@PathVariable UUID id, @RequestBody ComplementoCliente dados) {
+        return service.completar(id, dados.tipoAtendimento(), dados.statusContrato());
     }
 
     @PutMapping("/{id}")

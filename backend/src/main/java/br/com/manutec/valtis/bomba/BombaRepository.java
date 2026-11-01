@@ -14,6 +14,8 @@ public interface BombaRepository extends JpaRepository<Bomba, UUID> {
 
     List<Bomba> findByPatrimonioManutecTrueOrderByCodigoReferencia();
 
+    Optional<Bomba> findByJirayaEquipamentoId(Long jirayaEquipamentoId);
+
     @Query("SELECT b FROM Bomba b LEFT JOIN FETCH b.cliente WHERE b.id = :id")
     Optional<Bomba> buscarCompleta(@Param("id") UUID id);
 

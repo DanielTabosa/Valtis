@@ -2,6 +2,7 @@ package br.com.manutec.valtis.bomba;
 
 import br.com.manutec.valtis.cliente.Cliente;
 import br.com.manutec.valtis.cliente.ClienteService;
+import br.com.manutec.valtis.comum.ModoDeOperacao;
 import br.com.manutec.valtis.comum.RecursoNaoEncontradoException;
 import br.com.manutec.valtis.comum.RegraDeNegocioException;
 import br.com.manutec.valtis.comum.Textos;
@@ -60,7 +61,7 @@ public class ConjuntoService {
 
     @Transactional
     public ConjuntoResposta atualizar(UUID id, DadosConjunto dados) {
-        ConjuntoBombeamento conjunto = buscar(id);
+        ConjuntoBombeamento conjunto = buscarProprio(id);
         TipoBomba tipo = conjunto.getTipo().getId().equals(dados.tipoId())
                 ? conjunto.getTipo()
                 : tipoAtivo(dados.tipoId());
@@ -71,12 +72,19 @@ public class ConjuntoService {
 
     @Transactional
     public void inativar(UUID id) {
-        buscar(id).inativar();
+        buscarProprio(id).inativar();
     }
 
     @Transactional
     public void reativar(UUID id) {
-        buscar(id).reativar();
+        buscarProprio(id).reativar();
+    }
+
+    /** O conjunto derivado acompanha a localização e o tipo das bombas no Jiraya (RF-73). */
+    private ConjuntoBombeamento buscarProprio(UUID id) {
+        ConjuntoBombeamento conjunto = buscar(id);
+        ModoDeOperacao.exigirNaoEspelhado(conjunto.isDerivado(), "o conjunto de bombeamento", ModoDeOperacao.JIRAYA);
+        return conjunto;
     }
 
     public ConjuntoBombeamento buscar(UUID id) {

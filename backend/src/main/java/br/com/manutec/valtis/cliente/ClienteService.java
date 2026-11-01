@@ -1,5 +1,6 @@
 package br.com.manutec.valtis.cliente;
 
+import br.com.manutec.valtis.comum.ModoDeOperacao;
 import br.com.manutec.valtis.comum.RecursoNaoEncontradoException;
 import br.com.manutec.valtis.comum.Textos;
 import br.com.manutec.valtis.estacao.Estacao;
@@ -12,8 +13,10 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -83,19 +86,44 @@ public class ClienteService {
 
     @Transactional
     public ClienteResposta.Detalhe atualizar(UUID id, DadosCliente dados) {
-        buscar(id).atualizar(limpar(dados));
+        Cliente cliente = buscarProprio(id);
+        cliente.atualizar(limpar(dados));
+        return detalhar(id);
+    }
+
+    /** RN-24 por campo: tipo de atendimento e contrato são do Valtis, mesmo no espelho. */
+    @Transactional
+    public ClienteResposta.Detalhe completar(UUID id, TipoAtendimento tipoAtendimento, StatusContrato statusContrato) {
+        buscar(id).completar(tipoAtendimento, statusContrato);
         return detalhar(id);
     }
 
     /** RF-12: o cliente some do painel e das listas, mas o histórico permanece. */
     @Transactional
     public void inativar(UUID id) {
-        buscar(id).inativar();
+        buscarProprio(id).inativar();
     }
 
     @Transactional
     public void reativar(UUID id) {
-        buscar(id).reativar();
+        buscarProprio(id).reativar();
+    }
+
+    /** RF-71: o espelhado só muda pelo Manutec Clientes (inclusive a inativação). */
+    private Cliente buscarProprio(UUID id) {
+        Cliente cliente = buscar(id);
+        ModoDeOperacao.exigirNaoEspelhado(cliente.isEspelhado(), "o cliente", ModoDeOperacao.MANUTEC_CLIENTES);
+        return cliente;
+    }
+
+    /** RF-71: o espelho de um cliente do Manutec Clientes ganha código COND-NNN como qualquer outro. */
+    @Transactional
+    public Cliente criarEspelho(long manutecId, Cliente.DadosDoManutec dados, OffsetDateTime agora) {
+        return clienteRepository.saveAndFlush(Cliente.espelhoDoManutec(proximoCodigo(), manutecId, dados, agora));
+    }
+
+    public Optional<Cliente> buscarPorManutecId(long manutecId) {
+        return clienteRepository.findByManutecId(manutecId);
     }
 
     public Cliente buscar(UUID id) {

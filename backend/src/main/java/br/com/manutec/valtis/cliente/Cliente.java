@@ -65,6 +65,17 @@ public class Cliente {
     @Column(name = "cadastro_incompleto", nullable = false)
     private boolean cadastroIncompleto = false;
 
+    /** Id permanente no Manutec Clientes (RF-71, P-18). Nulo no cadastro próprio. */
+    @Column(name = "manutec_id", updatable = false)
+    private Long manutecId;
+
+    /** atualizado_em da fonte, texto exato como recebido. */
+    @Column(name = "fonte_atualizado_em")
+    private String fonteAtualizadoEm;
+
+    @Column(name = "sincronizado_em")
+    private OffsetDateTime sincronizadoEm;
+
     @CreationTimestamp
     @Column(name = "criado_em", nullable = false, updatable = false)
     private OffsetDateTime criadoEm;
@@ -93,6 +104,54 @@ public class Cliente {
         cliente.ultimaManutencaoLegado = ultimaManutencao;
         cliente.dataLegadoAproximada = ultimaManutencao != null;
         return cliente;
+    }
+
+    /** O que o Manutec Clientes manda. Só leitura no Valtis (RN-24). */
+    public record DadosDoManutec(String nomeCondominio, String endereco, String bairro, String cidade,
+                                 String sindicoResponsavel, String telefoneContato, String emailContato,
+                                 boolean ativo, String versao) {}
+
+    /** RF-71: o espelho do cliente do Manutec Clientes. O código COND-NNN continua do Valtis. */
+    public static Cliente espelhoDoManutec(String codigoReferencia, long manutecId, DadosDoManutec dados,
+                                           OffsetDateTime agora) {
+        Cliente c = new Cliente();
+        c.codigoReferencia = codigoReferencia;
+        c.manutecId = manutecId;
+        c.origem = OrigemRegistro.INTEGRACAO;
+        c.atualizarDoManutec(dados, agora);
+        return c;
+    }
+
+    /**
+     * Sobrescreve só o que vem da fonte (RN-24 por campo). Tipo de atendimento e
+     * situação do contrato não existem na API do Manutec Clientes: ficam com o Valtis.
+     * RF-71: inativado na fonte, inativado aqui (RN-12).
+     */
+    public void atualizarDoManutec(DadosDoManutec dados, OffsetDateTime agora) {
+        this.nomeCondominio = dados.nomeCondominio();
+        this.endereco = dados.endereco();
+        this.bairro = dados.bairro();
+        this.cidade = dados.cidade();
+        this.sindicoResponsavel = dados.sindicoResponsavel();
+        this.telefoneContato = dados.telefoneContato();
+        this.emailContato = dados.emailContato();
+        this.ativo = dados.ativo();
+        this.fonteAtualizadoEm = dados.versao();
+        this.sincronizadoEm = agora;
+    }
+
+    /** Campos do Valtis no cliente espelhado (RN-24 por campo). */
+    public void completar(TipoAtendimento tipoAtendimento, StatusContrato statusContrato) {
+        if (tipoAtendimento != null) {
+            this.tipoAtendimento = tipoAtendimento;
+        }
+        if (statusContrato != null) {
+            this.statusContrato = statusContrato;
+        }
+    }
+
+    public boolean isEspelhado() {
+        return manutecId != null;
     }
 
     public void atualizar(DadosCliente dados) {
@@ -134,4 +193,7 @@ public class Cliente {
     public LocalDate getUltimaManutencaoLegado() { return ultimaManutencaoLegado; }
     public boolean isDataLegadoAproximada() { return dataLegadoAproximada; }
     public boolean isCadastroIncompleto() { return cadastroIncompleto; }
+    public Long getManutecId() { return manutecId; }
+    public String getFonteAtualizadoEm() { return fonteAtualizadoEm; }
+    public OffsetDateTime getSincronizadoEm() { return sincronizadoEm; }
 }

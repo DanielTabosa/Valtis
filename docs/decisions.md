@@ -593,6 +593,27 @@ Por outro lado, a OS do Jiraya hoje **não tem tipo**: uma visita para orçar e 
 
 ---
 
+## D-32 — RN-24 por campo pela rota de complemento, não pela edição comum
+
+**Status:** Aceita · 01/11/2026 · decisão técnica tomada na implementação, com a autonomia dada pelo Daniel; reversível sem mudança de schema
+
+**Contexto.** A RN-24, refinada pela Q-2 do V6, diz que no registro espelhado o campo da fonte é só leitura e o campo que só o Valtis tem é editável. As telas de edição de cliente, estação, válvula e bomba mandam o registro inteiro (`PUT`), misturando os dois tipos de campo.
+
+**Decisão.**
+- A edição comum (`PUT /api/{recurso}/{id}`), a inativação e a exclusão do registro espelhado são **recusadas com 409**, dizendo onde o dado é gerido. Vale em qualquer modo: o que define é o registro ser espelhado, não o modo.
+- Cada recurso ganha uma rota de **complemento** (`PUT /api/{recurso}/{id}/complemento`) que só aceita os campos do Valtis: tipo de atendimento e contrato no cliente; andares e fechamento geral na estação; especificação, data de instalação e periodicidade na válvula; dados elétricos, periodicidade e última manutenção informada na bomba.
+- Em `externa`, criar cliente, estação, válvula, conjunto, bomba e patrimônio, mexer no catálogo de tipos de bomba, movimentar bombas e importar planilha são recusados com 409 (RF-71, RF-77).
+
+**Alternativas descartadas.**
+- **Aceitar o `PUT` inteiro e ignorar os campos da fonte em silêncio.** A tela mostraria "salvo" e o valor voltaria na próxima leitura.
+- **Aceitar o `PUT` e recusar só se um campo da fonte mudou.** Funciona, mas exige comparar campo a campo em cada serviço, e a regra de qual campo é de quem fica espalhada. A rota de complemento deixa a lista de campos do Valtis explícita, num lugar só por recurso.
+
+**Consequências.**
+- O frontend do modo `externa` usa a rota de complemento nas fichas espelhadas.
+- Registros criados à mão antes de ligar o modo `externa` (sem referência externa) continuam editáveis pela tela comum.
+
+---
+
 ## Índice
 
 | ID | Decisão | Status |
@@ -628,3 +649,4 @@ Por outro lado, a OS do Jiraya hoje **não tem tipo**: uma visita para orçar e 
 | D-29 | Valtis como monitor de prazos; cadastros e serviços podem vir de fora (modo `propria` / `externa`) | Aceita |
 | D-30 | Entrada externa por leitura com cursor, idempotente (`evento_recebido`) | Aceita |
 | D-31 | Toda manutenção é oportunidade, inclusive sob contrato; só OS de manutenção reinicia o ciclo | Aceita |
+| D-32 | RN-24 por campo pela rota de complemento; edição comum do espelhado recusada | Aceita |

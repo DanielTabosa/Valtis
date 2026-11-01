@@ -5,22 +5,27 @@ import br.com.manutec.valtis.valvula.ValvulaResposta;
 import java.util.List;
 import java.util.UUID;
 
-/** Estação com as válvulas dela, como a tela do cliente precisa. */
+/**
+ * Estação com as válvulas dela, como a tela do cliente precisa.
+ * `derivada`: nasceu da localização do Jiraya (RF-73); `aCompletar`: faltam os andares (Q-2).
+ */
 public record EstacaoResposta(
         UUID id,
         UUID clienteId,
         String localizacaoInstalacao,
-        int andarInicial,
-        int andarFinal,
+        Integer andarInicial,
+        Integer andarFinal,
         String andares,
         boolean requerFechamentoGeral,
         boolean ativo,
-        List<ValvulaResposta> valvulas
+        List<ValvulaResposta> valvulas,
+        boolean derivada,
+        boolean aCompletar
 ) {
 
     public static EstacaoResposta de(Estacao e, List<ValvulaResposta> valvulas) {
         return new EstacaoResposta(e.getId(), e.getCliente().getId(), e.getLocalizacaoInstalacao(),
                 e.getAndarInicial(), e.getAndarFinal(), e.descreverAndares(), e.isRequerFechamentoGeral(),
-                e.isAtivo(), valvulas);
+                e.isAtivo(), valvulas, e.isDerivada(), e.isACompletar());
     }
 }

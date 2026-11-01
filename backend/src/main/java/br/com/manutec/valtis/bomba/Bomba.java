@@ -30,6 +30,9 @@ public class Bomba {
         }
     }
 
+    /** P-22: 12 meses, como a VRP, editável por bomba. */
+    public static final int PERIODICIDADE_PADRAO_MESES = 12;
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
@@ -62,7 +65,7 @@ public class Bomba {
     @Column(name = "data_instalacao")
     private LocalDate dataInstalacao;
 
-    /** Obrigatória, sem padrão até P-13. */
+    /** Padrão 12 meses, editável por bomba (P-22). */
     @Column(name = "periodicidade_meses", nullable = false)
     private Integer periodicidadeMeses;
 
@@ -72,6 +75,20 @@ public class Bomba {
 
     @Column(nullable = false)
     private boolean ativo = true;
+
+    /** Equipamento do Jiraya que esta bomba espelha (RF-72). Nulo no cadastro próprio. */
+    @Column(name = "jiraya_equipamento_id", updatable = false)
+    private Long jirayaEquipamentoId;
+
+    @Column(name = "fonte_atualizado_em")
+    private String fonteAtualizadoEm;
+
+    @Column(name = "sincronizado_em")
+    private OffsetDateTime sincronizadoEm;
+
+    /** A identificação da equipe no Jiraya (BR-01). Só leitura (RN-24). */
+    @Column(name = "identificacao_externa")
+    private String identificacaoExterna;
 
     @CreationTimestamp
     @Column(name = "criado_em", nullable = false, updatable = false)
@@ -100,6 +117,39 @@ public class Bomba {
     public static Bomba patrimonial(String codigoReferencia, DadosTecnicos tecnicos, Integer periodicidadeMeses,
                                     LocalDate ultimaManutencao) {
         return new Bomba(codigoReferencia, true, null, tecnicos, periodicidadeMeses, ultimaManutencao);
+    }
+
+    /** O que o Jiraya manda para a bomba. Só leitura no Valtis (RN-24). */
+    public record DadosDoJiraya(String fabricante, String modelo, String identificacao, String versao) {}
+
+    /** RF-72: a bomba que nasce do equipamento do Jiraya. Periodicidade padrão 12 (P-22). */
+    public static Bomba espelhoDoJiraya(Cliente cliente, String codigoReferencia, long jirayaEquipamentoId,
+                                        DadosDoJiraya dados, int periodicidadeMeses, OffsetDateTime agora) {
+        Bomba b = new Bomba(codigoReferencia, false, cliente,
+                new DadosTecnicos(null, null, null, null, null, null, null), periodicidadeMeses, null);
+        b.jirayaEquipamentoId = jirayaEquipamentoId;
+        b.atualizarDoJiraya(dados, agora);
+        return b;
+    }
+
+    /** Sobrescreve só fabricante, modelo e identificação. O resto é do Valtis (RN-24 por campo). */
+    public void atualizarDoJiraya(DadosDoJiraya dados, OffsetDateTime agora) {
+        this.fabricante = dados.fabricante();
+        this.modelo = dados.modelo();
+        this.identificacaoExterna = dados.identificacao();
+        this.fonteAtualizadoEm = dados.versao();
+        this.sincronizadoEm = agora;
+    }
+
+    /** Campos do Valtis na bomba espelhada: o que o Jiraya não tem estruturado (RN-24 por campo). */
+    public void completar(DadosTecnicos tecnicos, Integer periodicidadeMeses, LocalDate ultimaManutencao) {
+        atualizar(new DadosTecnicos(fabricante, modelo, tecnicos.potenciaCv(), tecnicos.tensaoVolts(),
+                tecnicos.correnteAmperes(), tecnicos.funcao(), tecnicos.dataInstalacao()),
+                periodicidadeMeses, ultimaManutencao);
+    }
+
+    public boolean isEspelhada() {
+        return jirayaEquipamentoId != null;
     }
 
     public void atualizar(DadosTecnicos tecnicos, Integer periodicidadeMeses, LocalDate ultimaManutencao) {
@@ -144,4 +194,7 @@ public class Bomba {
     public Integer getPeriodicidadeMeses() { return periodicidadeMeses; }
     public LocalDate getUltimaManutencao() { return ultimaManutencao; }
     public boolean isAtivo() { return ativo; }
+    public Long getJirayaEquipamentoId() { return jirayaEquipamentoId; }
+    public String getFonteAtualizadoEm() { return fonteAtualizadoEm; }
+    public String getIdentificacaoExterna() { return identificacaoExterna; }
 }

@@ -53,7 +53,7 @@ class SincronizadorDaAgendaTest {
     void preparar() {
         ValtisPropriedades propriedades = new ValtisPropriedades("America/Recife", "https://valtis.teste",
                 new ValtisPropriedades.Recorrencia(30, 7), null,
-                new ValtisPropriedades.Agenda("simulada", 3, 300, null));
+                new ValtisPropriedades.Agenda("simulada", 3, 300, null), null, null);
         sincronizador = new SincronizadorDaAgenda(repository, gateway, new MontadorDeEvento(propriedades), estado,
                 new TransactionTemplate(new SemTransacao()), Clock.fixed(AGORA.toInstant(), RECIFE), propriedades);
     }

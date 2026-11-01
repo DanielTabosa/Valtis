@@ -19,4 +19,8 @@ public interface ConjuntoRepository extends JpaRepository<ConjuntoBombeamento, U
 
     @Query("SELECT c FROM ConjuntoBombeamento c JOIN FETCH c.cliente JOIN FETCH c.tipo WHERE c.id = :id")
     Optional<ConjuntoBombeamento> buscarCompleto(@Param("id") UUID id);
+
+    /** RF-73, Q-4: o conjunto derivado de (cliente, tipo, localização interna) do Jiraya. */
+    Optional<ConjuntoBombeamento> findByClienteIdAndTipoIdAndChaveIntegracao(UUID clienteId, UUID tipoId,
+                                                                           String chaveIntegracao);
 }

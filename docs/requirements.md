@@ -150,7 +150,7 @@ Estrutura: `cliente (condomínio) → conjunto de bombeamento → bomba`. Uma bo
 
 ### 1.10 Modo integrado — Valtis como monitor de prazos `[DECIDIDO · 30/10/2026]`
 
-> **Status:** decisões D-29, D-30 e D-31 e requisitos RF-70 a RF-80 **aprovados pelo Daniel em 30/10/2026**. Schema (`V6`) ainda a aprovar à parte. Nada implementado. Contrato da API Jiraya → Valtis proposto em 31/10/2026 em [`docs/integracao/jiraya.md`](integracao/jiraya.md), com P-27 a P-30 respondidas; **aprovado pelo Daniel em 31/10/2026**.
+> **Status:** decisões D-29, D-30 e D-31 e requisitos RF-70 a RF-80 **aprovados pelo Daniel em 30/10/2026**. Schema `V6` aprovado em 01/11/2026. **Backend implementado em 01/11/2026** (branch `feat/modo-integrado`): RF-70 a RF-80, RN-21 a RN-26, com testes. Telas: ver HANDOFF. Falta o Jiraya expor a API (J-1 a J-3) para rodar de verdade. Contrato da API Jiraya → Valtis proposto em 31/10/2026 em [`docs/integracao/jiraya.md`](integracao/jiraya.md), com P-27 a P-30 respondidas; **aprovado pelo Daniel em 31/10/2026**.
 
 O Valtis passa a ter dois **modos de operação** (RF-70). No modo `propria` tudo funciona como nas seções 1.2, 1.8 e 1.9. No modo `externa`, que é o da Manutec, cliente vem do **Manutec Clientes**, equipamento e serviço vêm do **Jiraya**, e o Valtis fica com o que nenhum dos dois faz: ciclo de 12 meses, oportunidade, fila, agenda e painel. As tabelas são as mesmas; muda quem escreve nelas (D-29).
 
@@ -360,4 +360,5 @@ Cada uma isola só a parte bloqueada; o resto foi implementado.
 | # | Pendência | O que o código faz enquanto isso |
 |---|---|---|
 | P-31 | Serviço em **bomba do patrimônio** da Manutec: entra no ciclo comercial? A oportunidade exige cliente (RN-07), e o patrimônio não tem dono | O lançamento é **recusado** com a mensagem "registre a manutenção no cadastro dela" (a última manutenção do cadastro continua valendo, RN-16). Só existe no modo `propria` |
+| P-33 | OS do Jiraya **concluída de novo** depois que o admin inativou (RN-26) o serviço dela. O índice "um serviço por OS e equipamento" (RN-23) impede um segundo serviço da mesma OS | Vai para as pendências ("voltou diferente do Jiraya"). O admin pode lançar o serviço à mão (RF-76) |
 | P-32 | Inativar (RN-26) o **único** serviço ativo de um equipamento, quando é ele que abre o ciclo atual. O equipamento ficaria sem ciclo, e não há desfecho previsto para a oportunidade que perde a origem (encerrar como `perdido` contaria como receita perdida) | A inativação é **recusada** com mensagem citando P-32. Inativar serviço antigo, ou o mais recente quando há anterior, funciona |

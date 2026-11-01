@@ -2,6 +2,7 @@ package br.com.manutec.valtis.valvula;
 
 import br.com.manutec.valtis.cliente.Cliente;
 import br.com.manutec.valtis.comum.ConflitoException;
+import br.com.manutec.valtis.comum.ModoDeOperacao;
 import br.com.manutec.valtis.comum.RecursoNaoEncontradoException;
 import br.com.manutec.valtis.comum.RegraDeNegocioException;
 import br.com.manutec.valtis.comum.Textos;
@@ -14,6 +15,8 @@ import br.com.manutec.valtis.servico.ServicoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -58,7 +61,7 @@ public class ValvulaService {
 
     @Transactional
     public ValvulaResposta atualizar(UUID id, DadosValvula dados) {
-        Valvula valvula = buscar(id);
+        Valvula valvula = buscarPropria(id);
         Especificacao especificacao = valvula.getEspecificacao() != null
                 && Objects.equals(valvula.getEspecificacao().getId(), dados.especificacaoId())
                 ? valvula.getEspecificacao()
@@ -73,22 +76,54 @@ public class ValvulaService {
         valvula.atualizar(numero, especificacao, Textos.limpar(dados.numeroSerie()), dados.dataInstalacao(),
                 dados.periodicidadeMeses());
 
-        // RN-02: mudou a periodicidade, o vencimento do ciclo aberto muda junto.
+        reprogramarSeMudou(valvula, periodicidadeAnterior);
+        return ValvulaResposta.de(valvula);
+    }
+
+    /**
+     * Q-1, RN-24 por campo: especificação, data de instalação e periodicidade são do
+     * Valtis. A especificação é opcional só na espelhada.
+     */
+    @Transactional
+    public ValvulaResposta completar(UUID id, UUID especificacaoId, LocalDate dataInstalacao,
+                                     Integer periodicidadeMeses) {
+        Valvula valvula = buscar(id);
+        if (especificacaoId == null && !valvula.isEspelhada()) {
+            throw new RegraDeNegocioException("Escolha a especificação.");
+        }
+        Especificacao especificacao = especificacaoId == null ? null
+                : valvula.getEspecificacao() != null && valvula.getEspecificacao().getId().equals(especificacaoId)
+                ? valvula.getEspecificacao()
+                : especificacaoAtiva(especificacaoId);
+        int periodicidadeAnterior = valvula.getPeriodicidadeMeses();
+        valvula.completar(especificacao, dataInstalacao, periodicidadeMeses);
+        reprogramarSeMudou(valvula, periodicidadeAnterior);
+        return ValvulaResposta.de(valvula);
+    }
+
+    /** RN-02: mudou a periodicidade, o vencimento do ciclo aberto muda junto. */
+    private void reprogramarSeMudou(Valvula valvula, int periodicidadeAnterior) {
         if (periodicidadeAnterior != valvula.getPeriodicidadeMeses()) {
-            servicoRepository.ultimaDataConcluida(id)
+            servicoRepository.ultimaDataConcluida(valvula.getId())
                     .ifPresent(ultima -> oportunidadeService.reprogramarCicloDaValvula(valvula, ultima));
         }
-        return ValvulaResposta.de(valvula);
     }
 
     @Transactional
     public void inativar(UUID id) {
-        buscar(id).inativar();
+        buscarPropria(id).inativar();
     }
 
     @Transactional
     public void reativar(UUID id) {
-        buscar(id).reativar();
+        buscarPropria(id).reativar();
+    }
+
+    /** A espelhada só muda pelo Jiraya, inclusive a inativação (RF-72, RF-79). */
+    private Valvula buscarPropria(UUID id) {
+        Valvula valvula = buscar(id);
+        ModoDeOperacao.exigirNaoEspelhado(valvula.isEspelhada(), "a válvula", ModoDeOperacao.JIRAYA);
+        return valvula;
     }
 
     /**
@@ -97,13 +132,22 @@ public class ValvulaService {
      */
     @Transactional
     public void excluir(UUID id) {
-        Valvula valvula = buscar(id);
+        Valvula valvula = buscarPropria(id);
         if (servicoRepository.existsByValvulaId(id) || oportunidadeService.existeParaValvula(id)) {
             throw new ConflitoException(
                     "A válvula %s já tem serviço lançado. Para tirá-la do painel sem perder o histórico, inative-a."
                             .formatted(valvula.getCodigoReferencia()));
         }
         valvulaRepository.delete(valvula);
+    }
+
+    /** RF-72: a VRP espelhada ganha número na estação e código COND-NNN-VRP-NN como qualquer outra. */
+    @Transactional
+    public Valvula criarEspelho(Estacao estacao, long jirayaEquipamentoId, Valvula.DadosDoJiraya dados,
+                                OffsetDateTime agora) {
+        String numero = formatarNumero(valvulaRepository.maiorNumeroNaEstacao(estacao.getId()) + 1);
+        return valvulaRepository.save(Valvula.espelhoDoJiraya(estacao, proximoCodigo(estacao.getCliente()), numero,
+                jirayaEquipamentoId, dados, agora));
     }
 
     public Valvula buscar(UUID id) {

@@ -1,5 +1,6 @@
 package br.com.manutec.valtis.bomba;
 
+import br.com.manutec.valtis.comum.ModoDeOperacao;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -23,9 +24,16 @@ public class TipoBombaController {
     }
 
     private final TipoBombaService service;
+    private final ModoDeOperacao modo;
 
-    public TipoBombaController(TipoBombaService service) {
+    public TipoBombaController(TipoBombaService service, ModoDeOperacao modo) {
         this.service = service;
+        this.modo = modo;
+    }
+
+    /** RF-77: em externa o catálogo de tipos é o do Jiraya (P-21). */
+    private void exigirCatalogoProprio() {
+        modo.exigirCadastroProprio("o catálogo de tipos de bomba", ModoDeOperacao.JIRAYA);
     }
 
     @GetMapping
@@ -38,12 +46,14 @@ public class TipoBombaController {
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('ADMIN')")
     public TipoBombaResposta criar(@Valid @RequestBody DadosTipoBomba dados) {
+        exigirCatalogoProprio();
         return TipoBombaResposta.de(service.criar(dados.nome()));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public TipoBombaResposta renomear(@PathVariable UUID id, @Valid @RequestBody DadosTipoBomba dados) {
+        exigirCatalogoProprio();
         return TipoBombaResposta.de(service.renomear(id, dados.nome()));
     }
 
@@ -51,6 +61,7 @@ public class TipoBombaController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasRole('ADMIN')")
     public void inativar(@PathVariable UUID id) {
+        exigirCatalogoProprio();
         service.inativar(id);
     }
 
@@ -58,6 +69,7 @@ public class TipoBombaController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasRole('ADMIN')")
     public void reativar(@PathVariable UUID id) {
+        exigirCatalogoProprio();
         service.reativar(id);
     }
 }

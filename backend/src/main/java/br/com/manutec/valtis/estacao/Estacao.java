@@ -113,6 +113,7 @@ public class Estacao {
     public String getLocalizacaoInstalacao() { return localizacaoInstalacao; }
     public Integer getAndarInicial() { return andarInicial; }
     public Integer getAndarFinal() { return andarFinal; }
+    public String getChaveIntegracao() { return chaveIntegracao; }
     public boolean isRequerFechamentoGeral() { return requerFechamentoGeral; }
     public boolean isAtivo() { return ativo; }
 }

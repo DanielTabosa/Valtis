@@ -38,6 +38,13 @@ public class ConjuntoBombeamento {
     @Column(nullable = false)
     private boolean ativo = true;
 
+    /**
+     * Conjunto derivado do Jiraya (RF-73, Q-4): a localização interna normalizada.
+     * Um conjunto por (cliente, tipo, chave). Nula no conjunto cadastrado à mão.
+     */
+    @Column(name = "chave_integracao", updatable = false)
+    private String chaveIntegracao;
+
     @CreationTimestamp
     @Column(name = "criado_em", nullable = false, updatable = false)
     private OffsetDateTime criadoEm;
@@ -63,10 +70,23 @@ public class ConjuntoBombeamento {
     public void inativar() { this.ativo = false; }
     public void reativar() { this.ativo = true; }
 
+    /** RF-73: o conjunto que agrupa as bombas de um tipo numa localização interna do Jiraya. */
+    public static ConjuntoBombeamento derivadoDoJiraya(Cliente cliente, TipoBomba tipo, String localizacao,
+                                                       String chaveIntegracao) {
+        ConjuntoBombeamento c = new ConjuntoBombeamento(cliente, tipo, localizacao, null);
+        c.chaveIntegracao = chaveIntegracao;
+        return c;
+    }
+
+    public boolean isDerivado() {
+        return chaveIntegracao != null;
+    }
+
     public UUID getId() { return id; }
     public Cliente getCliente() { return cliente; }
     public TipoBomba getTipo() { return tipo; }
     public String getLocalizacao() { return localizacao; }
+    public String getChaveIntegracao() { return chaveIntegracao; }
     public String getObservacoes() { return observacoes; }
     public boolean isAtivo() { return ativo; }
 }

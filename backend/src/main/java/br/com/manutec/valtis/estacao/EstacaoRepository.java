@@ -14,4 +14,7 @@ public interface EstacaoRepository extends JpaRepository<Estacao, UUID> {
 
     @Query("SELECT e FROM Estacao e JOIN FETCH e.cliente WHERE e.id = :id")
     Optional<Estacao> buscarComCliente(@Param("id") UUID id);
+
+    /** RF-73: a estação derivada de uma localização interna do Jiraya. */
+    Optional<Estacao> findByClienteIdAndChaveIntegracao(UUID clienteId, String chaveIntegracao);
 }

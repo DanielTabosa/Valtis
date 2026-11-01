@@ -31,13 +31,15 @@ public final class ClienteResposta {
                           String cidade, String sindicoResponsavel, String telefoneContato, String emailContato,
                           TipoAtendimento tipoAtendimento, StatusContrato statusContrato, boolean ativo,
                           OrigemRegistro origem, LocalDate ultimaManutencaoLegado, boolean dataLegadoAproximada,
-                          boolean cadastroIncompleto, List<EstacaoResposta> estacoes) {
+                          boolean cadastroIncompleto, List<EstacaoResposta> estacoes, boolean espelhado,
+                          Long manutecId) {
 
         public static Detalhe de(Cliente c, List<EstacaoResposta> estacoes) {
             return new Detalhe(c.getId(), c.getCodigoReferencia(), c.getNomeCondominio(), c.getEndereco(),
                     c.getBairro(), c.getCidade(), c.getSindicoResponsavel(), c.getTelefoneContato(),
                     c.getEmailContato(), c.getTipoAtendimento(), c.getStatusContrato(), c.isAtivo(), c.getOrigem(),
-                    c.getUltimaManutencaoLegado(), c.isDataLegadoAproximada(), c.isCadastroIncompleto(), estacoes);
+                    c.getUltimaManutencaoLegado(), c.isDataLegadoAproximada(), c.isCadastroIncompleto(), estacoes,
+                    c.isEspelhado(), c.getManutecId());
         }
     }
 }

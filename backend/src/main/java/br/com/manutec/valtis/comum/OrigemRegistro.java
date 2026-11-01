@@ -2,11 +2,15 @@ package br.com.manutec.valtis.comum;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 
-/** Se o registro nasceu no sistema ou veio da importação da base legada (D-09). */
+/**
+ * Se o registro nasceu no sistema, veio da importação da base legada (D-09) ou é
+ * espelho do Manutec Clientes no modo integrado (D-29).
+ */
 public enum OrigemRegistro implements ValorDeBanco {
 
     SISTEMA("sistema"),
-    IMPORTACAO("importacao");
+    IMPORTACAO("importacao"),
+    INTEGRACAO("integracao");
 
     private final String valor;
 

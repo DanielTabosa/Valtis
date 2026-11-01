@@ -1,5 +1,6 @@
 package br.com.manutec.valtis.bomba;
 
+import br.com.manutec.valtis.comum.ModoDeOperacao;
 import br.com.manutec.valtis.recorrencia.StatusPainel;
 import br.com.manutec.valtis.seguranca.UsuarioLogado;
 import jakarta.validation.Valid;
@@ -19,13 +20,15 @@ public class BombaController {
     private final BombaService service;
     private final BombaConsultaService consulta;
     private final MovimentacaoService movimentacao;
+    private final ModoDeOperacao modo;
     private final Clock relogio;
 
     public BombaController(BombaService service, BombaConsultaService consulta, MovimentacaoService movimentacao,
-                           Clock relogio) {
+                           ModoDeOperacao modo, Clock relogio) {
         this.service = service;
         this.consulta = consulta;
         this.movimentacao = movimentacao;
+        this.modo = modo;
         this.relogio = relogio;
     }
 
@@ -44,6 +47,7 @@ public class BombaController {
     @ResponseStatus(HttpStatus.CREATED)
     public BombaResposta criarDoCondominio(@PathVariable UUID clienteId, @Valid @RequestBody DadosBomba dados,
                                            @AuthenticationPrincipal UsuarioLogado eu) {
+        modo.exigirCadastroProprio("a bomba", ModoDeOperacao.JIRAYA); // RF-72
         Bomba bomba = service.criarDoCondominio(clienteId, dados);
         // Atalho da tela: cadastrar e já colocar na posição. Entra na data de instalação, ou hoje.
         if (dados.conjuntoId() != null) {
@@ -62,6 +66,7 @@ public class BombaController {
     @PostMapping("/api/patrimonio/bombas")
     @ResponseStatus(HttpStatus.CREATED)
     public BombaResposta criarPatrimonial(@Valid @RequestBody DadosBomba dados) {
+        modo.exigirCadastroProprio("o patrimônio de bombas", ModoDeOperacao.JIRAYA); // RF-77
         return service.resposta(service.criarPatrimonial(dados));
     }
 
@@ -73,6 +78,12 @@ public class BombaController {
     @PutMapping("/api/bombas/{id}")
     public BombaResposta atualizar(@PathVariable UUID id, @Valid @RequestBody DadosBomba dados) {
         return service.atualizar(id, dados);
+    }
+
+    /** RN-24 por campo: na bomba espelhada, fabricante e modelo vêm do Jiraya; o resto se completa aqui. */
+    @PutMapping("/api/bombas/{id}/complemento")
+    public BombaResposta completar(@PathVariable UUID id, @Valid @RequestBody DadosBomba dados) {
+        return service.completar(id, dados);
     }
 
     @PostMapping("/api/bombas/{id}/inativar")
@@ -98,12 +109,14 @@ public class BombaController {
     public MovimentacaoService.Resultado instalar(@PathVariable UUID id,
                                                   @Valid @RequestBody MovimentacaoService.DadosInstalacao dados,
                                                   @AuthenticationPrincipal UsuarioLogado eu) {
+        modo.exigirCadastroProprio("a movimentação de bombas", ModoDeOperacao.JIRAYA); // RF-77
         return movimentacao.instalar(id, dados, eu.id());
     }
 
     @PostMapping("/api/ocupacoes/{id}/encerramento")
     public OcupacaoResposta encerrar(@PathVariable UUID id,
                                      @Valid @RequestBody MovimentacaoService.DadosEncerramento dados) {
+        modo.exigirCadastroProprio("a movimentação de bombas", ModoDeOperacao.JIRAYA); // RF-77
         return movimentacao.encerrar(id, dados);
     }
 }

@@ -240,4 +240,17 @@ Decisão D-29. O Valtis roda em um de dois modos, definido por configuração na
 
 **Entrada é o Outbox invertido** (D-30). O leitor grava cada item recebido em `evento_recebido` com chave idempotente e avança o cursor; um worker aplica os eventos pendentes, com retentativa e erro visível, exatamente como o `SincronizadorDaAgenda` faz na saída. O caso de uso que aplica uma OS chama o **mesmo** `LancamentoService` do lançamento manual: a regra RN-07 e RN-10 não tem segunda cópia.
 
+**Como está implementado (01/11/2026), pacote `integracao/`:**
+
+| Peça | Papel |
+|---|---|
+| `FonteExterna` (porta) | `alteracoes(recurso, desde, aposId)` devolve uma página. Adaptadores HTTP: `ManutecClientesHttp` (busca o detalhe de cada cliente alterado) e `JirayaHttp`. Token Bearer, tempo-limite, 401 → `CredencialRecusadaException`, 5xx e rede → `FonteIndisponivelException` |
+| `LeitorDaIntegracao` | Uma rodada: lê cada recurso a partir do cursor, página a página, e chama o aplicador. Uma fonte fora do ar não para a outra. Só existe em `externa`. `AgendadorDaIntegracao` dispara a cada 5 min (`valtis.integracao.intervalo-ms`) |
+| `RecebimentoDeEventos` | Grava a página em `evento_recebido` e avança `cursor_integracao` na **mesma transação**. Versão nova supera a antiga ainda não aplicada |
+| `AplicadorDeEventos` | O worker: um evento por transação, na ordem cliente → equipamento → OS. Aplicado, pendência (negócio), aguardar (dependência que vai chegar) ou falha técnica com espera crescente |
+| `AplicadorDeCliente`, `AplicadorDeEquipamento`, `AplicadorDeOrdemDeServico` | Traduzem o contrato para o domínio. A OS chama `LancamentoService.registrarDaOrdemDeServico`, o mesmo `registrar` do lançamento manual |
+| `IntegracaoController` (admin) | `GET /api/integracao/pendencias`, `POST /api/integracao/eventos/{id}/reprocessamento`, `POST /api/integracao/eventos/{id}/descarte`, `GET /api/integracao/estado`, `POST /api/integracao/leitura` |
+
+O modo é lido por `comum/ModoDeOperacao` (`VALTIS_CADASTROS_ORIGEM`, padrão `propria`) e exposto em `GET /api/sistema`. As recusas de cadastro em `externa` e a rota de complemento dos registros espelhados estão em D-32.
+
 **O que a fronteira proíbe aqui:** caso de uso que chama a API do Jiraya em tempo real (o painel não depende de outro sistema estar no ar); leitura direta do banco do Jiraya ou do Manutec Clientes; escrita em qualquer um dos dois (RN-24).

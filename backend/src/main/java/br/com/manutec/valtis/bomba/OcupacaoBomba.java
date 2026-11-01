@@ -53,15 +53,34 @@ public class OcupacaoBomba {
 
     private String observacoes;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "registrado_por_id", nullable = false, updatable = false)
+    /** Nulo só na ocupação posta pelo sincronizador do Jiraya (origem = integracao). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "registrado_por_id", updatable = false)
     private Usuario registradoPor;
+
+    /** Quem registrou: uma pessoa (manual) ou o sincronizador do Jiraya (integracao, D-27). */
+    @Column(nullable = false, updatable = false)
+    private String origem = ORIGEM_MANUAL;
 
     @CreationTimestamp
     @Column(name = "criado_em", nullable = false, updatable = false)
     private OffsetDateTime criadoEm;
 
+    static final String ORIGEM_MANUAL = "manual";
+    static final String ORIGEM_INTEGRACAO = "integracao";
+
     protected OcupacaoBomba() {
+    }
+
+    /**
+     * RF-73: no modo integrado a bomba espelhada entra no conjunto derivado pelo
+     * sincronizador. A posição continua sendo a ocupação aberta (D-27).
+     */
+    public static OcupacaoBomba daIntegracao(Bomba bomba, ConjuntoBombeamento conjunto, String numeroPosicao,
+                                             LocalDate inicio) {
+        OcupacaoBomba o = new OcupacaoBomba(bomba, conjunto, numeroPosicao, inicio, null, null, null);
+        o.origem = ORIGEM_INTEGRACAO;
+        return o;
     }
 
     public OcupacaoBomba(Bomba bomba, ConjuntoBombeamento conjunto, String numeroPosicao, LocalDate inicio,

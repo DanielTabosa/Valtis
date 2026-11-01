@@ -1,8 +1,8 @@
 # HANDOFF — Valtis
 
 **Para:** qualquer agente que vá trabalhar neste repositório
-**Atualizado em:** 01/11/2026 (schema V6 apresentado, Q-1 a Q-4 respondidas; falta o OK final no schema)
-**Branches de trabalho:** `feat/fase-1-mvp` (Fase 1, publicada, não mesclada na `main`) · `feat/modulo-bombas` (criada a partir dela em 20/10, publicada no GitHub, sem PR; módulo de bombas completo, não mesclada)
+**Atualizado em:** 01/11/2026 (V6 aprovado e implementado; backend do modo integrado pronto e testado; ver §12c)
+**Branches de trabalho:** `feat/fase-1-mvp` (Fase 1, publicada, não mesclada na `main`) · `feat/modulo-bombas` (criada a partir dela em 20/10, publicada no GitHub, sem PR) · **`feat/modo-integrado`** (criada a partir de `feat/modulo-bombas` em 01/11, **só local, não publicada**: V6, serviço por bomba, modo `propria`/`externa`, módulo de integração)
 
 Este arquivo é o resumo de situação. Ele **não substitui** `AGENTS.md`, `docs/requirements.md`, `docs/architecture.md`, `docs/database.md` e `docs/decisions.md` — leia-os conforme a ordem do `CLAUDE.md`. O que este arquivo faz é te dizer, rápido: onde o projeto está, o que já foi decidido, o que falta e o que você **não** pode fazer sozinho.
 
@@ -134,6 +134,9 @@ O Daniel autorizou seguir sem aprovação durante a codificação (13/10/2026). 
 | S-09 | ✅ Painel e lista de clientes importados ficam em telas separadas (P-08). A lista própria ainda não existe | — |
 | S-10 | ✅ **Revista em 16/10.** A data vem com **hoje** e o aviso "Confira: é hoje?" (RF-17, D-02 revisto) | `Lancamento.tsx` |
 | S-11 | ✅ D-21, D-23, D-24 aceitas. D-22 aceita **com gatilho**: com domínio único (P-07), reavaliar cookie `HttpOnly` | `docs/decisions.md` |
+| S-12 | ⏳ **A validar (01/11/2026).** Do detalhe do Manutec Clientes para o cliente do Valtis: nome do condomínio = nome fantasia (sem ele, razão social); endereço, bairro e cidade do endereço principal ativo (sem ele, o primeiro ativo); síndico, telefone e e-mail do contato com função "síndico" (sem ele, o primeiro contato) | `integracao/AplicadorDeCliente.dados` |
+| S-13 | ⏳ **A validar.** Tipo de bomba do Valtis para equipamento do Jiraya: o tipo ativo do catálogo cujo nome aparece no nome do tipo do Jiraya ("Bomba de recalque" → Recalque); sem correspondência, pendência | `integracao/AplicadorDeEquipamento.tipoDeBomba` |
+| S-14 | ⏳ **A validar.** VRP que muda de localização no Jiraya vira pendência (a válvula não troca de estação, para não misturar históricos); bomba que muda de localização é movida: encerra a ocupação e abre outra no conjunto novo (D-27) | `integracao/AplicadorDeEquipamento` |
 
 ---
 
@@ -225,6 +228,8 @@ Detalhe e justificativa em `docs/decisions.md`. **Não reabra sem motivo novo.**
 | Proteção contra força bruta fica em memória | Zera ao reiniciar; aceitável com uma instância |
 | Token no `localStorage` | Risco de XSS documentado em D-22 |
 | Pasta duplicada e obsoleta em `C:\Users\didit\OneDrive\Área de Trabalho\Valtis` | Apagar; o repositório ativo é `C:\dev\Valtis` |
+| Tipo de equipamento renomeado no Jiraya não reclassifica os equipamentos já lidos | O contrato tem `tipos-equipamento/` para isso, mas o Valtis ainda não lê. Hoje: reprocessar a pendência na tela |
+| Leitura do Manutec Clientes busca o detalhe cliente a cliente | Aceitável com 296 clientes e alterações esparsas; rever se a base crescer |
 
 ---
 
@@ -329,11 +334,29 @@ O Daniel redefiniu o papel do Valtis: **monitor de prazos e apontador de oportun
 
 **Contrato Jiraya → Valtis (vigente, aprovado em 31/10/2026)**, `docs/integracao/jiraya.md`: cinco rotas só de leitura sob `/api/integracao/v1/` (tipos de equipamento, equipamento, equipamentos/alterações, OS, OS/alterações), token Bearer, cursor `desde` + `apos_id`, itens completos no feed. Armadilhas achadas no Jiraya e tratadas: OS concluída pode ser **reaberta** e cancelada (o feed traz todas as situações; reabertura vai para pendências, P-27); `completed_at` é o clique, não o dia do serviço (campo novo `data_execucao`, P-28); `completed_by` é o gestor, não o técnico (usa `executores`, P-29). Consequências para o `V6` listadas no fim do contrato: técnico externo em texto, valor `instalacao` no tipo de manutenção, dois cursores.
 
+## 12c. Modo integrado — implementação (01/11/2026)
+
+O Daniel aprovou o V6 e pediu para avançar sozinho. Na branch **`feat/modo-integrado`**:
+
+| Commit | O quê |
+|---|---|
+| `6f05210` fix | **Bomba-relógio nos testes:** o JWT era validado com o relógio do sistema e emitido com o relógio fixo de 13/10: desde 27/10, 30 dos 96 testes caíam com 401. Agora a validade usa o `Clock` injetado |
+| `c42b954` feat | `V6__modo_integrado.sql` (aprovado) e domínio: serviço de válvula **ou** bomba (RF-80), oportunidade de bomba (D-31), inativação de serviço com recálculo do ciclo (RN-26). A data-base da bomba é a mais recente entre o cadastro e o último serviço ativo |
+| `eb1db68` fix | O adaptador do Google pedia um `RestClient.Builder` que o Spring Boot 4 não cria sem o starter de restclient: **com `VALTIS_AGENDA_PROVEDOR=google` o backend não subia.** Teste de contexto reproduz |
+| (este) feat | Modo `propria`/`externa` (RF-70, `VALTIS_CADASTROS_ORIGEM`), travas de cadastro e rota de complemento (D-32), pacote `integracao/` completo (leitores HTTP, fila `evento_recebido`, cursor, worker, aplicadores de cliente, equipamento e OS, pendências e estado) |
+
+**Testes:** 126, todos verdes (`.\mvnw.cmd test`, 01/11/2026). Novos: `ServicoDeBombaEInativacaoIntegracaoTest` (9), `ModoIntegradoIntegracaoTest` (9, com o Manutec Clientes e o Jiraya falsos em `FontesFalsas`), `LeitoresHttpTest` (5, servidor HTTP falso), `EventoRecebidoTest` (6), `ContextoComAgendaGoogleTest` (1).
+
+**Pendências novas para o Daniel:** P-31 (serviço em bomba do patrimônio), P-32 (inativar o único serviço do equipamento), P-33 (OS concluída de novo depois de inativada), S-12 a S-14 (suposições de mapeamento). Todas isoladas: o código recusa só o caso bloqueado, com mensagem.
+
+**Variáveis novas** (só para rodar `externa`): `VALTIS_CADASTROS_ORIGEM=externa`, `VALTIS_MANUTEC_CLIENTES_URL`, `VALTIS_MANUTEC_CLIENTES_TOKEN`, `VALTIS_JIRAYA_URL`, `VALTIS_JIRAYA_TOKEN`. Sem elas, o padrão é `propria` e nada muda para quem usa hoje.
+
 ## 13. Próxima tarefa sugerida
 
 0. ~~Aprovação das decisões D-29 a D-31 e P-20 a P-26~~ — **feito em 30/10/2026**. O Daniel gostou de responder por perguntas de múltipla escolha, uma rodada de até 4 por vez, com a recomendação marcada: use esse formato para pendências.
 0b. ~~Escrever e aprovar o contrato Jiraya → Valtis~~ — **aprovado em 31/10/2026** (`docs/integracao/jiraya.md`). O Daniel leva ao repositório do Jiraya como etapa antes da E8 (P-24), com J-1 a J-3.
-0c. ~~Apresentar o schema `V6`~~ — **apresentado em 01/11/2026** em `docs/integracao/schema-v6.md`; Q-1 a Q-4 respondidas (RN-24 refinada por campo, RN-26 nova, RF-73 ajustado). **Comece por aqui: o Daniel dá o OK no schema completo**; aprovado, gerar `V6__modo_integrado.sql` (conferir no banco local os nomes das constraints sem nome do V2/V4) e atualizar `database.md` no mesmo commit. Texto original do item: para aprovação (referências externas em `cliente`, `valvula`, `bomba`, `servico`; `servico.bomba_id` com `valvula_id` passando a opcional, um dos dois obrigatório; `evento_recebido`; `cursor_integracao`; `periodicidade_meses` na bomba com padrão 12). Só depois: módulo `integracao/`, modo `externa` nos controllers, RF-80, telas de pendências e estado.
+0c. ~~Apresentar e implementar o schema `V6`~~ — **aprovado e implementado em 01/11/2026** (§12c). A migração **não foi aplicada no banco local nem em produção**: roda sozinha na próxima subida do backend (local: com o Daniel; produção: §4, exige aprovação).
+0d. **Comece por aqui:** o Daniel responde P-31 a P-33 e valida S-12 a S-14; testa o modo `propria` (nada deve ter mudado, mais o lançamento de serviço em bomba). O modo `externa` só roda de verdade quando o Jiraya expuser a API (J-1 a J-3 do contrato). Texto original do item 0c: para aprovação (referências externas em `cliente`, `valvula`, `bomba`, `servico`; `servico.bomba_id` com `valvula_id` passando a opcional, um dos dois obrigatório; `evento_recebido`; `cursor_integracao`; `periodicidade_meses` na bomba com padrão 12). Só depois: módulo `integracao/`, modo `externa` nos controllers, RF-80, telas de pendências e estado.
 
 1. ~~Teste manual do Daniel na branch~~ — refeito em 16/10/2026: tudo funcionou. Ajustes pedidos e já feitos: editar/inativar/excluir válvula pelo técnico, data de hoje no lançamento, cartões do painel que não zeram ao filtrar, atrasados sem lembrete marcados na fila, tela Agenda com cartões que filtram a lista (como o painel). Testado e aprovado pelo Daniel.
 2. ~~Validar S-01 a S-11 e D-21 a D-24~~ — feito em 16/10/2026.

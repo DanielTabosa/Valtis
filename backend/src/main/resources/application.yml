@@ -67,6 +67,31 @@ valtis:
       email: ${VALTIS_ADMIN_EMAIL:}
       senha: ${VALTIS_ADMIN_SENHA:}
 
+  cadastros:
+    # RF-70, D-29. propria: cadastros na tela do Valtis (produto independente).
+    # externa: cliente vem do Manutec Clientes, equipamento e serviço do Jiraya (Manutec).
+    # Lido na subida; não muda em tempo de execução.
+    origem: ${VALTIS_CADASTROS_ORIGEM:propria}
+
+  integracao:
+    # Só vale em origem externa (D-30). Leitura a cada 5 minutos (P-23).
+    intervalo-ms: ${VALTIS_INTEGRACAO_INTERVALO_MS:300000}
+    atraso-inicial-ms: 30000
+    # Erro técnico ao aplicar um evento: tenta de novo com espera crescente, como a agenda.
+    max-tentativas: 8
+    espera-inicial-segundos: 300
+    manutec-clientes:
+      url: ${VALTIS_MANUTEC_CLIENTES_URL:}
+      token: ${VALTIS_MANUTEC_CLIENTES_TOKEN:}
+      timeout: 10s
+    jiraya:
+      url: ${VALTIS_JIRAYA_URL:}
+      token: ${VALTIS_JIRAYA_TOKEN:}
+      timeout: 10s
+    # RF-72: o tipo de equipamento do Jiraya é reconhecido pelo nome (P-21).
+    tipos-valvula: VRP
+    tipos-bomba: bomba
+
   agenda:
     # desativada | simulada | google. Desativada: eventos ficam na fila, nada é enviado.
     provedor: ${VALTIS_AGENDA_PROVEDOR:desativada}

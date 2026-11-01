@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface ClienteRepository extends JpaRepository<Cliente, UUID> {
@@ -35,4 +36,6 @@ public interface ClienteRepository extends JpaRepository<Cliente, UUID> {
             WHERE codigo_referencia ~ '^COND-[0-9]+$'
             """, nativeQuery = true)
     int maiorNumeroDeCodigo();
+
+    Optional<Cliente> findByManutecId(Long manutecId);
 }

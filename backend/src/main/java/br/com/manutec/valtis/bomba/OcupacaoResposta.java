@@ -33,6 +33,6 @@ public record OcupacaoResposta(
                 substituida == null ? null : substituida.getId(),
                 substituida == null ? null : substituida.getCodigoReferencia(),
                 o.getInicio(), o.getFim(), o.getMotivoEncerramento(), o.getObservacoes(),
-                o.getRegistradoPor().getNome(), o.isAberta());
+                o.getRegistradoPor() == null ? "Jiraya" : o.getRegistradoPor().getNome(), o.isAberta());
     }
 }

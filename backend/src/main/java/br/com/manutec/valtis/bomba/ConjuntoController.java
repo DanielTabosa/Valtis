@@ -1,5 +1,6 @@
 package br.com.manutec.valtis.bomba;
 
+import br.com.manutec.valtis.comum.ModoDeOperacao;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -12,9 +13,11 @@ import java.util.UUID;
 public class ConjuntoController {
 
     private final ConjuntoService service;
+    private final ModoDeOperacao modo;
 
-    public ConjuntoController(ConjuntoService service) {
+    public ConjuntoController(ConjuntoService service, ModoDeOperacao modo) {
         this.service = service;
+        this.modo = modo;
     }
 
     @GetMapping("/api/clientes/{clienteId}/conjuntos")
@@ -25,6 +28,8 @@ public class ConjuntoController {
     @PostMapping("/api/clientes/{clienteId}/conjuntos")
     @ResponseStatus(HttpStatus.CREATED)
     public ConjuntoResposta criar(@PathVariable UUID clienteId, @Valid @RequestBody DadosConjunto dados) {
+        // RF-73: em externa o conjunto é derivado da localização e do tipo no Jiraya (Q-4).
+        modo.exigirCadastroProprio("o conjunto de bombeamento", ModoDeOperacao.JIRAYA);
         return service.criar(clienteId, dados);
     }
 

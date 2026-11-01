@@ -3,6 +3,7 @@ package br.com.manutec.valtis.bomba;
 import br.com.manutec.valtis.cliente.Cliente;
 import br.com.manutec.valtis.cliente.ClienteService;
 import br.com.manutec.valtis.comum.ConflitoException;
+import br.com.manutec.valtis.comum.ModoDeOperacao;
 import br.com.manutec.valtis.comum.RecursoNaoEncontradoException;
 import br.com.manutec.valtis.comum.RegraDeNegocioException;
 import br.com.manutec.valtis.comum.Textos;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -61,33 +63,62 @@ public class BombaService {
 
     @Transactional
     public BombaResposta atualizar(UUID id, DadosBomba dados) {
-        Bomba bomba = buscar(id);
+        Bomba bomba = buscarPropria(id);
         Integer periodicidadeAnterior = bomba.getPeriodicidadeMeses();
         bomba.atualizar(tecnicos(dados), dados.periodicidadeMeses(), dados.ultimaManutencao());
         reprogramarSeMudouAPeriodicidade(bomba, periodicidadeAnterior);
         return resposta(bomba);
     }
 
+    /** RN-24 por campo: na espelhada, fabricante e modelo ficam como o Jiraya mandou. */
+    @Transactional
+    public BombaResposta completar(UUID id, DadosBomba dados) {
+        Bomba bomba = buscar(id);
+        Integer periodicidadeAnterior = bomba.getPeriodicidadeMeses();
+        if (bomba.isEspelhada()) {
+            bomba.completar(tecnicos(dados), dados.periodicidadeMeses(), dados.ultimaManutencao());
+        } else {
+            bomba.atualizar(tecnicos(dados), dados.periodicidadeMeses(), dados.ultimaManutencao());
+        }
+        reprogramarSeMudouAPeriodicidade(bomba, periodicidadeAnterior);
+        return resposta(bomba);
+    }
+
     @Transactional
     public void inativar(UUID id) {
-        buscar(id).inativar();
+        buscarPropria(id).inativar();
     }
 
     @Transactional
     public void reativar(UUID id) {
-        buscar(id).reativar();
+        buscarPropria(id).reativar();
+    }
+
+    /** A espelhada só muda pelo Jiraya, inclusive a inativação (RF-72, RF-79). */
+    private Bomba buscarPropria(UUID id) {
+        Bomba bomba = buscar(id);
+        ModoDeOperacao.exigirNaoEspelhado(bomba.isEspelhada(), "a bomba", ModoDeOperacao.JIRAYA);
+        return bomba;
     }
 
     /** Como RF-12a: exclusão física só para o cadastro por engano, sem nenhuma ocupação. */
     @Transactional
     public void excluir(UUID id) {
-        Bomba bomba = buscar(id);
+        Bomba bomba = buscarPropria(id);
         if (ocupacaoRepository.existsByBombaId(id) || servicoRepository.existsByBombaId(id)
                 || oportunidades.existeParaBomba(id)) {
             throw new ConflitoException("A bomba %s já tem histórico de posição. Para tirá-la das listas, inative-a."
                     .formatted(bomba.getCodigoReferencia()));
         }
         bombaRepository.delete(bomba);
+    }
+
+    /** RF-72: a bomba espelhada ganha código COND-NNN-BMB-NN como qualquer outra; periodicidade 12 (P-22). */
+    @Transactional
+    public Bomba criarEspelho(Cliente cliente, long jirayaEquipamentoId, Bomba.DadosDoJiraya dados,
+                              OffsetDateTime agora) {
+        return bombaRepository.save(Bomba.espelhoDoJiraya(cliente, proximoCodigoDoCliente(cliente),
+                jirayaEquipamentoId, dados, Bomba.PERIODICIDADE_PADRAO_MESES, agora));
     }
 
     public Bomba buscar(UUID id) {

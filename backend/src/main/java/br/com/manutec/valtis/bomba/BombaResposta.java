@@ -33,7 +33,10 @@ public record BombaResposta(
         String statusRotulo,
         boolean dadosTecnicosIncompletos,
         List<SituacaoBomba.Posicao> posicoes,
-        boolean disponivel
+        boolean disponivel,
+        /** Veio do Jiraya: fabricante, modelo e identificação são só leitura (RN-24). */
+        boolean espelhada,
+        String identificacaoExterna
 ) {
 
     public static BombaResposta de(Bomba b, SituacaoBomba s) {
@@ -44,6 +47,7 @@ public record BombaResposta(
                 b.getFuncao(), b.getDataInstalacao(), b.getPeriodicidadeMeses(), b.getUltimaManutencao(),
                 b.descricao(), b.isAtivo(),
                 s.ultimaManutencao(), s.proximaManutencao(), s.diasRestantes(), s.status(), s.status().getRotulo(),
-                s.dadosTecnicosIncompletos(), s.posicoes(), s.disponivel());
+                s.dadosTecnicosIncompletos(), s.posicoes(), s.disponivel(), b.isEspelhada(),
+                b.getIdentificacaoExterna());
     }
 }

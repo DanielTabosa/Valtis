@@ -13,7 +13,9 @@ public record ConjuntoResposta(
         String localizacao,
         String observacoes,
         boolean ativo,
-        List<PosicaoOcupada> posicoes
+        List<PosicaoOcupada> posicoes,
+        /** Derivado do Jiraya (RF-73): só leitura no Valtis. */
+        boolean derivado
 ) {
 
     public record PosicaoOcupada(UUID ocupacaoId, String numeroPosicao, UUID bombaId, String codigoBomba,
@@ -29,6 +31,6 @@ public record ConjuntoResposta(
 
     public static ConjuntoResposta de(ConjuntoBombeamento c, List<PosicaoOcupada> posicoes) {
         return new ConjuntoResposta(c.getId(), c.getCliente().getId(), c.getTipo().getId(), c.getTipo().getNome(),
-                c.getLocalizacao(), c.getObservacoes(), c.isAtivo(), posicoes);
+                c.getLocalizacao(), c.getObservacoes(), c.isAtivo(), posicoes, c.isDerivado());
     }
 }

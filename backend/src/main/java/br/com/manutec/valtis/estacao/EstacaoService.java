@@ -2,6 +2,7 @@ package br.com.manutec.valtis.estacao;
 
 import br.com.manutec.valtis.cliente.Cliente;
 import br.com.manutec.valtis.cliente.ClienteService;
+import br.com.manutec.valtis.comum.ModoDeOperacao;
 import br.com.manutec.valtis.comum.RecursoNaoEncontradoException;
 import br.com.manutec.valtis.comum.RegraDeNegocioException;
 import br.com.manutec.valtis.comum.Textos;
@@ -41,20 +42,44 @@ public class EstacaoService {
 
     @Transactional
     public EstacaoResposta atualizar(UUID id, DadosEstacao dados) {
-        Estacao estacao = buscar(id);
+        Estacao estacao = buscarPropria(id);
         estacao.atualizar(Textos.limpar(dados.localizacaoInstalacao()), dados.andarInicial(), dados.andarFinal(),
                 Boolean.TRUE.equals(dados.requerFechamentoGeral()));
         return resposta(estacao);
     }
 
+    /** Q-2, RN-24 por campo: andares e fechamento geral são do Valtis, inclusive na derivada. */
+    @Transactional
+    public EstacaoResposta completar(UUID id, Integer andarInicial, Integer andarFinal, boolean requerFechamentoGeral) {
+        if ((andarInicial == null) != (andarFinal == null)) {
+            throw new RegraDeNegocioException("Informe os dois andares, o inicial e o final.");
+        }
+        if (andarInicial != null && andarFinal < andarInicial) {
+            throw new RegraDeNegocioException("O andar final não pode ser abaixo do andar inicial.");
+        }
+        Estacao estacao = buscar(id);
+        if (!estacao.isDerivada() && andarInicial == null) {
+            throw new RegraDeNegocioException("Informe o andar inicial e o final.");
+        }
+        estacao.completar(andarInicial, andarFinal, requerFechamentoGeral);
+        return resposta(estacao);
+    }
+
     @Transactional
     public void inativar(UUID id) {
-        buscar(id).inativar();
+        buscarPropria(id).inativar();
     }
 
     @Transactional
     public void reativar(UUID id) {
-        buscar(id).reativar();
+        buscarPropria(id).reativar();
+    }
+
+    /** A estação derivada acompanha os equipamentos do Jiraya: localização e situação vêm de lá. */
+    private Estacao buscarPropria(UUID id) {
+        Estacao estacao = buscar(id);
+        ModoDeOperacao.exigirNaoEspelhado(estacao.isDerivada(), "a estação", ModoDeOperacao.JIRAYA);
+        return estacao;
     }
 
     public Estacao buscar(UUID id) {
