@@ -47,9 +47,19 @@ Pronto na branch:
 - Fila de oportunidades: assumir, desfecho, recusa com nova data de lembrete
 - Fila de saída da agenda (Outbox) com worker, retentativa e tela de sincronização
 - Adaptador do Google Calendar escrito e testado contra servidor simulado (falta a credencial real)
-- 67 testes automatizados, inclusive com Postgres real (Testcontainers), e CI no GitHub Actions
+- CI no GitHub Actions
 
-A fazer, em ordem: credencial do Google Calendar · importação dos 296 clientes · fotos e PDF.
+**Depois, em branches empilhadas sobre a Fase 1 (não mescladas):**
+
+- `feat/modulo-bombas` (20/10): conjuntos de bombeamento, bombas, patrimônio da Manutec, empréstimos e painel de bombas
+- `feat/modo-integrado` (01/11, só local): o Valtis passa a poder ler clientes do **Manutec Clientes** e equipamentos e OS do **Jiraya** (D-29 a D-32, schema `V6`)
+  - serviço lançado em válvula **ou** bomba, com oportunidade e agenda para os dois (RF-80, D-31)
+  - inativação de serviço pelo admin, com motivo, recalculando o ciclo (RN-26)
+  - chave de modo `propria` (padrão, como sempre) ou `externa` (cadastros vêm de fora; ver "Modo integrado" abaixo)
+  - telas de admin **Integração** e **Pendências**
+  - **126 testes automatizados**, inclusive com Postgres real (Testcontainers) e com o Manutec Clientes e o Jiraya simulados
+
+A fazer: o Jiraya expor a API do contrato ([docs/integracao/jiraya.md](docs/integracao/jiraya.md)) · migração `V7` do status `cancelado` (P-32, aguarda aprovação) · credencial do Google Calendar · fotos e PDF.
 
 > ⚠️ A migration `V3__seed_demonstracao.sql` insere **dados fictícios**. Remover antes de qualquer dado real entrar.
 
@@ -65,6 +75,8 @@ Leia nesta ordem:
 | [docs/architecture.md](docs/architecture.md) | **Como** construir. Camadas, fronteiras, padrão Outbox, módulos e stack |
 | [docs/database.md](docs/database.md) | O modelo de dados, convenções de nomenclatura, mapeamento da planilha legada e o glossário do domínio |
 | [docs/decisions.md](docs/decisions.md) | **Por que** está assim. Registro de decisões (ADR), append-only |
+| [docs/integracao/jiraya.md](docs/integracao/jiraya.md) | Contrato da API Jiraya → Valtis (v1, vigente). O Jiraya implementa; o Valtis lê |
+| [docs/integracao/schema-v6.md](docs/integracao/schema-v6.md) | O porquê de cada coluna da migração `V6` do modo integrado |
 | [docs/plano-fase-0.md](docs/plano-fase-0.md) | Plano de execução da Fase 0, semana a semana, com os conceitos a estudar em paralelo |
 | [_arquivo/](_arquivo/) | Versões anteriores da documentação. Histórico, **não** fonte de verdade |
 
@@ -182,7 +194,12 @@ Todos exigem o cabeçalho `Authorization: Bearer <token>`, exceto login e health
 | `POST /api/clientes/{id}/estacoes` · `PUT /api/estacoes/{id}` | Estações |
 | `POST /api/estacoes/{id}/valvulas` · `GET/PUT/DELETE /api/valvulas/{id}` | Válvulas e ficha com histórico (DELETE só sem histórico) |
 | `GET/POST /api/especificacoes` · `PUT /api/especificacoes/{id}` | Catálogo |
-| `POST /api/servicos/lancamentos` | Lança serviço em uma ou mais válvulas |
+| `GET /api/sistema` | Modo dos cadastros: `propria` ou `externa` |
+| `POST /api/servicos/lancamentos` | Lança serviço em uma ou mais válvulas ou bombas (cada item tem `valvulaId` ou `bombaId`) |
+| `POST /api/servicos/{id}/inativacao` | Inativa um serviço com motivo e recalcula o ciclo (RN-26). Só admin |
+| `PUT /api/{clientes,estacoes,valvulas,bombas}/{id}/complemento` | Completa os campos que são do Valtis num registro vindo de fora (RN-24, D-32) |
+| `GET /api/integracao/pendencias` · `POST /api/integracao/eventos/{id}/reprocessamento`, `/descarte` | O que a integração não conseguiu aplicar. Só admin |
+| `GET /api/integracao/estado` · `POST /api/integracao/leitura` | Estado da leitura das fontes e "ler agora". Só admin |
 | `GET /api/oportunidades` · `POST .../{id}/assumir`, `/liberar`, `/desfecho` | Fila comercial |
 | `GET /api/agenda/situacao?status=` · `POST /api/agenda/sincronizar` | Sincronização com a agenda |
 | `POST /api/importacao/clientes/analise` · `/revalidacao` · `POST /api/importacao/clientes` | Importação da base antiga: prévia e gravação (só admin) |
@@ -204,6 +221,7 @@ Todos exigem o cabeçalho `Authorization: Bearer <token>`, exceto login e health
 | Backend não sobe: `Defina VALTIS_JWT_SEGREDO` | Falta a chave que assina os tokens | Rodar com o perfil `local`, ou definir a variável com 32+ caracteres |
 | `Connection refused` na porta 5433 | Banco local parado | `docker compose up -d` na raiz do projeto |
 | Testes falham com `Could not find a valid Docker environment` | Docker Desktop fechado | Abrir o Docker Desktop e rodar de novo |
+| Na máquina do Daniel o banco local está na porta **5434**, não na 5433 | Container `valtis-postgres` criado antes | `docker start valtis-postgres` e subir o backend com `"-Dspring-boot.run.arguments=--spring.datasource.url=jdbc:postgresql://localhost:5434/valtis"` |
 | Acento chega quebrado ao testar com `curl` no Git Bash | O terminal manda o texto fora de UTF-8 | Testar pela tela, ou mandar o corpo de um arquivo salvo em UTF-8 |
 
 ### Diagnóstico
