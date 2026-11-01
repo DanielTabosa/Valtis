@@ -29,6 +29,9 @@ final class ResultadoDaAplicacao {
     /** O começo do motivo dos equipamentos que não são VRP nem bomba: a OS os reconhece por ele. */
     static final String TIPO_NAO_MAPEADO = "Tipo de equipamento não acompanhado pelo Valtis";
 
+    /** Trecho do motivo da OS cujos equipamentos não são VRP nem bomba: relida quando um deles passa a contar. */
+    static final String OS_SEM_EQUIPAMENTO = "sem nenhuma VRP ou bomba";
+
     /** Sem acento, sem caixa, espaços simples: "Casa de Bombas " e "casa de bombas" são o mesmo lugar. */
     static String normalizar(String texto) {
         if (texto == null) {

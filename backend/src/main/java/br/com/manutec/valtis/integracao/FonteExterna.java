@@ -20,12 +20,24 @@ public interface FonteExterna {
      */
     record Pagina(List<Item> itens, String ultimoDesde, Long ultimoId, boolean temMais) {}
 
+    /** Um tipo de equipamento do Jiraya como está agora (jiraya.md, rota 1). */
+    record TipoDeEquipamento(long id, String nome) {}
+
     OrigemIntegracao origem();
 
     boolean configurada();
 
     /** `desde` nulo = desde o início (primeira carga). */
     Pagina alteracoes(RecursoLido recurso, String desde, Long aposId);
+
+    /**
+     * A lista inteira de tipos de equipamento, relida a cada rodada: renomear um tipo
+     * não muda o `atualizado_em` dos equipamentos dele (jiraya.md, rota 1). Só o
+     * Jiraya fornece; as outras fontes devolvem vazio.
+     */
+    default List<TipoDeEquipamento> tiposDeEquipamento() {
+        return List.of();
+    }
 
     /** A fonte recusou o token (401): é configuração errada, não se repete em laço. */
     class CredencialRecusadaException extends RuntimeException {

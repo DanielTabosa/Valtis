@@ -34,6 +34,7 @@ public class FontesFalsas {
 
         private final OrigemIntegracao origem;
         private final Map<RecursoLido, List<Item>> publicados = new ConcurrentHashMap<>();
+        private volatile List<TipoDeEquipamento> tipos = List.of();
         private RuntimeException falha;
 
         FonteFalsa(OrigemIntegracao origem) {
@@ -42,6 +43,16 @@ public class FontesFalsas {
 
         public void publicar(RecursoLido recurso, long id, String versao, String corpo) {
             publicados.computeIfAbsent(recurso, r -> new ArrayList<>()).add(new Item(id, versao, corpo));
+        }
+
+        /** A lista de tipos como está "agora" no Jiraya (rota 1). Vazia = não fornece. */
+        public void publicarTipos(TipoDeEquipamento... tipos) {
+            this.tipos = List.of(tipos);
+        }
+
+        @Override
+        public List<TipoDeEquipamento> tiposDeEquipamento() {
+            return origem == OrigemIntegracao.JIRAYA ? tipos : List.of();
         }
 
         public void falharCom(RuntimeException erro) {

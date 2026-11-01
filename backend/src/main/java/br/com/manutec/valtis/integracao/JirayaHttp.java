@@ -13,7 +13,8 @@ import java.util.List;
 
 /**
  * Adaptador do Jiraya, pelo contrato v1 escrito no Valtis (docs/integracao/jiraya.md):
- * `equipamentos/alteracoes/` e `ordens-servico/alteracoes/`, com os itens completos.
+ * `equipamentos/alteracoes/` e `ordens-servico/alteracoes/`, com os itens completos,
+ * e `tipos-equipamento/`, relida inteira a cada rodada.
  */
 @Component
 @ConditionalOnProperty(name = "valtis.cadastros.origem", havingValue = "externa")
@@ -48,6 +49,15 @@ public class JirayaHttp extends LeitorHttp {
         Item ultimo = itens.isEmpty() ? null : itens.getLast();
         return new Pagina(itens, ultimo == null ? null : ultimo.versao(), ultimo == null ? null : ultimo.id(),
                 !pagina.path("proxima").isNull() && !pagina.path("proxima").isMissingNode());
+    }
+
+    @Override
+    public List<TipoDeEquipamento> tiposDeEquipamento() {
+        List<TipoDeEquipamento> tipos = new ArrayList<>();
+        for (JsonNode tipo : obter("tipos-equipamento/").path("resultados")) {
+            tipos.add(new TipoDeEquipamento(tipo.path("id").asLong(), tipo.path("nome").asString()));
+        }
+        return tipos;
     }
 
     @Override

@@ -68,6 +68,23 @@ class LeitoresHttpTest {
     }
 
     @Test
+    void jirayaDevolveATodosOsTiposDeEquipamento() {
+        // Rota 1: lista inteira, sem cursor, inclusive inativos.
+        servidor.expect(requestTo(BASE + "tipos-equipamento/"))
+                .andExpect(header("Authorization", "Bearer token-de-teste-com-32-caracteres!!"))
+                .andRespond(withSuccess("""
+                        {"resultados":[
+                          {"id":1,"nome":"Bomba de recalque","ativo":true,"atualizado_em":"2026-10-23T09:00:00-03:00"},
+                          {"id":3,"nome":"Registro","ativo":false,"atualizado_em":"2026-10-23T09:00:00-03:00"}]}""",
+                        MediaType.APPLICATION_JSON));
+
+        assertThat(new JirayaHttp(FONTE, json, http).tiposDeEquipamento()).containsExactly(
+                new FonteExterna.TipoDeEquipamento(1, "Bomba de recalque"),
+                new FonteExterna.TipoDeEquipamento(3, "Registro"));
+        servidor.verify();
+    }
+
+    @Test
     void primeiraCargaVaiSemCursor() {
         servidor.expect(requestTo(BASE + "ordens-servico/alteracoes/?limite=100"))
                 .andRespond(withSuccess("""

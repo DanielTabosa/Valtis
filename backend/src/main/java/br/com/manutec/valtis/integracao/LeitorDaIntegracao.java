@@ -30,17 +30,24 @@ public class LeitorDaIntegracao {
     private final Map<OrigemIntegracao, FonteExterna> fontes;
     private final RecebimentoDeEventos recebimento;
     private final AplicadorDeEventos aplicador;
+    private final TiposDoJiraya tiposDoJiraya;
+    private final ReclassificacaoPorTipo reclassificacao;
 
     public LeitorDaIntegracao(List<FonteExterna> fontes, RecebimentoDeEventos recebimento,
-                              AplicadorDeEventos aplicador) {
+                              AplicadorDeEventos aplicador, TiposDoJiraya tiposDoJiraya,
+                              ReclassificacaoPorTipo reclassificacao) {
         this.fontes = fontes.stream().collect(Collectors.toMap(FonteExterna::origem, Function.identity(),
                 (primeira, segunda) -> primeira));
         this.recebimento = recebimento;
         this.aplicador = aplicador;
+        this.tiposDoJiraya = tiposDoJiraya;
+        this.reclassificacao = reclassificacao;
     }
 
     /** RF-78 "ler agora" e o agendamento chamam o mesmo método; um de cada vez. */
     public synchronized ResumoDaRodada rodar() {
+        // Antes de ler e aplicar os equipamentos: um tipo renomeado vale já nesta rodada.
+        atualizarTiposDoJiraya();
         int recebidos = 0;
         // A ordem importa só para chegar tudo na mesma rodada; a aplicação respeita
         // as dependências sozinha (cliente, depois equipamento, depois OS).
@@ -49,6 +56,33 @@ public class LeitorDaIntegracao {
         }
         int aplicados = aplicador.aplicarPendentes();
         return new ResumoDaRodada(recebidos, aplicados);
+    }
+
+    /**
+     * Antes de aplicar qualquer equipamento: o nome atual de cada tipo (jiraya.md,
+     * rota 1). As pendências de um tipo que passou a ser VRP ou bomba voltam para a fila.
+     */
+    private void atualizarTiposDoJiraya() {
+        FonteExterna jiraya = fontes.get(OrigemIntegracao.JIRAYA);
+        if (jiraya == null || !jiraya.configurada()) {
+            return;
+        }
+        try {
+            List<FonteExterna.TipoDeEquipamento> tipos = jiraya.tiposDeEquipamento();
+            if (tipos.isEmpty()) {
+                return;
+            }
+            tiposDoJiraya.atualizar(tipos);
+            int devolvidos = reclassificacao.devolverAFilaOQuePassouAContar();
+            if (devolvidos > 0) {
+                log.info("{} pendência(s) voltaram para a fila: o tipo do equipamento passou a ser VRP ou bomba.",
+                        devolvidos);
+            }
+        } catch (FonteExterna.CredencialRecusadaException | FonteExterna.FonteIndisponivelException e) {
+            // Segue com a lista da rodada anterior (ou com o nome do corpo). A mesma falha
+            // aparece no cursor de equipamentos, lido logo depois, e é o que a tela mostra.
+            log.warn("Tipos de equipamento do Jiraya não lidos nesta rodada: {}", e.getMessage());
+        }
     }
 
     private int ler(RecursoLido recurso) {

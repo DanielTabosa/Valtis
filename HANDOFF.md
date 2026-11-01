@@ -135,6 +135,7 @@ O Daniel autorizou seguir sem aprovação durante a codificação (13/10/2026). 
 | S-11 | ✅ D-21, D-23, D-24 aceitas. D-22 aceita **com gatilho**: com domínio único (P-07), reavaliar cookie `HttpOnly` | `docs/decisions.md` |
 | S-12 | ✅ **Validada em 01/11/2026.** Do detalhe do Manutec Clientes para o cliente do Valtis: nome do condomínio = nome fantasia (sem ele, razão social); endereço, bairro e cidade do endereço principal ativo (sem ele, o primeiro ativo); síndico, telefone e e-mail do contato com função "síndico" (sem ele, o primeiro contato) | `integracao/AplicadorDeCliente.dados` |
 | S-13 | ✅ **Validada em 01/11/2026.** Tipo de bomba do Valtis para equipamento do Jiraya: o tipo ativo do catálogo cujo nome aparece no nome do tipo do Jiraya ("Bomba de recalque" → Recalque); sem correspondência, pendência | `integracao/AplicadorDeEquipamento.tipoDeBomba` |
+| S-16 | ⏳ **A validar.** Equipamento já espelhado cujo tipo no Jiraya passa a ser de outra classe (VRP → bomba, ou deixa de ser VRP/bomba) **não** muda sozinho: a próxima versão dele vai para as pendências. Sem isso, uma VRP virando "bomba" ganharia uma bomba duplicada ao lado. O caminho contrário (tipo ignorado que passa a ser VRP ou bomba) é automático | `integracao/AplicadorDeEquipamento.exigirMesmaClasseDoEspelho` |
 | S-15 | ⏳ **A validar.** Filtros do painel (RF-38, 01/11/2026): "técnico" é quem fez o **último serviço ativo** da válvula (usuário do Valtis ou técnico do Jiraya); "período" recorta a **próxima manutenção** (de/até, inclusive), e válvula SEM REGISTRO sai quando há período. As listas de bairro e técnico vêm da base inteira | `painel/FiltroPainel`, `ValvulaRepository.buscarDadosDoPainel` |
 | S-14 | ✅ **Validada em 01/11/2026.** VRP que muda de localização no Jiraya vira pendência (a válvula não troca de estação, para não misturar históricos); bomba que muda de localização é movida: encerra a ocupação e abre outra no conjunto novo (D-27) | `integracao/AplicadorDeEquipamento` |
 
@@ -228,7 +229,6 @@ Detalhe e justificativa em `docs/decisions.md`. **Não reabra sem motivo novo.**
 | Proteção contra força bruta fica em memória | Zera ao reiniciar; aceitável com uma instância |
 | Token no `localStorage` | Risco de XSS documentado em D-22 |
 | Pasta duplicada e obsoleta em `C:\Users\didit\OneDrive\Área de Trabalho\Valtis` | Apagar; o repositório ativo é `C:\dev\Valtis` |
-| Tipo de equipamento renomeado no Jiraya não reclassifica os equipamentos já lidos | O contrato tem `tipos-equipamento/` para isso, mas o Valtis ainda não lê. Hoje: reprocessar a pendência na tela |
 | Leitura do Manutec Clientes busca o detalhe cliente a cliente | Aceitável com 296 clientes e alterações esparsas; rever se a base crescer |
 
 ---
@@ -365,10 +365,11 @@ Ele pediu para avançar no que não exigisse decisão dele. Na `feat/modo-integr
 | `ee636f9` fix | **Tabela → cartões pela largura do conteúdo** (container query), não da janela. Com a lateral aberta, numa janela de 1024px o painel e as pendências estouravam e a página rolava para o lado, escondendo "Reprocessar/Descartar" |
 | `8ead106` fix | Detalhe do cliente avulso mostrava "Avulso · contrato ativo"; agora o status do contrato só aparece para contrato |
 | `6f13a06` fix | Menu "Patrimônio" escondido em `externa` (RF-77), como Importar e Tipos de bomba |
+| (tipos) feat | **Tipos do Jiraya relidos a cada rodada** (jiraya.md, rota 1; era dívida técnica): a classificação usa o nome atual do tipo; pendência de "tipo não acompanhado" volta à fila sozinha quando o tipo passa a ser VRP ou bomba, junto com a OS que esperava por ele. Trava contra mudança de classe de equipamento já espelhado (S-16) |
 
 | (V7) feat | **P-32 resolvida:** `V7__oportunidade_cancelada.sql` (só alarga o CHECK) e status `cancelado`. Inativar o único serviço cancela a oportunidade que nasceu dele (motivo nas notas, lembretes descartados) e o equipamento volta a SEM REGISTRO; na bomba com data de cadastro o ciclo reconta dela. RN-26 atualizada, D-33 registrada |
 
-**Testes:** 133, todos verdes (126 + 4 do painel + 4 da V7, menos o antigo que esperava a recusa da P-32). `npm run lint` sem avisos, `npm run build` limpo.
+**Testes:** 136, todos verdes (126 + 4 do painel + 4 da V7, menos o antigo que esperava a recusa da P-32, + 3 dos tipos do Jiraya). `npm run lint` sem avisos, `npm run build` limpo.
 
 **Verificado no navegador**, com Postgres descartável (porta 5440, já parado e removido; o banco do Daniel **não** foi tocado) e um Manutec Clientes + Jiraya falsos (servidor Python com dados fictícios no formato do contrato): leitura automática aplicou 2 clientes, VRP, bomba e OS; pendências de "tipo não acompanhado" e "OS sem tipo (J-1)"; OS reaberta depois de aplicada virou pendência com os dois serviços ligados (P-27); descarte com justificativa; completar estação (andares), válvula e cliente; filtro por técnico com o técnico do Jiraya; celular (375px) sem rolagem lateral. **Ainda não verificado:** o fluxo com o Jiraya de verdade (depende de J-1 a J-3).
 
@@ -387,7 +388,7 @@ Ele pediu para avançar no que não exigisse decisão dele. Na `feat/modo-integr
    2. ~~**P-32 / migração `V7`**~~ — **aprovada ("pode seguir", inclusive a bomba) e implementada em 01/11/2026** (§12d, D-33). Roda sozinha na próxima subida do backend local (banco 5434); em produção, só com o checklist da §4.
    3. **Levar o contrato ao Jiraya:** o texto para colar está em [`docs/integracao/pedido-jiraya.md`](docs/integracao/pedido-jiraya.md). O Daniel abre uma sessão em `C:\dev\Jiraya` com o pedido pronto (CV-v1 = `docs/integracao/jiraya.md`; etapa antes da E8; spec + `docs/architecture/valtis-integration.md` + D-xx; J-1 a J-3; schema aprovado antes da migração). Mudança no contrato volta para cá como nova versão.
    4. ~~Publicar a branch `feat/modo-integrado`~~ — **publicada em 01/11/2026**, sem PR. Próximo passo de Git é decidir quando abrir PR (e para qual base: `feat/fase-1-mvp` ou `main`).
-   5. Validar a **S-15** (filtros do painel, §5) e olhar as correções da §12d.
+   5. Validar a **S-15** (filtros do painel) e a **S-16** (equipamento espelhado não muda de classe sozinho), §5, e olhar as correções da §12d.
 
 1. ~~Teste manual do Daniel na branch~~ — refeito em 16/10/2026: tudo funcionou. Ajustes pedidos e já feitos: editar/inativar/excluir válvula pelo técnico, data de hoje no lançamento, cartões do painel que não zeram ao filtrar, atrasados sem lembrete marcados na fila, tela Agenda com cartões que filtram a lista (como o painel). Testado e aprovado pelo Daniel.
 2. ~~Validar S-01 a S-11 e D-21 a D-24~~ — feito em 16/10/2026.

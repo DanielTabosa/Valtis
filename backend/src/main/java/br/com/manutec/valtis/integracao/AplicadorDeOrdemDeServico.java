@@ -128,8 +128,8 @@ public class AplicadorDeOrdemDeServico {
             }
         }
         if (alvos.isEmpty()) {
-            throw new ResultadoDaAplicacao.Pendencia("A OS " + os.id() + " foi concluída sem nenhuma VRP ou bomba "
-                    + "cadastrada no Jiraya.");
+            throw new ResultadoDaAplicacao.Pendencia("A OS " + os.id() + " foi concluída "
+                    + ResultadoDaAplicacao.OS_SEM_EQUIPAMENTO + " cadastrada no Jiraya.");
         }
         return alvos;
     }

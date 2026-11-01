@@ -195,6 +195,51 @@ class ModoIntegradoIntegracaoTest extends TesteDeIntegracao {
     }
 
     @Test
+    void tipoRenomeadoParaVrpDevolveAFilaOEquipamentoEAOsQueEsperavam() throws Exception {
+        // Renomear o tipo no Jiraya não muda a versão do equipamento (jiraya.md, rota 1).
+        long registro = IDS.incrementAndGet();
+        long os = IDS.incrementAndGet();
+        long tipoId = IDS.incrementAndGet();
+        jirayaFalso.publicar(RecursoLido.EQUIPAMENTOS, registro, versao(2),
+                equipamentoComTipo(registro, tipoId, "Registro de gaveta", "Barrilete", "RG-01"));
+        jirayaFalso.publicar(RecursoLido.ORDENS_SERVICO, os, versao(3),
+                ordem(os, "concluida", "manutencao_preventiva", "2026-10-06", registro));
+        leitor.rodar();
+        assertThat(pendenciasDo(registro)).singleElement().asString().startsWith("Tipo de equipamento não acompanhado");
+        assertThat(pendenciasDo(os)).singleElement().asString().contains("sem nenhuma VRP ou bomba");
+
+        jirayaFalso.publicarTipos(new FonteExterna.TipoDeEquipamento(tipoId, "VRP de gaveta"));
+        leitor.rodar();
+
+        assertThat(pendenciasDo(registro)).isEmpty();
+        assertThat(pendenciasDo(os)).isEmpty();
+        String valvulaId = ler(obter("/api/clientes/" + clienteDoValtis(), token), "$.estacoes[0].valvulas[0].id");
+        obter("/api/valvulas/" + valvulaId, token)
+                .andExpect(jsonPath("$.ultimaManutencao").value("2026-10-06"))
+                .andExpect(jsonPath("$.historico[0].jirayaOsId").value((int) os));
+    }
+
+    @Test
+    void vrpCujoTipoViraBombaNoJirayaNaoGanhaBombaDuplicada() throws Exception {
+        long vrp = IDS.incrementAndGet();
+        long tipoId = IDS.incrementAndGet();
+        jirayaFalso.publicar(RecursoLido.EQUIPAMENTOS, vrp, versao(2),
+                equipamentoComTipo(vrp, tipoId, "Válvula redutora de pressão (VRP)", "Barrilete", "VRP-01"));
+        leitor.rodar();
+        String clienteId = clienteDoValtis();
+
+        // S-16: o tipo vira bomba e o equipamento muda depois; reclassificar não é automático.
+        jirayaFalso.publicarTipos(new FonteExterna.TipoDeEquipamento(tipoId, "Bomba de recalque"));
+        jirayaFalso.publicar(RecursoLido.EQUIPAMENTOS, vrp, versao(4),
+                equipamentoComTipo(vrp, tipoId, "Bomba de recalque", "Barrilete", "VRP-01"));
+        leitor.rodar();
+
+        assertThat(pendenciasDo(vrp)).singleElement().asString().contains("Mudar de classe não é automático");
+        obter("/api/clientes/" + clienteId + "/bombas", token).andExpect(jsonPath("$.length()").value(0));
+        obter("/api/clientes/" + clienteId, token).andExpect(jsonPath("$.estacoes[0].valvulas.length()").value(1));
+    }
+
+    @Test
     void soOsDeManutencaoReiniciaOCiclo() throws Exception {
         long vrp = IDS.incrementAndGet();
         long visita = IDS.incrementAndGet();
@@ -313,6 +358,11 @@ class ModoIntegradoIntegracaoTest extends TesteDeIntegracao {
                              {"id":2,"nome":"Síndica Fictícia","funcao":"Síndica","telefone":"81911111111",
                               "email":"sindica@exemplo.invalid"}],
                  "atualizado_em":"%s"}""".formatted(id, id, nome, ativo, versao(1));
+    }
+
+    private String equipamentoComTipo(long id, long tipoId, String tipo, String localizacao, String identificacao) {
+        return equipamento(id, tipo, localizacao, identificacao).replace("\"tipo\":{\"id\":1,",
+                "\"tipo\":{\"id\":" + tipoId + ",");
     }
 
     private String equipamento(long id, String tipo, String localizacao, String identificacao) {

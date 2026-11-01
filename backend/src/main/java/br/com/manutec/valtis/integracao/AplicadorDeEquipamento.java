@@ -53,6 +53,7 @@ public class AplicadorDeEquipamento {
     private final ConjuntoRepository conjuntos;
     private final OcupacaoRepository ocupacoes;
     private final TipoBombaRepository tiposDeBomba;
+    private final TiposDoJiraya tiposDoJiraya;
     private final List<String> tiposValvula;
     private final List<String> tiposBomba;
 
@@ -60,7 +61,8 @@ public class AplicadorDeEquipamento {
                                   ValvulaRepository valvulas, ValvulaService valvulaService,
                                   EstacaoRepository estacoes, BombaRepository bombas, BombaService bombaService,
                                   ConjuntoRepository conjuntos, OcupacaoRepository ocupacoes,
-                                  TipoBombaRepository tiposDeBomba, ValtisPropriedades propriedades) {
+                                  TipoBombaRepository tiposDeBomba, TiposDoJiraya tiposDoJiraya,
+                                  ValtisPropriedades propriedades) {
         this.json = json;
         this.relogio = relogio;
         this.clientes = clientes;
@@ -72,6 +74,7 @@ public class AplicadorDeEquipamento {
         this.conjuntos = conjuntos;
         this.ocupacoes = ocupacoes;
         this.tiposDeBomba = tiposDeBomba;
+        this.tiposDoJiraya = tiposDoJiraya;
         ValtisPropriedades.Integracao config = propriedades.integracao();
         this.tiposValvula = normalizados(config == null ? null : config.tiposValvula(), "vrp");
         this.tiposBomba = normalizados(config == null ? null : config.tiposBomba(), "bomba");
@@ -83,20 +86,54 @@ public class AplicadorDeEquipamento {
     public void aplicar(EventoRecebido evento) {
         Contratos.EquipamentoDoJiraya e = json.readValue(evento.getCorpo(), Contratos.EquipamentoDoJiraya.class);
         OffsetDateTime agora = OffsetDateTime.now(relogio);
-        switch (classificar(e)) {
+        Classe classe = classificar(e);
+        exigirMesmaClasseDoEspelho(e, classe);
+        switch (classe) {
             case VALVULA -> aplicarValvula(e, evento.getVersao(), agora);
             case BOMBA -> aplicarBomba(e, evento.getVersao(), agora);
             case OUTRO -> throw new ResultadoDaAplicacao.Pendencia(ResultadoDaAplicacao.TIPO_NAO_MAPEADO + ": "
-                    + (e.tipo() == null ? "sem tipo" : e.tipo().nome()) + ".");
+                    + (e.tipo() == null ? "sem tipo" : tiposDoJiraya.nomeAtual(e.tipo())) + ".");
         }
     }
 
-    /** RF-72, P-21: pelo nome do tipo, sem diferenciar caixa nem acento. VRP antes de bomba. */
+    /** Classe do equipamento de um corpo guardado, com o nome ATUAL do tipo (reclassificação). */
+    Classe classificarCorpo(String corpo) {
+        return classificar(json.readValue(corpo, Contratos.EquipamentoDoJiraya.class));
+    }
+
+    /**
+     * RF-72, P-21: pelo nome do tipo, sem diferenciar caixa nem acento. VRP antes de bomba.
+     * O nome é o atual do Jiraya (TiposDoJiraya), não o que veio no corpo.
+     */
     Classe classificar(Contratos.EquipamentoDoJiraya e) {
-        String tipo = ResultadoDaAplicacao.normalizar(e.tipo() == null ? null : e.tipo().nome());
+        String tipo = ResultadoDaAplicacao.normalizar(e.tipo() == null ? null : tiposDoJiraya.nomeAtual(e.tipo()));
         if (tiposValvula.stream().anyMatch(tipo::contains)) return Classe.VALVULA;
         if (tiposBomba.stream().anyMatch(tipo::contains)) return Classe.BOMBA;
         return Classe.OUTRO;
+    }
+
+    /**
+     * Um equipamento já espelhado não muda de classe sozinho: a VRP e a bomba têm
+     * histórico, ciclo e oportunidades separados. Sem esta trava, uma VRP cujo tipo
+     * virasse "bomba" no Jiraya ganharia uma bomba duplicada ao lado (S-16).
+     */
+    private void exigirMesmaClasseDoEspelho(Contratos.EquipamentoDoJiraya e, Classe classe) {
+        String tipo = e.tipo() == null ? "sem tipo" : tiposDoJiraya.nomeAtual(e.tipo());
+        Optional<Valvula> valvula = valvulas.findByJirayaEquipamentoId(e.id());
+        if (valvula.isPresent() && classe != Classe.VALVULA) {
+            throw reclassificado(e, "a VRP " + valvula.get().getCodigoReferencia(), tipo);
+        }
+        Optional<Bomba> bomba = bombas.findByJirayaEquipamentoId(e.id());
+        if (bomba.isPresent() && classe != Classe.BOMBA) {
+            throw reclassificado(e, "a bomba " + bomba.get().getCodigoReferencia(), tipo);
+        }
+    }
+
+    private static ResultadoDaAplicacao.Pendencia reclassificado(Contratos.EquipamentoDoJiraya e, String espelho,
+                                                                 String tipo) {
+        return new ResultadoDaAplicacao.Pendencia("O equipamento " + e.id() + " do Jiraya está no Valtis como "
+                + espelho + ", mas agora tem o tipo \"" + tipo + "\". Mudar de classe não é automático: confira o "
+                + "tipo no Jiraya ou trate o equipamento à mão.");
     }
 
     private void aplicarValvula(Contratos.EquipamentoDoJiraya e, String versao, OffsetDateTime agora) {
