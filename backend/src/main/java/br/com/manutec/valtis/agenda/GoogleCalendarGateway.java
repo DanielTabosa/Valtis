@@ -48,9 +48,11 @@ public class GoogleCalendarGateway implements AgendaGateway {
     private String tokenDeAcesso;
     private Instant tokenExpiraEm = Instant.EPOCH;
 
+    // RestClient.builder() direto: o Spring Boot 4 só cria um RestClient.Builder com o
+    // starter de restclient, e pedir um aqui impedia a aplicação de subir com o Google ligado.
     @Autowired
-    public GoogleCalendarGateway(RestClient.Builder builder, ValtisPropriedades propriedades, Clock relogio) {
-        this(builder.build(), propriedades.agenda().google(), relogio);
+    public GoogleCalendarGateway(ValtisPropriedades propriedades, Clock relogio) {
+        this(RestClient.builder().build(), propriedades.agenda().google(), relogio);
     }
 
     GoogleCalendarGateway(RestClient http, ValtisPropriedades.Google config, Clock relogio) {
