@@ -112,7 +112,9 @@ export function ClienteDetalhe() {
         <div>
           <dt>Atendimento</dt>
           <dd>
-            {c.tipoAtendimento} · contrato {c.statusContrato.toLowerCase()}
+            {c.tipoAtendimento}
+            {/* Avulso também guarda status_contrato (padrão Ativo); mostrar "Avulso · contrato ativo" confunde. */}
+            {c.tipoAtendimento === "Contrato" && ` · contrato ${c.statusContrato.toLowerCase()}`}
           </dd>
         </div>
         {c.ultimaManutencaoLegado && (
