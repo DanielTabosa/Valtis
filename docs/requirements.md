@@ -150,7 +150,7 @@ Estrutura: `cliente (condomínio) → conjunto de bombeamento → bomba`. Uma bo
 
 ### 1.10 Modo integrado — Valtis como monitor de prazos `[DECIDIDO · 30/10/2026]`
 
-> **Status:** decisões D-29, D-30 e D-31 e requisitos RF-70 a RF-80 **aprovados pelo Daniel em 30/10/2026**. Schema (`V6`) ainda a aprovar à parte. Nada implementado. Contrato da API Jiraya → Valtis proposto em 31/10/2026 em [`docs/integracao/jiraya.md`](integracao/jiraya.md), com P-27 a P-30 respondidas; falta a aprovação do texto completo.
+> **Status:** decisões D-29, D-30 e D-31 e requisitos RF-70 a RF-80 **aprovados pelo Daniel em 30/10/2026**. Schema (`V6`) ainda a aprovar à parte. Nada implementado. Contrato da API Jiraya → Valtis proposto em 31/10/2026 em [`docs/integracao/jiraya.md`](integracao/jiraya.md), com P-27 a P-30 respondidas; **aprovado pelo Daniel em 31/10/2026**.
 
 O Valtis passa a ter dois **modos de operação** (RF-70). No modo `propria` tudo funciona como nas seções 1.2, 1.8 e 1.9. No modo `externa`, que é o da Manutec, cliente vem do **Manutec Clientes**, equipamento e serviço vêm do **Jiraya**, e o Valtis fica com o que nenhum dos dois faz: ciclo de 12 meses, oportunidade, fila, agenda e painel. As tabelas são as mesmas; muda quem escreve nelas (D-29).
 

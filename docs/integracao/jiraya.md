@@ -1,6 +1,6 @@
 # Integração Jiraya → Valtis: contrato da API de leitura
 
-**Situação: proposta (v1).** Foi escrito no Valtis em 31/10/2026, conforme D-30 e P-24, e vai ser implementado no repositório do Jiraya. Ainda não foi implementado. Os pontos P-27 a P-30 foram respondidos pelo Daniel em 31/10/2026 (seção [Pontos decididos](#pontos-decididos)). Falta ele aprovar o texto completo e levá-lo ao Jiraya.
+**Situação: contrato vigente (v1).** Aprovado pelo Daniel em 31/10/2026, junto com os pontos P-27 a P-30 (seção [Pontos decididos](#pontos-decididos)). Escrito no Valtis conforme D-30 e P-24; a implementação é no repositório do Jiraya, como etapa antes da E8, e ainda não começou. Mudanças posteriores seguem a seção [Versionamento](#versionamento).
 
 O molde é o contrato que o Jiraya já consome: `manutec-clientes/docs/INTEGRACAO_JIRAYA.md`. As convenções são as mesmas, para que quem fez um lado reconheça o outro.
 
@@ -265,4 +265,4 @@ Estas consequências ainda não estão aprovadas e vão na apresentação do `V6
 
 ## Histórico do contrato
 
-- 31/10/2026: proposta inicial (v1), escrita no Valtis; P-27 a P-30 decididos pelo Daniel no mesmo dia.
+- 31/10/2026: proposta inicial (v1), escrita no Valtis; P-27 a P-30 decididos e contrato aprovado pelo Daniel no mesmo dia.
