@@ -213,7 +213,7 @@ Detalhe e justificativa em `docs/decisions.md`. **Não reabra sem motivo novo.**
 | P-04 | `valor_cobrado` entra no serviço? | RF-47 |
 | P-05 | Os 3 são de campo ou alguém é só de escritório? | Perfis (ver S-01) |
 | P-06 | Plaqueta física? QR Code? | RF-11 |
-| P-07 | Teto de custo, dados no Brasil, domínio. Tendência: **domínio único** (reabre D-22) | Hospedagem |
+| P-07 | Teto de custo, dados no Brasil, domínio. Tendência: **subdomínio da Manutec** (01/11, ele ainda vai estudar). Domínio único reabre D-22: cookie `HttpOnly` no lugar do token no `localStorage`, CORS mais simples | Hospedagem |
 | P-09 | Plano pago do Supabase? O gratuito hiberna | Confiabilidade |
 | P-10 | Vercel Hobby proíbe uso comercial | Conformidade |
 | P-12 | Planilha dos 296 clientes | Rodar a importação |

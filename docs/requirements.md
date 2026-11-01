@@ -315,7 +315,7 @@ Declarado explicitamente. Um agente que "adicionar" qualquer item desta lista es
 | P-04 | Valor cobrado entra no registro? Sem ele, RF-47 mede conversão mas não receita | RF-47 |
 | P-05 | As 3 pessoas são todas de campo, ou alguém é só de escritório? | Perfis de acesso |
 | P-06 | Identificação física da válvula em campo: existe plaqueta? Vale QR Code? | RF-11 |
-| P-07 | Teto de custo mensal, preferência por dados no Brasil, domínio disponível. Tendência (16/10/2026): **domínio único** para frontend e backend, o que reabre D-22 | Escolha de hospedagem |
+| P-07 | Teto de custo mensal, preferência por dados no Brasil, domínio disponível. Tendência (16/10/2026): **domínio único** para frontend e backend, o que reabre D-22. **01/11/2026:** o Daniel indicou que o Valtis irá para um **subdomínio da Manutec**, mas ainda vai estudar; não é decisão | Escolha de hospedagem |
 | P-08 | ~~Painel de válvulas e lista de clientes importados: telas separadas ou visão unificada?~~ **Respondida em 16/10/2026: telas separadas.** O painel segue uma linha por válvula; os importados terão lista própria ("base antiga, cadastro incompleto") e entram na fila normalmente | RF-34, RF-53 |
 
 ### Pendências do módulo de bombas (20/10/2026)
