@@ -1,7 +1,7 @@
 # HANDOFF — Valtis
 
 **Para:** qualquer agente que vá trabalhar neste repositório
-**Atualizado em:** 31/10/2026 (contrato Jiraya → Valtis aprovado; próximo passo é o item 0c da §13)
+**Atualizado em:** 01/11/2026 (schema V6 apresentado, Q-1 a Q-4 respondidas; falta o OK final no schema)
 **Branches de trabalho:** `feat/fase-1-mvp` (Fase 1, publicada, não mesclada na `main`) · `feat/modulo-bombas` (criada a partir dela em 20/10, publicada no GitHub, sem PR; módulo de bombas completo, não mesclada)
 
 Este arquivo é o resumo de situação. Ele **não substitui** `AGENTS.md`, `docs/requirements.md`, `docs/architecture.md`, `docs/database.md` e `docs/decisions.md` — leia-os conforme a ordem do `CLAUDE.md`. O que este arquivo faz é te dizer, rápido: onde o projeto está, o que já foi decidido, o que falta e o que você **não** pode fazer sozinho.
@@ -333,7 +333,7 @@ O Daniel redefiniu o papel do Valtis: **monitor de prazos e apontador de oportun
 
 0. ~~Aprovação das decisões D-29 a D-31 e P-20 a P-26~~ — **feito em 30/10/2026**. O Daniel gostou de responder por perguntas de múltipla escolha, uma rodada de até 4 por vez, com a recomendação marcada: use esse formato para pendências.
 0b. ~~Escrever e aprovar o contrato Jiraya → Valtis~~ — **aprovado em 31/10/2026** (`docs/integracao/jiraya.md`). O Daniel leva ao repositório do Jiraya como etapa antes da E8 (P-24), com J-1 a J-3.
-0c. **Comece por aqui: apresentar o schema `V6`** para aprovação (referências externas em `cliente`, `valvula`, `bomba`, `servico`; `servico.bomba_id` com `valvula_id` passando a opcional, um dos dois obrigatório; `evento_recebido`; `cursor_integracao`; `periodicidade_meses` na bomba com padrão 12). Só depois: módulo `integracao/`, modo `externa` nos controllers, RF-80, telas de pendências e estado.
+0c. ~~Apresentar o schema `V6`~~ — **apresentado em 01/11/2026** em `docs/integracao/schema-v6.md`; Q-1 a Q-4 respondidas (RN-24 refinada por campo, RN-26 nova, RF-73 ajustado). **Comece por aqui: o Daniel dá o OK no schema completo**; aprovado, gerar `V6__modo_integrado.sql` (conferir no banco local os nomes das constraints sem nome do V2/V4) e atualizar `database.md` no mesmo commit. Texto original do item: para aprovação (referências externas em `cliente`, `valvula`, `bomba`, `servico`; `servico.bomba_id` com `valvula_id` passando a opcional, um dos dois obrigatório; `evento_recebido`; `cursor_integracao`; `periodicidade_meses` na bomba com padrão 12). Só depois: módulo `integracao/`, modo `externa` nos controllers, RF-80, telas de pendências e estado.
 
 1. ~~Teste manual do Daniel na branch~~ — refeito em 16/10/2026: tudo funcionou. Ajustes pedidos e já feitos: editar/inativar/excluir válvula pelo técnico, data de hoje no lançamento, cartões do painel que não zeram ao filtrar, atrasados sem lembrete marcados na fila, tela Agenda com cartões que filtram a lista (como o painel). Testado e aprovado pelo Daniel.
 2. ~~Validar S-01 a S-11 e D-21 a D-24~~ — feito em 16/10/2026.
