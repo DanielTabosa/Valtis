@@ -1,20 +1,13 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
-import type { Bomba, StatusPainel } from "../api/tipos";
+import type { StatusPainel } from "../api/tipos";
 import { bombas } from "../api/valtis";
 import { Cabecalho, Carregando, EtiquetaStatus, MensagemErro } from "../componentes/Basicos";
 import { classeStatus } from "../util/status";
 import { formatarData, textoPrazo } from "../util/formato";
 import { useAtrasado } from "../util/useAtrasado";
+import { textoPosicao } from "../util/bomba";
 import { useCarga } from "../util/useCarga";
-
-/** Onde a bomba está, em uma linha. */
-export function textoPosicao(b: Bomba): string {
-  if (b.posicoes.length === 0) return b.patrimonioManutec ? "Disponível na Manutec" : "Fora de posição";
-  return b.posicoes
-    .map((p) => `${p.nomeCondominio} · ${p.conjunto} · pos. ${p.numeroPosicao}${p.natureza === "emprestimo" ? " (emprestada)" : ""}`)
-    .join(" / ");
-}
 
 /** Painel de bombas (RF-68): mesma classificação do painel de válvulas (RN-16), calculada no servidor. */
 export function PainelBombas() {

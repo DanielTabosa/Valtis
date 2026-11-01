@@ -7,7 +7,7 @@ import { FormBomba } from "../componentes/FormulariosBombas";
 import { useSistema } from "../sessao/useSistema";
 import { formatarData } from "../util/formato";
 import { useCarga } from "../util/useCarga";
-import { textoPosicao } from "./PainelBombas";
+import { textoPosicao } from "../util/bomba";
 
 /** Bombas próprias da Manutec (RF-65): o que está disponível e o que está emprestado a quem. */
 export function Patrimonio() {
