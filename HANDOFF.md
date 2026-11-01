@@ -2,7 +2,7 @@
 
 **Para:** qualquer agente que vá trabalhar neste repositório
 **Atualizado em:** 01/11/2026, segunda sessão do dia, feita sem o Daniel (§12d: filtros do painel RF-38, verificação do modo integrado na tela, três correções de interface, propostas da V7 e do pedido ao Jiraya; próximo passo é o item 0e da §13)
-**Branches de trabalho:** `feat/fase-1-mvp` (Fase 1, publicada, não mesclada na `main`) · `feat/modulo-bombas` (criada a partir dela em 20/10, publicada no GitHub, sem PR) · **`feat/modo-integrado`** (criada a partir de `feat/modulo-bombas` em 01/11, **só local, não publicada**: V6, serviço por bomba, modo `propria`/`externa`, módulo de integração)
+**Branches de trabalho:** `feat/fase-1-mvp` (Fase 1, publicada, não mesclada na `main`) · `feat/modulo-bombas` (criada a partir dela em 20/10, publicada no GitHub, sem PR) · **`feat/modo-integrado`** (criada a partir de `feat/modulo-bombas` em 01/11, **publicada no GitHub em 01/11, sem PR**: V6, serviço por bomba, modo `propria`/`externa`, módulo de integração)
 
 Este arquivo é o resumo de situação. Ele **não substitui** `AGENTS.md`, `docs/requirements.md`, `docs/architecture.md`, `docs/database.md` e `docs/decisions.md` — leia-os conforme a ordem do `CLAUDE.md`. O que este arquivo faz é te dizer, rápido: onde o projeto está, o que já foi decidido, o que falta e o que você **não** pode fazer sozinho.
 
@@ -355,7 +355,7 @@ O Daniel aprovou o V6 e pediu para avançar sozinho. Na branch **`feat/modo-inte
 
 ## 12d. Sessão sem o Daniel (01/11/2026, tarde)
 
-Ele pediu para avançar no que não exigisse decisão dele. Na `feat/modo-integrado`, ainda só local:
+Ele pediu para avançar no que não exigisse decisão dele. Na `feat/modo-integrado` (publicada depois, no mesmo dia):
 
 | Commit | O quê |
 |---|---|
@@ -386,7 +386,7 @@ Ele pediu para avançar no que não exigisse decisão dele. Na `feat/modo-integr
    1. Ouvir o que o Daniel achou da aplicação (lançamento em bomba, ficha da bomba, inativar serviço) e ajustar.
    2. ~~**P-32 / migração `V7`**~~ — **aprovada ("pode seguir", inclusive a bomba) e implementada em 01/11/2026** (§12d, D-33). Roda sozinha na próxima subida do backend local (banco 5434); em produção, só com o checklist da §4.
    3. **Levar o contrato ao Jiraya:** o texto para colar está em [`docs/integracao/pedido-jiraya.md`](docs/integracao/pedido-jiraya.md). O Daniel abre uma sessão em `C:\dev\Jiraya` com o pedido pronto (CV-v1 = `docs/integracao/jiraya.md`; etapa antes da E8; spec + `docs/architecture/valtis-integration.md` + D-xx; J-1 a J-3; schema aprovado antes da migração). Mudança no contrato volta para cá como nova versão.
-   4. Decidir se publica a branch `feat/modo-integrado` no GitHub (ainda só local).
+   4. ~~Publicar a branch `feat/modo-integrado`~~ — **publicada em 01/11/2026**, sem PR. Próximo passo de Git é decidir quando abrir PR (e para qual base: `feat/fase-1-mvp` ou `main`).
    5. Validar a **S-15** (filtros do painel, §5) e olhar as correções da §12d.
 
 1. ~~Teste manual do Daniel na branch~~ — refeito em 16/10/2026: tudo funcionou. Ajustes pedidos e já feitos: editar/inativar/excluir válvula pelo técnico, data de hoje no lançamento, cartões do painel que não zeram ao filtrar, atrasados sem lembrete marcados na fila, tela Agenda com cartões que filtram a lista (como o painel). Testado e aprovado pelo Daniel.
