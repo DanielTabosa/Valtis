@@ -110,4 +110,22 @@ class OportunidadeTest {
         assertThat(retorno.getOportunidadeAnterior()).isSameAs(recusada);
         assertThat(retorno.isAberta()).isTrue();
     }
+
+    @Test
+    void canceladaEncerraGuardaOMotivoENaoEhDesfechoManual() {
+        Oportunidade o = Cenario.oportunidade(LocalDate.of(2027, 3, 10));
+        o.registrarDesfecho(StatusOportunidade.CONTATADO, "Síndico pediu proposta", null, AGORA);
+
+        // RN-26, P-32: cancelado só vem da inativação do serviço de origem.
+        assertThatThrownBy(() -> o.registrarDesfecho(StatusOportunidade.CANCELADO, null, null, AGORA))
+                .isInstanceOf(RegraDeNegocioException.class);
+
+        o.cancelar("Cancelada: o serviço de origem foi inativado (OS cancelada).", AGORA);
+
+        assertThat(o.getStatus()).isEqualTo(StatusOportunidade.CANCELADO);
+        assertThat(o.isAberta()).isFalse();
+        assertThat(o.getEncerradaEm()).isEqualTo(AGORA);
+        assertThat(o.getNotas()).startsWith("Síndico pediu proposta").contains("OS cancelada");
+        assertThatThrownBy(() -> o.cancelar("de novo", AGORA)).isInstanceOf(RegraDeNegocioException.class);
+    }
 }

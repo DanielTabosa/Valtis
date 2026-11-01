@@ -127,11 +127,28 @@ public class OportunidadeService {
     public void recontarCicloSemServico(Servico inativado, LocalDate ultimoServicoAtivo) {
         LocalDate prevista = regras.proximaManutencao(ultimoServicoAtivo, inativado.getPeriodicidadeMeses());
         for (Oportunidade aberta : abertasDoEquipamento(inativado)) {
-            boolean nasceuDoInativado = aberta.getServicoOrigem() != null
-                    && aberta.getServicoOrigem().getId().equals(inativado.getId());
-            if (nasceuDoInativado && !aberta.getDataPrevista().equals(prevista)) {
+            if (nasceuDe(aberta, inativado) && !aberta.getDataPrevista().equals(prevista)) {
                 aberta.reprogramar(prevista);
                 filaDaAgenda.reprogramar(aberta);
+            }
+        }
+    }
+
+    /**
+     * RN-26, P-32: o serviço inativado era o único que dava data-base ao equipamento.
+     * O ciclo que nasceu dele é cancelado (não é receita perdida) e os lembretes
+     * pendentes saem da agenda. O equipamento volta a SEM REGISTRO; o próximo serviço
+     * lançado abre um ciclo novo (RN-10). O retorno pedido numa recusa não nasce do
+     * serviço e fica como está.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void cancelarCicloDoServico(Servico inativado, String motivo) {
+        OffsetDateTime agora = OffsetDateTime.now(relogio);
+        String nota = "Cancelada: o serviço de origem foi inativado (" + motivo + ").";
+        for (Oportunidade aberta : abertasDoEquipamento(inativado)) {
+            if (nasceuDe(aberta, inativado)) {
+                aberta.cancelar(nota, agora);
+                filaDaAgenda.descartarPendentes(aberta, "Oportunidade cancelada: serviço de origem inativado");
             }
         }
     }
@@ -139,8 +156,11 @@ public class OportunidadeService {
     /** O ciclo aberto do equipamento nasceu deste serviço? */
     @Transactional(readOnly = true)
     public boolean cicloAbertoNasceuDe(Servico servico) {
-        return abertasDoEquipamento(servico).stream()
-                .anyMatch(o -> o.getServicoOrigem() != null && o.getServicoOrigem().getId().equals(servico.getId()));
+        return abertasDoEquipamento(servico).stream().anyMatch(o -> nasceuDe(o, servico));
+    }
+
+    private static boolean nasceuDe(Oportunidade oportunidade, Servico servico) {
+        return oportunidade.getServicoOrigem() != null && oportunidade.getServicoOrigem().getId().equals(servico.getId());
     }
 
     private List<Oportunidade> abertasDoEquipamento(Servico servico) {

@@ -6,7 +6,15 @@ export type StatusContrato = "Ativo" | "Suspenso" | "Inativo";
 export type TipoRegistro = "Esfera" | "Gaveta";
 export type TipoManutencao = "Preventiva" | "Corretiva" | "Instalacao";
 export type StatusPainel = "VENCIDO" | "PROXIMO_DO_VENCIMENTO" | "SEM_REGISTRO" | "EM_DIA";
-export type StatusOportunidade = "agendado" | "contatado" | "aceito" | "recusado" | "executado" | "perdido";
+/** "cancelado": o serviço de origem foi inativado sem outra data-base (RN-26, P-32). Não é desfecho manual. */
+export type StatusOportunidade =
+  | "agendado"
+  | "contatado"
+  | "aceito"
+  | "recusado"
+  | "executado"
+  | "perdido"
+  | "cancelado";
 export type TipoEvento = "alerta_comercial" | "lembrete_final";
 export type StatusEvento = "pendente" | "criado" | "falhou" | "descartado";
 

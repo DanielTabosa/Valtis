@@ -136,13 +136,65 @@ class ServicoDeBombaEInativacaoIntegracaoTest extends TesteDeIntegracao {
     }
 
     @Test
-    void unicoServicoDoEquipamentoNaoEhInativadoAteDecisao() throws Exception {
-        // P-32: sem serviço anterior o equipamento ficaria sem ciclo.
+    void inativarOUnicoServicoDaValvulaCancelaOCicloEVoltaASemRegistro() throws Exception {
+        // P-32: sem outra data-base, o ciclo é cancelado (não é receita perdida).
+        String unico = ler(lancarNaValvula("2026-10-01"), "$[0].servicoId");
+        String codigo = ler(obter("/api/valvulas/" + valvula, token), "$.valvula.codigoReferencia");
+        List<String> pendentesAntes = ler(obter("/api/agenda/situacao?status=PENDENTE", token),
+                "$.eventos[?(@.alvo == '" + codigo + "')].tipo");
+        assertThat(pendentesAntes).isNotEmpty();
+
+        inativar(unico, "OS cancelada no Jiraya").andExpect(status().isNoContent());
+
+        var todas = obter("/api/oportunidades?situacao=TODAS", token);
+        List<String> status = ler(todas, "$[?(@.valvulaId == '" + valvula + "')].status");
+        assertThat(status).containsExactly("cancelado");
+        List<String> notas = ler(todas, "$[?(@.valvulaId == '" + valvula + "')].notas");
+        assertThat(notas).singleElement().asString().contains("OS cancelada no Jiraya");
+
+        List<String> statusNoPainel = ler(obter("/api/painel?clienteId=" + clienteId, token), "$.linhas[*].status");
+        assertThat(statusNoPainel).containsExactly("SEM_REGISTRO");
+        List<String> pendentesDepois = ler(obter("/api/agenda/situacao?status=PENDENTE", token),
+                "$.eventos[?(@.alvo == '" + codigo + "')].tipo");
+        assertThat(pendentesDepois).isEmpty();
+
+        // RN-10: o próximo serviço abre um ciclo novo normalmente.
+        lancarNaValvula("2026-10-05").andExpect(status().isCreated())
+                .andExpect(jsonPath("$[0].proximaManutencao").value("2027-10-05"));
+        List<String> depoisDoNovo = ler(obter("/api/oportunidades?situacao=TODAS", token),
+                "$[?(@.valvulaId == '" + valvula + "')].status");
+        assertThat(depoisDoNovo).containsExactlyInAnyOrder("cancelado", "agendado");
+    }
+
+    @Test
+    void inativarOUnicoServicoDaBombaSemDataDeCadastroCancelaOCiclo() throws Exception {
         String unico = ler(lancarNaBomba("2026-10-01"), "$[0].servicoId");
 
-        inativar(unico, "OS cancelada").andExpect(status().isUnprocessableContent())
-                .andExpect(jsonPath("$.detail").value(containsString("P-32")));
-        obter("/api/bombas/" + bomba, token).andExpect(jsonPath("$.servicos[0].ativo").value(true));
+        inativar(unico, "Lançado por engano").andExpect(status().isNoContent());
+
+        obter("/api/bombas/" + bomba, token)
+                .andExpect(jsonPath("$.servicos[0].ativo").value(false))
+                .andExpect(jsonPath("$.oportunidades[0].status").value("cancelado"))
+                .andExpect(jsonPath("$.bomba.status").value("SEM_REGISTRO"));
+    }
+
+    @Test
+    void inativarOUnicoServicoDaBombaComDataDeCadastroRecontaDoCadastro() throws Exception {
+        // RF-80: a data de cadastro também é data-base da bomba; o ciclo reconta dela.
+        String comCadastro = ler(enviar(post("/api/clientes/" + clienteId + "/bombas"), token, """
+                {"fabricante":"WEG","modelo":"BC-92","periodicidadeMeses":12,"ultimaManutencao":"2025-12-15"}""")
+                .andExpect(status().isCreated()), "$.id");
+        String unico = ler(enviar(post("/api/servicos/lancamentos"), token,
+                item("\"bombaId\":\"" + comCadastro + "\"", "2026-10-01")), "$[0].servicoId");
+
+        inativar(unico, "OS reaberta no Jiraya").andExpect(status().isNoContent());
+
+        obter("/api/bombas/" + comCadastro, token)
+                .andExpect(jsonPath("$.bomba.ultimaManutencaoConsiderada").value("2025-12-15"))
+                .andExpect(jsonPath("$.bomba.proximaManutencao").value("2026-12-15"))
+                .andExpect(jsonPath("$.oportunidades.length()").value(1))
+                .andExpect(jsonPath("$.oportunidades[0].status").value("agendado"))
+                .andExpect(jsonPath("$.oportunidades[0].dataPrevista").value("2026-12-15"));
     }
 
     @Test

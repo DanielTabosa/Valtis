@@ -1,7 +1,6 @@
 package br.com.manutec.valtis.servico;
 
 import br.com.manutec.valtis.comum.RecursoNaoEncontradoException;
-import br.com.manutec.valtis.comum.RegraDeNegocioException;
 import br.com.manutec.valtis.comum.Textos;
 import br.com.manutec.valtis.oportunidade.OportunidadeService;
 import br.com.manutec.valtis.usuario.Usuario;
@@ -12,8 +11,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.Comparator;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 /**
  * RN-26: o admin inativa um serviço, com motivo. O caso que motivou a regra é a
@@ -21,7 +23,8 @@ import java.util.UUID;
  * qualquer serviço lançado por engano.
  *
  * O serviço inativo sai do cálculo do ciclo: se era ele quem contava, o ciclo
- * volta a contar do último serviço ativo anterior.
+ * volta a contar da data-base que sobrou (o último serviço ativo anterior; na
+ * bomba, também a data de cadastro, RF-80). Sem data-base, o ciclo é cancelado (P-32).
  */
 @Service
 public class InativacaoDeServicoService {
@@ -46,21 +49,30 @@ public class InativacaoDeServicoService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Serviço não encontrado."));
 
         boolean contavaParaOCiclo = oportunidades.cicloAbertoNasceuDe(servico);
-        servico.inativar(quem, Textos.limpar(motivo), OffsetDateTime.now(relogio));
+        String motivoLimpo = Textos.limpar(motivo);
+        servico.inativar(quem, motivoLimpo, OffsetDateTime.now(relogio));
         servicoRepository.flush(); // a consulta abaixo precisa já ignorar este serviço
 
         if (!contavaParaOCiclo) {
             return; // serviço antigo ou já superado: o ciclo atual não depende dele
         }
-        Optional<LocalDate> anterior = servico.isDaBomba()
-                ? servicoRepository.ultimaDataConcluidaDaBomba(servico.getBomba().getId())
-                : servicoRepository.ultimaDataConcluida(servico.getValvula().getId());
-        if (anterior.isEmpty()) {
-            // Sem serviço anterior o equipamento ficaria sem ciclo, e não há desfecho
-            // previsto para uma oportunidade que perde a origem. Decisão pendente (P-32).
-            throw new RegraDeNegocioException("Este é o único serviço ativo do equipamento e o ciclo atual conta "
-                    + "dele. Inativá-lo deixaria o equipamento sem ciclo; essa situação aguarda decisão (P-32).");
+        Optional<LocalDate> dataBase = servico.isDaBomba() ? dataBaseDaBomba(servico) : dataBaseDaValvula(servico);
+        if (dataBase.isEmpty()) {
+            oportunidades.cancelarCicloDoServico(servico, motivoLimpo);
+            return;
         }
-        oportunidades.recontarCicloSemServico(servico, anterior.get());
+        oportunidades.recontarCicloSemServico(servico, dataBase.get());
+    }
+
+    private Optional<LocalDate> dataBaseDaValvula(Servico servico) {
+        return servicoRepository.ultimaDataConcluida(servico.getValvula().getId());
+    }
+
+    /** RF-80: na bomba, a data-base é a mais recente entre o cadastro e o último serviço ativo. */
+    private Optional<LocalDate> dataBaseDaBomba(Servico servico) {
+        Optional<LocalDate> ultimoServico = servicoRepository.ultimaDataConcluidaDaBomba(servico.getBomba().getId());
+        return Stream.of(ultimoServico.orElse(null), servico.getBomba().getUltimaManutencao())
+                .filter(Objects::nonNull)
+                .max(Comparator.naturalOrder());
     }
 }

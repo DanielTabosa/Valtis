@@ -164,7 +164,8 @@ public class Oportunidade {
      */
     public void registrarDesfecho(StatusOportunidade novo, String notas, String motivoRecusa, OffsetDateTime agora) {
         exigirAberta();
-        if (novo == StatusOportunidade.EXECUTADO || novo == StatusOportunidade.AGENDADO) {
+        if (novo == StatusOportunidade.EXECUTADO || novo == StatusOportunidade.AGENDADO
+                || novo == StatusOportunidade.CANCELADO) {
             throw new RegraDeNegocioException("Esse desfecho não pode ser marcado à mão.");
         }
         this.status = novo;
@@ -181,6 +182,17 @@ public class Oportunidade {
     public void fecharComServico(Servico servico, OffsetDateTime agora) {
         this.status = StatusOportunidade.EXECUTADO;
         this.servicoResultante = servico;
+        this.encerradaEm = agora;
+    }
+
+    /**
+     * RN-26, P-32: o serviço que abriu este ciclo foi inativado e o equipamento ficou
+     * sem data-base. O ciclo deixa de existir; o motivo fica nas notas, depois das que já havia.
+     */
+    public void cancelar(String motivo, OffsetDateTime agora) {
+        exigirAberta();
+        this.status = StatusOportunidade.CANCELADO;
+        this.notas = notas == null || notas.isBlank() ? motivo : notas + "\n" + motivo;
         this.encerradaEm = agora;
     }
 

@@ -202,7 +202,7 @@ O retorno previsto e seu desfecho comercial. É a entidade que transforma "dinhe
 | `valvula_id` | uuid FK → valvula, nulo | **nulo quando `escopo = cliente`** |
 | `servico_origem_id` | uuid FK → servico, nulo | nulo quando importada |
 | `data_prevista` | date | `data_realizada + periodicidade_meses` (RN-01). As datas dos alertas (RN-06) são **derivadas** dela, não gravadas (D-21) |
-| `status` | enum `status_oportunidade` | `agendado` \| `contatado` \| `aceito` \| `recusado` \| `executado` \| `perdido`. Os três primeiros são **abertos** |
+| `status` | enum `status_oportunidade` | `agendado` \| `contatado` \| `aceito` \| `recusado` \| `executado` \| `perdido` \| `cancelado` (V7). Os três primeiros são **abertos**. `cancelado` só vem da inativação do serviço de origem sem outra data-base (RN-26, P-32) e não conta como receita perdida |
 | `responsavel_id` | uuid FK → usuario, nulo | **nulo até alguém assumir** (RN-07, D-04) |
 | `assumida_em` | timestamptz, nulo | |
 | `motivo_recusa` | text, nulo | RF-45 |
@@ -264,7 +264,7 @@ Valores fixos vindos da planilha da Manutec. **A interface usa lista suspensa; n
 | `tipo_manutencao` | `Preventiva` · `Corretiva` · `Instalacao` (V6) |
 | `origem_servico` | `manual` · `jiraya` (V6) |
 | `status_servico` | `rascunho` · `concluido` |
-| `status_oportunidade` | `agendado` · `contatado` · `aceito` · `recusado` · `executado` · `perdido` |
+| `status_oportunidade` | `agendado` · `contatado` · `aceito` · `recusado` · `executado` · `perdido` · `cancelado` (V7) |
 | `escopo_oportunidade` | `valvula` · `bomba` (V6) · `cliente` |
 | `origem_registro` | `sistema` · `importacao` · `integracao` (V6, só em `cliente`) |
 | `estado_evento_recebido` | `pendente` · `aplicado` · `pendencia` · `falhou` · `descartado` · `superado` (§8a) |
@@ -351,7 +351,7 @@ Poucos, e só onde há consulta real. O volume não justifica mais (RNF-12).
 - `evento_agenda (proxima_tentativa_em) WHERE status = 'pendente'` — varredura do worker do Outbox
 - `cliente (nome_condominio)` — busca
 
-Implementados em `V2__schema_inicial.sql`, `V4__oportunidade_e_agenda.sql` e `V5__modulo_bombas.sql` (§8). A V4 também remove a tabela `teste_conexao` da Fase 0.
+Implementados em `V2__schema_inicial.sql`, `V4__oportunidade_e_agenda.sql` e `V5__modulo_bombas.sql` (§8). A V4 também remove a tabela `teste_conexao` da Fase 0. A `V7__oportunidade_cancelada.sql` (01/11/2026) só alarga o CHECK de `oportunidade.status` com `cancelado` (agora `ck_oportunidade_status`).
 
 ## 8. Módulo de bombas {#módulo-de-bombas}
 

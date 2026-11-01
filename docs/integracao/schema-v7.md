@@ -1,6 +1,6 @@
 # Schema `V7`: oportunidade cancelada (proposta)
 
-**Situação: proposta, aguardando aprovação do Daniel** (AGENTS.md §10, alteração de constraint e de regra RN-26). Escrita em 01/11/2026 a partir da resposta dele à P-32. **Nenhuma migration foi gerada nem rodada.** Depois do OK, vira `V7__oportunidade_cancelada.sql`, e `database.md`, `requirements.md` (RN-26, RN-08) e o código mudam no mesmo commit.
+**Situação: aprovada pelo Daniel em 01/11/2026 ("pode seguir"), inclusive a proposta para a bomba, e implementada** em `V7__oportunidade_cancelada.sql` (D-33). Escrita no mesmo dia a partir da resposta dele à P-32.
 
 ## O problema (P-32)
 

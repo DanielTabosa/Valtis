@@ -12,6 +12,8 @@ import java.util.Set;
  *
  * agendado → contatado → aceito são estados ABERTOS: o ciclo ainda está em jogo.
  * executado, recusado e perdido ENCERRAM a oportunidade.
+ * cancelado também encerra, mas não é desfecho comercial: o serviço que abriu o
+ * ciclo foi inativado e não sobrou data-base (RN-26, P-32). Não conta como receita perdida.
  */
 public enum StatusOportunidade implements ValorDeBanco {
 
@@ -20,7 +22,8 @@ public enum StatusOportunidade implements ValorDeBanco {
     ACEITO("aceito"),
     RECUSADO("recusado"),
     EXECUTADO("executado"),
-    PERDIDO("perdido");
+    PERDIDO("perdido"),
+    CANCELADO("cancelado");
 
     public static final Set<StatusOportunidade> ABERTOS = EnumSet.of(AGENDADO, CONTATADO, ACEITO);
 

@@ -41,6 +41,8 @@ export const ROTULO_OPORTUNIDADE: Record<string, string> = {
   recusado: "Recusado",
   executado: "Executado",
   perdido: "Perdido",
+  // Etiqueta cinza (sem classe própria): não é receita perdida (P-32).
+  cancelado: "Cancelado",
 };
 
 export const ROTULO_EVENTO: Record<string, string> = {

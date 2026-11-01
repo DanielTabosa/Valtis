@@ -612,6 +612,28 @@ Por outro lado, a OS do Jiraya hoje **não tem tipo**: uma visita para orçar e 
 - O frontend do modo `externa` usa a rota de complemento nas fichas espelhadas.
 - Registros criados à mão antes de ligar o modo `externa` (sem referência externa) continuam editáveis pela tela comum.
 
+
+---
+
+## D-33 — Oportunidade que perde o serviço de origem é `cancelado`, não `perdido`
+
+**Status:** Aceita · 01/11/2026 · escolhida pelo Daniel ao responder a P-32; schema `V7` aprovado por ele no mesmo dia ([proposta](integracao/schema-v7.md))
+
+**Contexto.** A RN-26 permite ao admin inativar um serviço (OS reaberta ou cancelada no Jiraya, ou lançamento por engano). Quando o serviço é o único que dá data-base ao equipamento, o ciclo aberto perde a origem e não há data para recontar.
+
+**Decisão.**
+- Status novo **`cancelado`**, de encerramento: a oportunidade que nasceu do serviço é cancelada, o motivo fica nas notas e os lembretes pendentes saem da agenda. O equipamento volta a SEM REGISTRO; o próximo serviço abre um ciclo novo (RN-10).
+- `cancelado` **não** é desfecho que o usuário escolhe na fila (RF-41 segue com os cinco de antes).
+- Na bomba, a data de cadastro também é data-base (RF-80): havendo, o ciclo é recontado dela em vez de cancelado.
+- O retorno pedido numa recusa (RN-09) não nasce do serviço e fica como está.
+
+**Alternativas descartadas.**
+- **Encerrar como `perdido`.** Contaria como receita perdida o que foi só um erro de registro.
+- **Continuar recusando a inativação.** Obrigaria a inventar um serviço para corrigir um erro.
+
+**Consequências.**
+- Migração `V7__oportunidade_cancelada.sql` (só alarga o CHECK).
+- Relatórios de receita perdida, quando existirem, contam só `perdido` (e, se for o caso, `recusado`), nunca `cancelado`.
 ---
 
 ## Índice
@@ -650,3 +672,4 @@ Por outro lado, a OS do Jiraya hoje **não tem tipo**: uma visita para orçar e 
 | D-30 | Entrada externa por leitura com cursor, idempotente (`evento_recebido`) | Aceita |
 | D-31 | Toda manutenção é oportunidade, inclusive sob contrato; só OS de manutenção reinicia o ciclo | Aceita |
 | D-32 | RN-24 por campo pela rota de complemento; edição comum do espelhado recusada | Aceita |
+| D-33 | Oportunidade sem serviço de origem é `cancelado`, não `perdido` | Aceita |

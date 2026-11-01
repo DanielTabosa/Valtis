@@ -351,7 +351,7 @@ O Daniel aprovou o V6 e pediu para avançar sozinho. Na branch **`feat/modo-inte
 
 **Verificado no navegador (01/11/2026)**, contra um Postgres descartável (porta 5440, já removido; o banco local do Daniel **não** foi tocado): em `propria`, lançamento só na bomba → "Próxima manutenção em 01/11/2027", ficha da bomba EM DIA com o serviço no histórico; em `externa`, menu de admin com Integração e Pendências, "Ler agora" mostrando "Fonte sem URL ou sem token" por fonte. Não verificado: telas de complemento, pendências com dados reais e o fluxo com o Jiraya de verdade.
 
-**Respostas do Daniel (01/11/2026):** P-31 recusar, como está; P-33 pendência, como está; S-12 a S-14 validadas. **P-32: encerrar a oportunidade com status novo `cancelado`** (não conta como receita perdida) — exige a migração `V7` (CHECK de `oportunidade.status`) e o ajuste da RN-26; **aguarda o OK do schema** antes de gerar.
+**Respostas do Daniel (01/11/2026):** P-31 recusar, como está; P-33 pendência, como está; S-12 a S-14 validadas. **P-32: encerrar a oportunidade com status novo `cancelado`** — V7 aprovada e implementada no mesmo dia (§12d).
 
 ## 12d. Sessão sem o Daniel (01/11/2026, tarde)
 
@@ -366,7 +366,9 @@ Ele pediu para avançar no que não exigisse decisão dele. Na `feat/modo-integr
 | `8ead106` fix | Detalhe do cliente avulso mostrava "Avulso · contrato ativo"; agora o status do contrato só aparece para contrato |
 | `6f13a06` fix | Menu "Patrimônio" escondido em `externa` (RF-77), como Importar e Tipos de bomba |
 
-**Testes:** 130, todos verdes (126 + 4 do painel). `npm run lint` sem avisos, `npm run build` limpo.
+| (V7) feat | **P-32 resolvida:** `V7__oportunidade_cancelada.sql` (só alarga o CHECK) e status `cancelado`. Inativar o único serviço cancela a oportunidade que nasceu dele (motivo nas notas, lembretes descartados) e o equipamento volta a SEM REGISTRO; na bomba com data de cadastro o ciclo reconta dela. RN-26 atualizada, D-33 registrada |
+
+**Testes:** 133, todos verdes (126 + 4 do painel + 4 da V7, menos o antigo que esperava a recusa da P-32). `npm run lint` sem avisos, `npm run build` limpo.
 
 **Verificado no navegador**, com Postgres descartável (porta 5440, já parado e removido; o banco do Daniel **não** foi tocado) e um Manutec Clientes + Jiraya falsos (servidor Python com dados fictícios no formato do contrato): leitura automática aplicou 2 clientes, VRP, bomba e OS; pendências de "tipo não acompanhado" e "OS sem tipo (J-1)"; OS reaberta depois de aplicada virou pendência com os dois serviços ligados (P-27); descarte com justificativa; completar estação (andares), válvula e cliente; filtro por técnico com o técnico do Jiraya; celular (375px) sem rolagem lateral. **Ainda não verificado:** o fluxo com o Jiraya de verdade (depende de J-1 a J-3).
 
@@ -382,7 +384,7 @@ Ele pediu para avançar no que não exigisse decisão dele. Na `feat/modo-integr
 0d. ~~Respostas P-31 a P-33 e S-12 a S-14~~ — **feito em 01/11/2026** (requirements.md §5). O Daniel subiu a aplicação local para olhar (a V6 já está aplicada no banco local, porta 5434).
 0e. **Comece por aqui (próxima sessão):**
    1. Ouvir o que o Daniel achou da aplicação (lançamento em bomba, ficha da bomba, inativar serviço) e ajustar.
-   2. **P-32 / migração `V7`:** status `cancelado` na oportunidade (não conta como receita perdida) e ajuste da RN-26. O Daniel escolheu a opção, mas **adiou a geração da V7** ("depois", 01/11). **O SQL e o plano estão prontos em [`docs/integracao/schema-v7.md`](docs/integracao/schema-v7.md)** (inclui um caso a decidir junto: bomba com data de cadastro pode recontar em vez de cancelar). Pedir o OK antes de gerar (AGENTS.md §10).
+   2. ~~**P-32 / migração `V7`**~~ — **aprovada ("pode seguir", inclusive a bomba) e implementada em 01/11/2026** (§12d, D-33). Roda sozinha na próxima subida do backend local (banco 5434); em produção, só com o checklist da §4.
    3. **Levar o contrato ao Jiraya:** o texto para colar está em [`docs/integracao/pedido-jiraya.md`](docs/integracao/pedido-jiraya.md). O Daniel abre uma sessão em `C:\dev\Jiraya` com o pedido pronto (CV-v1 = `docs/integracao/jiraya.md`; etapa antes da E8; spec + `docs/architecture/valtis-integration.md` + D-xx; J-1 a J-3; schema aprovado antes da migração). Mudança no contrato volta para cá como nova versão.
    4. Decidir se publica a branch `feat/modo-integrado` no GitHub (ainda só local).
    5. Validar a **S-15** (filtros do painel, §5) e olhar as correções da §12d.
