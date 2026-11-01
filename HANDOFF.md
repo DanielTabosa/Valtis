@@ -134,9 +134,9 @@ O Daniel autorizou seguir sem aprovação durante a codificação (13/10/2026). 
 | S-09 | ✅ Painel e lista de clientes importados ficam em telas separadas (P-08). A lista própria ainda não existe | — |
 | S-10 | ✅ **Revista em 16/10.** A data vem com **hoje** e o aviso "Confira: é hoje?" (RF-17, D-02 revisto) | `Lancamento.tsx` |
 | S-11 | ✅ D-21, D-23, D-24 aceitas. D-22 aceita **com gatilho**: com domínio único (P-07), reavaliar cookie `HttpOnly` | `docs/decisions.md` |
-| S-12 | ⏳ **A validar (01/11/2026).** Do detalhe do Manutec Clientes para o cliente do Valtis: nome do condomínio = nome fantasia (sem ele, razão social); endereço, bairro e cidade do endereço principal ativo (sem ele, o primeiro ativo); síndico, telefone e e-mail do contato com função "síndico" (sem ele, o primeiro contato) | `integracao/AplicadorDeCliente.dados` |
-| S-13 | ⏳ **A validar.** Tipo de bomba do Valtis para equipamento do Jiraya: o tipo ativo do catálogo cujo nome aparece no nome do tipo do Jiraya ("Bomba de recalque" → Recalque); sem correspondência, pendência | `integracao/AplicadorDeEquipamento.tipoDeBomba` |
-| S-14 | ⏳ **A validar.** VRP que muda de localização no Jiraya vira pendência (a válvula não troca de estação, para não misturar históricos); bomba que muda de localização é movida: encerra a ocupação e abre outra no conjunto novo (D-27) | `integracao/AplicadorDeEquipamento` |
+| S-12 | ✅ **Validada em 01/11/2026.** Do detalhe do Manutec Clientes para o cliente do Valtis: nome do condomínio = nome fantasia (sem ele, razão social); endereço, bairro e cidade do endereço principal ativo (sem ele, o primeiro ativo); síndico, telefone e e-mail do contato com função "síndico" (sem ele, o primeiro contato) | `integracao/AplicadorDeCliente.dados` |
+| S-13 | ✅ **Validada em 01/11/2026.** Tipo de bomba do Valtis para equipamento do Jiraya: o tipo ativo do catálogo cujo nome aparece no nome do tipo do Jiraya ("Bomba de recalque" → Recalque); sem correspondência, pendência | `integracao/AplicadorDeEquipamento.tipoDeBomba` |
+| S-14 | ✅ **Validada em 01/11/2026.** VRP que muda de localização no Jiraya vira pendência (a válvula não troca de estação, para não misturar históricos); bomba que muda de localização é movida: encerra a ocupação e abre outra no conjunto novo (D-27) | `integracao/AplicadorDeEquipamento` |
 
 ---
 
@@ -351,7 +351,7 @@ O Daniel aprovou o V6 e pediu para avançar sozinho. Na branch **`feat/modo-inte
 
 **Verificado no navegador (01/11/2026)**, contra um Postgres descartável (porta 5440, já removido; o banco local do Daniel **não** foi tocado): em `propria`, lançamento só na bomba → "Próxima manutenção em 01/11/2027", ficha da bomba EM DIA com o serviço no histórico; em `externa`, menu de admin com Integração e Pendências, "Ler agora" mostrando "Fonte sem URL ou sem token" por fonte. Não verificado: telas de complemento, pendências com dados reais e o fluxo com o Jiraya de verdade.
 
-**Pendências novas para o Daniel:** P-31 (serviço em bomba do patrimônio), P-32 (inativar o único serviço do equipamento), P-33 (OS concluída de novo depois de inativada), S-12 a S-14 (suposições de mapeamento). Todas isoladas: o código recusa só o caso bloqueado, com mensagem.
+**Respostas do Daniel (01/11/2026):** P-31 recusar, como está; P-33 pendência, como está; S-12 a S-14 validadas. **P-32: encerrar a oportunidade com status novo `cancelado`** (não conta como receita perdida) — exige a migração `V7` (CHECK de `oportunidade.status`) e o ajuste da RN-26; **aguarda o OK do schema** antes de gerar.
 
 **Variáveis novas** (só para rodar `externa`): `VALTIS_CADASTROS_ORIGEM=externa`, `VALTIS_MANUTEC_CLIENTES_URL`, `VALTIS_MANUTEC_CLIENTES_TOKEN`, `VALTIS_JIRAYA_URL`, `VALTIS_JIRAYA_TOKEN`. Sem elas, o padrão é `propria` e nada muda para quem usa hoje.
 

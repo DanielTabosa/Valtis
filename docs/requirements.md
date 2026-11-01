@@ -353,12 +353,10 @@ Detalhe em [`docs/integracao/jiraya.md`](integracao/jiraya.md), seção "Pontos 
 | ~~P-29~~ | Técnico do serviço vindo do Jiraya | **Primeiro executor** das etapas; sem executor, quem concluiu. Gravado como texto (não é usuário do Valtis). Ajusta RF-74 |
 | ~~P-30~~ | OS com serviços diferentes por equipamento | Tipo de serviço **por OS**; a equipe abre OS separadas |
 
-### Pendências abertas na implementação do modo integrado (01/11/2026) — aguardam o Daniel
+### Pendências da implementação do modo integrado (01/11/2026) — respondidas pelo Daniel no mesmo dia
 
-Cada uma isola só a parte bloqueada; o resto foi implementado.
-
-| # | Pendência | O que o código faz enquanto isso |
+| # | Pendência | Resposta |
 |---|---|---|
-| P-31 | Serviço em **bomba do patrimônio** da Manutec: entra no ciclo comercial? A oportunidade exige cliente (RN-07), e o patrimônio não tem dono | O lançamento é **recusado** com a mensagem "registre a manutenção no cadastro dela" (a última manutenção do cadastro continua valendo, RN-16). Só existe no modo `propria` |
-| P-33 | OS do Jiraya **concluída de novo** depois que o admin inativou (RN-26) o serviço dela. O índice "um serviço por OS e equipamento" (RN-23) impede um segundo serviço da mesma OS | Vai para as pendências ("voltou diferente do Jiraya"). O admin pode lançar o serviço à mão (RF-76) |
-| P-32 | Inativar (RN-26) o **único** serviço ativo de um equipamento, quando é ele que abre o ciclo atual. O equipamento ficaria sem ciclo, e não há desfecho previsto para a oportunidade que perde a origem (encerrar como `perdido` contaria como receita perdida) | A inativação é **recusada** com mensagem citando P-32. Inativar serviço antigo, ou o mais recente quando há anterior, funciona |
+| ~~P-31~~ | Serviço em **bomba do patrimônio** da Manutec: entra no ciclo comercial? A oportunidade exige cliente (RN-07), e o patrimônio não tem dono | **Recusar, como já faz:** a manutenção do patrimônio fica só na última manutenção do cadastro da bomba (RN-16). Só existe no modo `propria` |
+| ~~P-33~~ | OS do Jiraya **concluída de novo** depois que o admin inativou (RN-26) o serviço dela. O índice "um serviço por OS e equipamento" (RN-23) impede um segundo serviço da mesma OS | **Pendência, como já faz** ("voltou diferente do Jiraya"); o admin lança à mão se valer (RF-76). Sem regra nova |
+| ~~P-32~~ | Inativar (RN-26) o **único** serviço ativo de um equipamento, quando é ele que abre o ciclo atual. O equipamento ficaria sem ciclo, e não há desfecho previsto para a oportunidade que perde a origem (encerrar como `perdido` contaria como receita perdida) | **Encerrar a oportunidade com um status novo, `cancelado`**, que não conta como receita perdida; o equipamento volta a SEM REGISTRO. Exige alterar o CHECK de `oportunidade.status` (migração `V7`) e muda RN-26: **aguarda o OK do schema** (AGENTS.md §10). Até lá, a inativação continua recusada com mensagem citando P-32 |
