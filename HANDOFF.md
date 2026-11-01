@@ -1,7 +1,7 @@
 # HANDOFF — Valtis
 
 **Para:** qualquer agente que vá trabalhar neste repositório
-**Atualizado em:** 01/11/2026 (V6 aprovado e implementado; backend do modo integrado pronto e testado; ver §12c)
+**Atualizado em:** 01/11/2026, fim da sessão (modo integrado implementado e testado, §12c; respostas de P-31 a P-33 registradas; próximo passo é o item 0e da §13)
 **Branches de trabalho:** `feat/fase-1-mvp` (Fase 1, publicada, não mesclada na `main`) · `feat/modulo-bombas` (criada a partir dela em 20/10, publicada no GitHub, sem PR) · **`feat/modo-integrado`** (criada a partir de `feat/modulo-bombas` em 01/11, **só local, não publicada**: V6, serviço por bomba, modo `propria`/`externa`, módulo de integração)
 
 Este arquivo é o resumo de situação. Ele **não substitui** `AGENTS.md`, `docs/requirements.md`, `docs/architecture.md`, `docs/database.md` e `docs/decisions.md` — leia-os conforme a ordem do `CLAUDE.md`. O que este arquivo faz é te dizer, rápido: onde o projeto está, o que já foi decidido, o que falta e o que você **não** pode fazer sozinho.
@@ -360,7 +360,12 @@ O Daniel aprovou o V6 e pediu para avançar sozinho. Na branch **`feat/modo-inte
 0. ~~Aprovação das decisões D-29 a D-31 e P-20 a P-26~~ — **feito em 30/10/2026**. O Daniel gostou de responder por perguntas de múltipla escolha, uma rodada de até 4 por vez, com a recomendação marcada: use esse formato para pendências.
 0b. ~~Escrever e aprovar o contrato Jiraya → Valtis~~ — **aprovado em 31/10/2026** (`docs/integracao/jiraya.md`). O Daniel leva ao repositório do Jiraya como etapa antes da E8 (P-24), com J-1 a J-3.
 0c. ~~Apresentar e implementar o schema `V6`~~ — **aprovado e implementado em 01/11/2026** (§12c). A migração **não foi aplicada no banco local nem em produção**: roda sozinha na próxima subida do backend (local: com o Daniel; produção: §4, exige aprovação).
-0d. **Comece por aqui:** o Daniel responde P-31 a P-33 e valida S-12 a S-14; testa o modo `propria` (nada deve ter mudado, mais o lançamento de serviço em bomba). O modo `externa` só roda de verdade quando o Jiraya expuser a API (J-1 a J-3 do contrato). Texto original do item 0c: para aprovação (referências externas em `cliente`, `valvula`, `bomba`, `servico`; `servico.bomba_id` com `valvula_id` passando a opcional, um dos dois obrigatório; `evento_recebido`; `cursor_integracao`; `periodicidade_meses` na bomba com padrão 12). Só depois: módulo `integracao/`, modo `externa` nos controllers, RF-80, telas de pendências e estado.
+0d. ~~Respostas P-31 a P-33 e S-12 a S-14~~ — **feito em 01/11/2026** (requirements.md §5). O Daniel subiu a aplicação local para olhar (a V6 já está aplicada no banco local, porta 5434).
+0e. **Comece por aqui (próxima sessão):**
+   1. Ouvir o que o Daniel achou da aplicação (lançamento em bomba, ficha da bomba, inativar serviço) e ajustar.
+   2. **P-32 / migração `V7`:** status `cancelado` na oportunidade (não conta como receita perdida) e ajuste da RN-26. O Daniel escolheu a opção, mas **adiou a geração da V7** ("depois", 01/11). Apresentar o SQL e pedir o OK antes de gerar (AGENTS.md §10).
+   3. **Levar o contrato ao Jiraya:** o Daniel abre uma sessão em `C:\dev\Jiraya` com o pedido pronto (CV-v1 = `docs/integracao/jiraya.md`; etapa antes da E8; spec + `docs/architecture/valtis-integration.md` + D-xx; J-1 a J-3; schema aprovado antes da migração). Mudança no contrato volta para cá como nova versão.
+   4. Decidir se publica a branch `feat/modo-integrado` no GitHub (ainda só local).
 
 1. ~~Teste manual do Daniel na branch~~ — refeito em 16/10/2026: tudo funcionou. Ajustes pedidos e já feitos: editar/inativar/excluir válvula pelo técnico, data de hoje no lançamento, cartões do painel que não zeram ao filtrar, atrasados sem lembrete marcados na fila, tela Agenda com cartões que filtram a lista (como o painel). Testado e aprovado pelo Daniel.
 2. ~~Validar S-01 a S-11 e D-21 a D-24~~ — feito em 16/10/2026.
