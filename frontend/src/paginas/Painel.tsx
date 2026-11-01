@@ -176,7 +176,7 @@ export function Painel() {
                 </td>
                 <td data-rotulo="Última" className="sem-quebra">
                   {formatarData(l.ultimaManutencao)}
-                  {l.ultimoTecnico && <span className="secundario"> · {l.ultimoTecnico}</span>}
+                  {l.ultimoTecnico && <span className="secundario linha-abaixo">{l.ultimoTecnico}</span>}
                 </td>
                 <td data-rotulo="Próxima" className="sem-quebra">{formatarData(l.proximaManutencao)}</td>
                 <td data-rotulo="Prazo" className="sem-quebra">{textoPrazo(l.diasRestantes)}</td>

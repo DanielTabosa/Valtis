@@ -278,6 +278,13 @@ a:hover {
   color: var(--texto-fraco);
 }
 
+/* Dado de apoio em linha própria dentro da célula (ex.: técnico do último serviço). */
+.linha-abaixo {
+  display: block;
+  font-size: 0.82rem;
+  white-space: normal;
+}
+
 .pequeno {
   font-size: 0.85rem;
 }
@@ -357,6 +364,9 @@ a:hover {
 .conteudo-interno {
   max-width: 1200px;
   margin: 0 auto;
+  /* As tabelas viram cartões pela largura do conteúdo, não da janela: com a
+     lateral aberta, 1024px de janela deixam ~670px para a tabela. */
+  container-type: inline-size;
   animation: entrar var(--medio) var(--ease) both;
 }
 
@@ -1694,7 +1704,7 @@ li.inativo,
   text-align: right;
 }
 
-@media (max-width: 719px) {
+@container (max-width: 719px) {
   .tabela-cartoes,
   .tabela-cartoes tbody,
   .tabela-cartoes tr,
