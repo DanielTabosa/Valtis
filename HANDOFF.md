@@ -1,7 +1,7 @@
 # HANDOFF — Valtis
 
 **Para:** qualquer agente que vá trabalhar neste repositório
-**Atualizado em:** 30/10/2026 (noite, sessão encerrada pelo Daniel; próximo passo é o item 0b da §13)
+**Atualizado em:** 31/10/2026 (contrato Jiraya → Valtis proposto; próximo passo é o item 0b' da §13)
 **Branches de trabalho:** `feat/fase-1-mvp` (Fase 1, publicada, não mesclada na `main`) · `feat/modulo-bombas` (criada a partir dela em 20/10, publicada no GitHub, sem PR; módulo de bombas completo, não mesclada)
 
 Este arquivo é o resumo de situação. Ele **não substitui** `AGENTS.md`, `docs/requirements.md`, `docs/architecture.md`, `docs/database.md` e `docs/decisions.md` — leia-os conforme a ordem do `CLAUDE.md`. O que este arquivo faz é te dizer, rápido: onde o projeto está, o que já foi decidido, o que falta e o que você **não** pode fazer sozinho.
@@ -309,7 +309,7 @@ O Daniel trouxe um briefing (feito com o GPT) para um módulo de bombas: `client
 
 ## 12b. Redirecionamento de arquitetura — modo integrado (30/10/2026, **aprovado**)
 
-O Daniel redefiniu o papel do Valtis: **monitor de prazos e apontador de oportunidades** de revenda da manutenção de 12 meses (VRPs e bombas), integrado aos outros dois sistemas da Manutec. Tudo o que o Valtis já tem **se mantém**, para virar um SaaS independente depois. Decisões D-29 a D-31, requisitos §1.10 (RF-70 a RF-80), regras RN-21 a RN-25 e architecture.md §9 **aprovados por ele em 30/10/2026**; P-20 a P-26 respondidas (requirements.md §5). **O schema `V6` ainda não foi apresentado nem aprovado.** Nada implementado.
+O Daniel redefiniu o papel do Valtis: **monitor de prazos e apontador de oportunidades** de revenda da manutenção de 12 meses (VRPs e bombas), integrado aos outros dois sistemas da Manutec. Tudo o que o Valtis já tem **se mantém**, para virar um SaaS independente depois. Decisões D-29 a D-31, requisitos §1.10 (RF-70 a RF-80), regras RN-21 a RN-25 e architecture.md §9 **aprovados por ele em 30/10/2026**; P-20 a P-26 respondidas (requirements.md §5). **O schema `V6` ainda não foi apresentado nem aprovado.** Nada implementado. Contrato Jiraya → Valtis proposto em 31/10 em `docs/integracao/jiraya.md` (P-27 a P-30 respondidas).
 
 | Sistema | Papel | Já tem (conferido em `C:\dev\Jiraya` e `C:\dev\manutec-clientes`) |
 |---|---|---|
@@ -325,12 +325,15 @@ O Daniel redefiniu o papel do Valtis: **monitor de prazos e apontador de oportun
 5. Ordem: **documentação primeiro** (feita e aprovada), contrato da API Jiraya → Valtis escrito aqui no Valtis (próximo), código só depois da aprovação do schema.
 6. Pendências fechadas no mesmo dia: reiniciam o ciclo manutenção preventiva, corretiva **e instalação**; um tipo de equipamento por função no Jiraya; periodicidade fica no Valtis, 12 meses para tudo; leitura a cada 5 min; lado do Jiraya como etapa antes da E8; base histórica entra pelo Jiraya; teste de bombas só do que sobrevive em `externa`.
 
-**O que fica para o Jiraya** (P-24): API de leitura de equipamentos e OS com cursor e token; tipo de serviço na OS; patrimônio emprestado.
+**O que fica para o Jiraya** (P-24): API de leitura de equipamentos e OS com cursor e token; tipo de serviço e data de execução na OS (J-1, J-2 do contrato); patrimônio emprestado.
+
+**Contrato Jiraya → Valtis (31/10/2026)**, `docs/integracao/jiraya.md`: cinco rotas só de leitura sob `/api/integracao/v1/` (tipos de equipamento, equipamento, equipamentos/alterações, OS, OS/alterações), token Bearer, cursor `desde` + `apos_id`, itens completos no feed. Armadilhas achadas no Jiraya e tratadas: OS concluída pode ser **reaberta** e cancelada (o feed traz todas as situações; reabertura vai para pendências, P-27); `completed_at` é o clique, não o dia do serviço (campo novo `data_execucao`, P-28); `completed_by` é o gestor, não o técnico (usa `executores`, P-29). Consequências para o `V6` listadas no fim do contrato: técnico externo em texto, valor `instalacao` no tipo de manutenção, dois cursores.
 
 ## 13. Próxima tarefa sugerida
 
 0. ~~Aprovação das decisões D-29 a D-31 e P-20 a P-26~~ — **feito em 30/10/2026**. O Daniel gostou de responder por perguntas de múltipla escolha, uma rodada de até 4 por vez, com a recomendação marcada: use esse formato para pendências.
-0b. **Comece a próxima sessão por aqui: escrever o contrato Jiraya → Valtis** em `docs/integracao/jiraya.md`, no molde de `C:\dev\manutec-clientes\docs\INTEGRACAO_JIRAYA.md`: equipamentos e OS concluídas com `alteracoes` e cursor, token Bearer, campos, exemplos. O Daniel leva para o repositório do Jiraya implementar.
+0b. ~~Escrever o contrato Jiraya → Valtis~~ — **proposto em 31/10/2026** em `docs/integracao/jiraya.md`; P-27 a P-30 respondidas pelo Daniel.
+0b'. **Comece por aqui:** o Daniel lê o contrato completo e aprova (ou pede ajustes). Aprovado, ele leva ao repositório do Jiraya como etapa antes da E8 (P-24); a situação no topo do arquivo passa a "contrato vigente".
 0c. **Apresentar o schema `V6`** para aprovação (referências externas em `cliente`, `valvula`, `bomba`, `servico`; `servico.bomba_id` com `valvula_id` passando a opcional, um dos dois obrigatório; `evento_recebido`; `cursor_integracao`; `periodicidade_meses` na bomba com padrão 12). Só depois: módulo `integracao/`, modo `externa` nos controllers, RF-80, telas de pendências e estado.
 
 1. ~~Teste manual do Daniel na branch~~ — refeito em 16/10/2026: tudo funcionou. Ajustes pedidos e já feitos: editar/inativar/excluir válvula pelo técnico, data de hoje no lançamento, cartões do painel que não zeram ao filtrar, atrasados sem lembrete marcados na fila, tela Agenda com cartões que filtram a lista (como o painel). Testado e aprovado pelo Daniel.

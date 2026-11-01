@@ -150,7 +150,7 @@ Estrutura: `cliente (condomínio) → conjunto de bombeamento → bomba`. Uma bo
 
 ### 1.10 Modo integrado — Valtis como monitor de prazos `[DECIDIDO · 30/10/2026]`
 
-> **Status:** decisões D-29, D-30 e D-31 e requisitos RF-70 a RF-80 **aprovados pelo Daniel em 30/10/2026**. Schema (`V6`) ainda a aprovar à parte. Nada implementado. Contrato da API Jiraya → Valtis ainda a escrever (`docs/integracao/jiraya.md`).
+> **Status:** decisões D-29, D-30 e D-31 e requisitos RF-70 a RF-80 **aprovados pelo Daniel em 30/10/2026**. Schema (`V6`) ainda a aprovar à parte. Nada implementado. Contrato da API Jiraya → Valtis proposto em 31/10/2026 em [`docs/integracao/jiraya.md`](integracao/jiraya.md), com P-27 a P-30 respondidas; falta a aprovação do texto completo.
 
 O Valtis passa a ter dois **modos de operação** (RF-70). No modo `propria` tudo funciona como nas seções 1.2, 1.8 e 1.9. No modo `externa`, que é o da Manutec, cliente vem do **Manutec Clientes**, equipamento e serviço vêm do **Jiraya**, e o Valtis fica com o que nenhum dos dois faz: ciclo de 12 meses, oportunidade, fila, agenda e painel. As tabelas são as mesmas; muda quem escreve nelas (D-29).
 
@@ -160,15 +160,15 @@ O Valtis passa a ter dois **modos de operação** (RF-70). No modo `propria` tud
 | RF-71 | Em `externa`, **clientes** são lidos do Manutec Clientes (busca, detalhe, alterações com cursor) e espelhados com `manutec_id`. Criar, editar e inativar cliente ficam indisponíveis na tela, que indica "gerido no Manutec Clientes". Cliente inativado na fonte é inativado no Valtis (RN-12) | P0 | `[INFORMADO]` · D-29 |
 | RF-72 | Em `externa`, **equipamentos** são lidos do Jiraya e espelhados com `jiraya_equipamento_id`. Tipo de equipamento do Jiraya mapeado para válvula ou bomba por lista configurável (nome contém "VRP" → válvula; contém "bomba" → bomba); tipos não mapeados são ignorados e listados nas pendências (RF-75) | P0 | `[INFORMADO]` · D-29 |
 | RF-73 | **Estação** e **conjunto** derivados da localização interna do Jiraya: uma estação por (cliente, localização) para VRPs, um conjunto por (cliente, localização) para bombas. Sem localização, uma estação ou conjunto "sem localização" por cliente | P0 | `[SUGESTÃO]` · D-29 |
-| RF-74 | **OS concluída** no Jiraya com tipo de serviço de manutenção (RN-22) vira **serviço** no Valtis para cada equipamento mapeado da OS, com `jiraya_os_id`, `data_realizada` = data de conclusão, técnico = quem concluiu e observação com a descrição da OS. Dispara RN-07 e RN-10 exatamente como um lançamento manual | P0 | `[INFORMADO]` · D-31 |
-| RF-75 | Tela **Pendências de integração** (admin): eventos recebidos que não puderam ser aplicados (equipamento de tipo não mapeado, cliente sem referência, data ausente, OS sem equipamento), com o motivo e ação de resolver ou descartar com justificativa. Nada é descartado em silêncio | P0 | `[INFORMADO]` · D-29 |
+| RF-74 | **OS concluída** no Jiraya com tipo de serviço de manutenção (RN-22) vira **serviço** no Valtis para cada equipamento mapeado da OS, com `jiraya_os_id`, `data_realizada` = **data de execução** informada na OS (P-28), técnico = **primeiro executor** das etapas, ou quem concluiu se não houver (P-29, gravado como texto), e observação com a descrição da OS. Dispara RN-07 e RN-10 exatamente como um lançamento manual | P0 | `[INFORMADO]` · D-31 |
+| RF-75 | Tela **Pendências de integração** (admin): eventos recebidos que não puderam ser aplicados (equipamento de tipo não mapeado, cliente sem referência, data ausente, OS sem equipamento, OS concluída sem tipo de serviço, **OS já aplicada que foi reaberta ou cancelada no Jiraya**, P-27), com o motivo e ação de resolver ou descartar com justificativa. Nada é descartado em silêncio | P0 | `[INFORMADO]` · D-29 |
 | RF-76 | **Lançamento manual** continua em `externa`, para válvula e para bomba, marcado "lançado no Valtis". Não é enviado ao Jiraya (RN-24) | P0 | `[INFORMADO]` · D-29 |
 | RF-77 | Em `externa`, importador (RF-51 a RF-59), movimentações e patrimônio de bombas (RF-65 a RF-67) e cadastro de tipos de bomba (RF-60) ficam **desligados**: o Jiraya é a verdade. O código permanece para o modo `propria` | P0 | `[DECIDIDO]` · D-29 |
 | RF-78 | Tela **Estado da integração** (admin): por origem, cursor atual, última leitura bem-sucedida, eventos pendentes e com erro, botão "ler agora" | P1 | `[SUGESTÃO]` · D-30 |
 | RF-79 | **Substituição** de equipamento no Jiraya: o Valtis inativa o antigo, cria o novo com o histórico do antigo preservado, e o ciclo do novo começa sem registro (RN-05) até a primeira manutenção | P1 | `[SUGESTÃO]` · D-29 |
 | RF-80 | **Serviço por bomba**: `servico` aceita válvula **ou** bomba. Lançamento manual, histórico e oportunidade de escopo bomba, com o mesmo fluxo da válvula | P0 | `[DECIDIDO]` · D-31 · resolve P-16 |
 
-**Trabalho que fica no Jiraya, não no Valtis** (P-24): API de leitura de equipamentos e OS com cursor e token; campo "tipo de serviço" na OS; patrimônio de bombas emprestadas da Manutec (hoje só no Valtis, RF-65 a RF-67).
+**Trabalho que fica no Jiraya, não no Valtis** (P-24): API de leitura de equipamentos e OS com cursor e token; campos "tipo de serviço" e "data de execução" na OS (J-1, J-2 do contrato); patrimônio de bombas emprestadas da Manutec (hoje só no Valtis, RF-65 a RF-67).
 
 ---
 
@@ -340,3 +340,14 @@ Declarado explicitamente. Um agente que "adicionar" qualquer item desta lista es
 | ~~P-24~~ | Lado do Jiraya: quando | **Etapa própria antes da E8** do roadmap do Jiraya, logo após a E7b: API de leitura (equipamentos, OS) com cursor e token, tipo de serviço na OS, tipos de equipamento por função, patrimônio de bombas emprestadas. O contrato nasce no Valtis (`docs/integracao/jiraya.md`) |
 | ~~P-25~~ | Base histórica dos 296 clientes | **Pelo Jiraya**: equipamento e OS retroativa cadastrados lá; o Valtis recebe pela integração. Importador (RF-51 a RF-59) só em `propria` (RF-77). D-09 vale para o produto independente |
 | ~~P-26~~ | Teste manual do módulo de bombas | **Só o que sobrevive em `externa`**: ficha da bomba, painel, próxima manutenção. Conjunto, empréstimo e patrimônio ficam no código para o modo `propria`, sem teste agora |
+
+### Pendências do contrato Jiraya → Valtis (31/10/2026) — respondidas pelo Daniel no mesmo dia
+
+Detalhe em [`docs/integracao/jiraya.md`](integracao/jiraya.md), seção "Pontos decididos".
+
+| # | Pendência | Resposta |
+|---|---|---|
+| ~~P-27~~ | OS já aplicada é reaberta ou cancelada no Jiraya | Vai para as **pendências de integração** (RF-75); o admin decide se mantém ou inativa o serviço. Nenhuma regra automática |
+| ~~P-28~~ | Data do serviço vindo do Jiraya | Campo novo **data de execução** na OS do Jiraya, informado na conclusão. Não usar o instante do clique em "concluir" |
+| ~~P-29~~ | Técnico do serviço vindo do Jiraya | **Primeiro executor** das etapas; sem executor, quem concluiu. Gravado como texto (não é usuário do Valtis). Ajusta RF-74 |
+| ~~P-30~~ | OS com serviços diferentes por equipamento | Tipo de serviço **por OS**; a equipe abre OS separadas |
